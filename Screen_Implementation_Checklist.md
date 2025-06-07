@@ -7,9 +7,17 @@
 **Platform:** Web (Next.js)  
 **Architecture:** 
 - **Admin/Cashier:** Role-Based Conditional Rendering (Unified Dashboard)
-- **Customer:** Independent Portal Interface
+- **Customer:** Independent Portal Interface (Path-Based Multi-Store)
 - **Admin Access:** COMPLETE SYSTEM ACCESS - Admin sees all admin components + all cashier components + all navigation + all features
 - **Role Hierarchy:** Admin > Manager > Cashier > Customer (permissions decrease down the hierarchy)
+
+**Customer Portal URL Structure:**
+- **Path-Based Approach:** `https://kopqela.com/store/[business-slug]`
+- **Multi-Business Support:** Each business gets unique store accessible via URL path
+- **Examples:**
+  - `https://kopqela.com/store/duka-la-mama`
+  - `https://kopqela.com/store/electronics-shop`
+  - `https://kopqela.com/store/fashion-boutique`
 
 ---
 
@@ -420,80 +428,149 @@
 
 ---
 
-## Customer Portal (Independent Interface)
+## Customer Portal (Independent Interface - Path-Based Multi-Store)
 
-### 20. Customer Homepage
-- [ ] **Hero Section**
-  - [ ] Business branding
-  - [ ] Welcome message
-  - [ ] Featured products carousel
-  - [ ] Call-to-action buttons
-- [ ] **Navigation**
-  - [ ] Logo
-  - [ ] Product categories
-  - [ ] Search bar
-  - [ ] Language toggle
-  - [ ] User account menu
-- [ ] **Content Sections**
-  - [ ] Featured products
-  - [ ] New arrivals
-  - [ ] Categories grid
-  - [ ] About business section
+**URL Structure:** `https://kopqela.com/store/[business-slug]/[page]`  
+**Access Model:** Public access per business store  
+**Technical Implementation:**
+- **Dynamic Routes:** `app/store/[slug]/page.tsx`
+- **Business Context:** Each route loads business-specific data and theming
+- **File Structure:** 
+  ```
+  app/store/[slug]/
+  ├── page.tsx              # Store homepage
+  ├── products/
+  │   ├── page.tsx          # Product catalog  
+  │   └── [id]/page.tsx     # Product details
+  ├── order/page.tsx        # Order request
+  ├── credit/page.tsx       # Credit application
+  └── account/page.tsx      # Customer account
+  ```
 
-### 21. Product Catalog Screen (Customer)
-- [ ] **Product Grid**
-  - [ ] Product cards
-  - [ ] Product images
-  - [ ] Product names
-  - [ ] Prices display
-  - [ ] Stock status
-- [ ] **Filter Sidebar**
-  - [ ] Category filters
-  - [ ] Price range filter
-  - [ ] Product type filter
-  - [ ] Availability filter
-- [ ] **Search & Sort**
-  - [ ] Product search
-  - [ ] Sort options
-  - [ ] Results count
-  - [ ] Pagination
+**Business Isolation:**
+- Each store operates independently
+- Business-specific products, customers, and orders
+- Separate theming and branding per business
+- Independent customer authentication per store
 
-### 22. Product Details Screen (Customer)
-- [ ] **Product Information**
-  - [ ] Image gallery
-  - [ ] Product name
-  - [ ] Product description
-  - [ ] Price display
-  - [ ] Stock availability
-- [ ] **Purchase Options**
-  - [ ] Quantity selector
-  - [ ] Request purchase button
-  - [ ] Add to favorites
-  - [ ] Share product
-- [ ] **Additional Info**
-  - [ ] Product specifications
-  - [ ] Related products
-  - [ ] Customer reviews
-  - [ ] Product images zoom
+### 20. Customer Homepage (`/store/[slug]`)
+- [x] **Hero Section**
+  - [x] Business branding (dynamic per business)
+  - [x] Welcome message (customizable)
+  - [x] Featured products carousel (business-specific)
+  - [x] Call-to-action buttons
+- [x] **Navigation**
+  - [x] Business logo (dynamic)
+  - [x] Product categories (business-specific)
+  - [x] Search bar (searches within business products)
+  - [x] Language toggle (EN/SW)
+  - [x] User account menu (store-specific login)
+- [x] **Content Sections**
+  - [x] Featured products (from current business)
+  - [x] New arrivals (business inventory)
+  - [x] Categories grid (business categories)
+  - [x] About business section (business info)
 
-### 23. Order Request Screen (Customer)
-- [ ] **Step 1: Product Confirmation**
-  - [ ] Product details review
-  - [ ] Quantity confirmation
-  - [ ] Total price calculation
-  - [ ] Delivery options
-- [ ] **Step 2: Payment Method**
-  - [ ] Full payment option
-  - [ ] Partial payment option
-  - [ ] Credit application option
-  - [ ] Payment method selection
-- [ ] **Step 3: Order Details**
-  - [ ] Delivery address
-  - [ ] Contact information
-  - [ ] Special instructions
-  - [ ] Order notes
+### 21. Product Catalog Screen (`/store/[slug]/products`)
+- [x] **Product Grid**
+  - [x] Product cards (business-specific products only)
+  - [x] Product images (placeholder with gradient)
+  - [x] Product names (EN/SW)
+  - [x] Prices display (business pricing with currency formatting)
+  - [x] Stock status (business inventory with counts)
+- [x] **Filter Sidebar**
+  - [x] Category filters (business categories)
+  - [x] Price range filter (business price range with number inputs)
+  - [x] Product type filter (wholesale/retail radio buttons)
+  - [x] Availability filter (in stock checkbox)
+- [x] **Search & Sort**
+  - [x] Product search (within business products by name/description/tags)
+  - [x] Sort options (price, rating, popularity, newest)
+  - [x] Results count display
+  - [x] Pagination with page numbers
+- [x] **Additional Features**
+  - [x] Business-specific theming (primary colors)
+  - [x] Rating display with stars
+  - [x] Discount badges for sale items
+  - [x] Product type badges (wholesale/retail)
+  - [x] Mobile-responsive filters (collapsible)
+  - [x] Clear all filters functionality
+  - [x] Loading state for business data
+  - [x] Empty state when no products found
+  - [x] Links to product details page
 
-### 24. Credit Sales Application Screen (Customer)
+### 22. Product Details Screen (`/store/[slug]/products/[id]`)
+- [x] **Product Information**
+  - [x] Image gallery (main image + thumbnails)
+  - [x] Product name (EN/SW)
+  - [x] Product description (EN/SW full descriptions)
+  - [x] Price display (business pricing with currency formatting)
+  - [x] Stock availability (business inventory with stock counts)
+- [x] **Purchase Options**
+  - [x] Quantity selector (within available stock limits)
+  - [x] Request purchase button (business-themed)
+  - [x] Add to favorites (store-specific with heart toggle)
+  - [x] Share product (with native Web Share API + clipboard fallback)
+- [x] **Additional Info**
+  - [x] Product specifications (EN/SW with detailed specs)
+  - [x] Related products (from same business category)
+  - [x] Customer reviews (store-specific with verification badges)
+  - [x] Product images zoom (modal overlay with zoom functionality)
+- [x] **Advanced Features**
+  - [x] Breadcrumb navigation
+  - [x] Tabbed content (Description, Specifications, Reviews)
+  - [x] Product type badges (Wholesale/Retail)
+  - [x] Discount indicators and savings calculation
+  - [x] Star ratings display
+  - [x] Product not found handling
+  - [x] Mobile-responsive image gallery
+  - [x] Business-specific theming
+  - [x] Sample reviews with verified purchase badges
+  - [x] Quantity controls with validation
+  - [x] Back to catalog navigation
+
+### 23. Order Request Screen (`/store/[slug]/order`)
+- [x] **Step 1: Product Confirmation**
+  - [x] Product details review (business-specific with sample data)
+  - [x] Quantity confirmation (within stock limits with +/- controls)
+  - [x] Total price calculation (business pricing with currency formatting)
+  - [x] Add/remove items functionality
+- [x] **Step 2: Payment Method**
+  - [x] Full payment option (instant processing)
+  - [x] Partial payment option (integrated 5-step flow)
+  - [x] Credit application option (integrated 6-step flow)
+  - [x] Payment method selection (business accepted methods)
+- [x] **Step 3: Order Details**
+  - [x] Delivery options (store pickup free, home delivery with fees)
+  - [x] Customer information form (name, phone, email, address)
+  - [x] Special instructions textarea
+  - [x] Address validation for delivery option
+- [x] **Step 4: Integrated Payment Configuration**
+  - [x] Credit application (employment & guarantor info) for credit method
+  - [x] Partial payment setup (amount, due date, terms) for partial method
+  - [x] Dynamic step navigation based on payment method
+  - [x] Payment-specific validation and terms agreement
+- [x] **Step 5/6: Review & Submit**
+  - [x] Order summary with all details
+  - [x] Payment method details (partial payment breakdown, credit terms)
+  - [x] Total calculation with delivery fees
+  - [x] Terms and conditions agreement
+  - [x] Order submission with confirmation
+- [x] **Advanced Features**
+  - [x] Multi-step progress indicator with visual feedback
+  - [x] Dynamic step configuration (4/5/6 steps based on payment method)
+  - [x] Form validation for each step
+  - [x] Business-specific theming and pricing
+  - [x] Mobile-responsive design
+  - [x] Multilingual support (EN/SW)
+  - [x] URL parameter support for product preselection
+  - [x] Business-specific delivery fees and options
+  - [x] Order number generation
+  - [x] Payment method persistence and cleanup
+  - [x] Auto-calculation of partial payment amounts (50% default, 30% minimum)
+  - [x] Loading states and error handling
+
+### 24. Credit Sales Application Screen (`/store/[slug]/credit`)
 - [ ] **Personal Information**
   - [ ] Full name
   - [ ] ID/Passport number
@@ -505,10 +582,10 @@
   - [ ] Monthly income
   - [ ] Employment duration
 - [ ] **Product Selection**
-  - [ ] Browse available products
+  - [ ] Browse available products (business inventory)
   - [ ] Add to cart
-  - [ ] Quantity selection
-  - [ ] Total calculation
+  - [ ] Quantity selection (within stock)
+  - [ ] Total calculation (business pricing)
 - [ ] **Guarantor Information**
   - [ ] Guarantor name
   - [ ] Guarantor contact
@@ -516,71 +593,73 @@
   - [ ] Guarantor consent
 - [ ] **Credit Terms**
   - [ ] Total order amount
-  - [ ] Down payment
-  - [ ] Credit duration preference
+  - [ ] Down payment (business requirements)
+  - [ ] Credit duration preference (business terms)
   - [ ] Payment ability assessment
 
 ### 25. Partial Payment Setup Screen (Customer)
-- [ ] **Payment Configuration**
-  - [ ] Amount input
-  - [ ] Due date selection
-  - [ ] Remaining balance display
-  - [ ] Payment schedule
-- [ ] **Terms & Conditions**
-  - [ ] Payment terms display
-  - [ ] Interest calculation
-  - [ ] Late payment penalties
-  - [ ] Agreement acceptance
+- [x] **INTEGRATED INTO ORDER FLOW (Screen 23)**
+  - [x] This functionality has been integrated into the Order Request screen
+  - [x] No separate screen needed - better user experience
+- [x] **Payment Configuration**
+  - [x] Amount input (with 50% default, 30% minimum)
+  - [x] Due date selection (with date validation)
+  - [x] Remaining balance display (real-time calculation)
+  - [x] Payment terms selection (7-90 days)
+- [x] **Terms & Conditions**
+  - [x] Payment terms display in summary
+  - [x] Partial payment agreement checkbox
+  - [x] Business-specific terms integration
 
-### 26. Customer Account Screen
+### 26. Customer Account Screen (`/store/[slug]/account`)
 - [ ] **Profile Section**
-  - [ ] Personal information
+  - [ ] Personal information (store-specific profile)
   - [ ] Contact details
   - [ ] Profile picture
   - [ ] Edit profile option
 - [ ] **Order History**
-  - [ ] Past orders list
+  - [ ] Past orders list (from current business only)
   - [ ] Order status
   - [ ] Order details
-  - [ ] Reorder option
+  - [ ] Reorder option (if products still available)
 - [ ] **Payment History**
-  - [ ] Payment records
+  - [ ] Payment records (business-specific)
   - [ ] Payment methods used
   - [ ] Transaction receipts
   - [ ] Download statements
 - [ ] **Outstanding Balances**
-  - [ ] Current balances
+  - [ ] Current balances (with current business)
   - [ ] Due dates
-  - [ ] Payment options
+  - [ ] Payment options (business accepted methods)
   - [ ] Payment reminders
 
-### 27. Order History Screen (Customer)
+### 27. Order History Screen (`/store/[slug]/account/orders`)
 - [ ] **Order Listing**
-  - [ ] All orders display
+  - [ ] All orders display (business-specific)
   - [ ] Order status filter
   - [ ] Date range filter
   - [ ] Sort options
 - [ ] **Order Actions**
   - [ ] View order details
-  - [ ] Track order
-  - [ ] Reorder items
+  - [ ] Track order (if business supports tracking)
+  - [ ] Reorder items (if still in stock)
   - [ ] Download receipt
 
-### 28. Order Details Screen (Customer)
+### 28. Order Details Screen (`/store/[slug]/account/orders/[id]`)
 - [ ] **Order Information**
   - [ ] Order number
   - [ ] Order date
   - [ ] Order status
-  - [ ] Delivery information
+  - [ ] Delivery information (business-specific)
 - [ ] **Items Ordered**
-  - [ ] Product list
+  - [ ] Product list (from business catalog)
   - [ ] Quantities
-  - [ ] Individual prices
+  - [ ] Individual prices (business pricing at time of order)
   - [ ] Total amount
 - [ ] **Payment Information**
-  - [ ] Payment method
+  - [ ] Payment method (business accepted method)
   - [ ] Amount paid
-  - [ ] Outstanding balance
+  - [ ] Outstanding balance (with current business)
   - [ ] Payment history
 
 ---
@@ -815,22 +894,30 @@
 
 **Total Screens:** 
 - **Business Dashboard:** 19 screens (Admin/Cashier role-based)
-- **Customer Portal:** 9 independent screens
+- **Customer Portal:** 9 independent screens (Path-Based Multi-Store)
 - **Authentication:** 4 shared screens
 
 **Current Progress:**
 - **Business Dashboard:** 18/19 screens completed (95% complete)
-- **Customer Portal:** 0/9 screens completed (0% complete)
+- **Customer Portal:** 4/9 screens completed (44% complete) - **Customer Homepage ✅, Product Catalog ✅, Product Details ✅, Order Request ✅**
 - **Authentication:** 4/4 screens completed (100% complete)
 - **Role-Based Features:** Implemented ✅
 - **Admin Complete Access:** Implemented ✅
 - **Partial Payment Integration:** Merged with POS Screen ✅
+- **Multi-Store URL Structure:** Implemented - Path-Based ✅
 
 **Total Features:** 300+  
 **Estimated Development Time:** 8-10 weeks  
 **Architecture:** 
 - **Admin/Cashier:** Unified Dashboard with Role-Based Conditional Rendering
-- **Customer:** Independent Portal Interface
+- **Customer:** Independent Portal Interface (Path-Based Multi-Store)
+- **URL Structure:** `https://kopqela.com/store/[business-slug]/[page]`
+
+**Multi-Store Implementation:**
+- **Business Isolation:** Each store operates independently
+- **Dynamic Routing:** `app/store/[slug]/` directory structure
+- **Context Loading:** Business-specific data, theming, and inventory
+- **Customer Separation:** Store-specific customer accounts and order history
 
 **Priority:** High Priority (Core Features) | Medium Priority (Enhanced Features) | Low Priority (Advanced Features)
 
