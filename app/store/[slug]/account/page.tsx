@@ -10,7 +10,6 @@ import {
   CreditCardIcon,
   ExclamationTriangleIcon,
   PencilIcon,
-  EyeIcon,
   ArrowDownTrayIcon,
   CheckCircleIcon,
   DocumentArrowDownIcon
@@ -69,7 +68,7 @@ export default function CustomerAccountPage() {
   const { business } = useBusiness()
   const { language } = useLanguage()
   
-  const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'payments' | 'balances'>('profile')
+  const [activeTab, setActiveTab] = useState<'profile' | 'payments' | 'balances'>('profile')
   const [editingProfile, setEditingProfile] = useState(false)
   const [profileData, setProfileData] = useState<CustomerProfile>({
     id: 1,
@@ -140,7 +139,9 @@ export default function CustomerAccountPage() {
       enterName: 'Enter your full name',
       enterEmail: 'Enter your email address',
       enterPhone: 'Enter your phone number',
-      enterAddress: 'Enter your address'
+      enterAddress: 'Enter your address',
+      recentOrders: 'Recent Orders',
+      viewAllOrders: 'View All Orders'
     },
     sw: {
       customerAccount: 'Akaunti Yangu',
@@ -417,13 +418,12 @@ export default function CustomerAccountPage() {
               <nav className="space-y-2">
                 {[
                   { id: 'profile', label: t.profile, icon: UserCircleIcon },
-                  { id: 'orders', label: t.orders, icon: ShoppingBagIcon },
                   { id: 'payments', label: t.payments, icon: CreditCardIcon },
                   { id: 'balances', label: t.balances, icon: ExclamationTriangleIcon }
                 ].map((tab) => (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id as 'profile' | 'orders' | 'payments' | 'balances')}
+                    onClick={() => setActiveTab(tab.id as 'profile' | 'payments' | 'balances')}
                     className={`w-full flex items-center px-4 py-3 text-left rounded-lg transition-colors ${
                       activeTab === tab.id
                         ? 'text-white'
@@ -438,6 +438,17 @@ export default function CustomerAccountPage() {
                   </button>
                 ))}
               </nav>
+              
+              {/* Recent Orders Summary */}
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <Link 
+                  href={`/store/${business.slug}/account/orders`}
+                  className="w-full flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <ShoppingBagIcon className="w-5 h-5 mr-3" />
+                  {t.orders}
+                </Link>
+              </div>
             </div>
           </div>
 
@@ -551,41 +562,46 @@ export default function CustomerAccountPage() {
                     )}
                   </div>
                 </div>
-              </div>
-            )}
 
-            {activeTab === 'orders' && (
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">{t.orders}</h2>
-                
-                {sampleOrders.length === 0 ? (
-                  <div className="text-center py-12">
-                    <ShoppingBagIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{t.noOrders}</h3>
-                    <p className="text-gray-600 mb-6">{t.noOrdersDesc}</p>
+                {/* Recent Orders Summary */}
+                <div className="mt-8 pt-8 border-t border-gray-200">
+                  <div className="flex items-center justify-between mb-6">
+                                         <h3 className="text-lg font-semibold text-gray-900">Recent Orders</h3>
                     <Link
-                      href={`/store/${business.slug}/products`}
-                      className="inline-flex items-center px-6 py-3 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity"
-                      style={{ backgroundColor: business.primaryColor }}
+                      href={`/store/${business.slug}/account/orders`}
+                      className="text-sm font-medium hover:opacity-90 transition-opacity"
+                      style={{ color: business.primaryColor }}
                     >
-                      {t.browseProducts}
+                      View All Orders →
                     </Link>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    {sampleOrders.map((order) => (
-                      <div key={order.id} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-4">
+                  
+                  {sampleOrders.length === 0 ? (
+                    <div className="text-center py-8">
+                      <ShoppingBagIcon className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-600 mb-4">{t.noOrdersDesc}</p>
+                      <Link
+                        href={`/store/${business.slug}/products`}
+                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity"
+                        style={{ backgroundColor: business.primaryColor }}
+                      >
+                        {t.browseProducts}
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {sampleOrders.slice(0, 3).map((order) => (
+                        <div key={order.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                           <div>
-                            <h3 className="text-lg font-semibold text-gray-900">
+                            <p className="font-medium text-gray-900">
                               {t.orderNumber}{order.orderNumber}
-                            </h3>
+                            </p>
                             <p className="text-sm text-gray-600">
                               {formatDate(order.date)} • {order.items.length} {t.items}
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="text-xl font-bold" style={{ color: business.primaryColor }}>
+                            <p className="font-semibold" style={{ color: business.primaryColor }}>
                               {formatPrice(order.total)}
                             </p>
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
@@ -593,32 +609,21 @@ export default function CustomerAccountPage() {
                             </span>
                           </div>
                         </div>
-
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-4">
-                            <span className="text-sm text-gray-600">
-                              Payment: {t[order.paymentMethod as keyof typeof t] || order.paymentMethod}
-                            </span>
-                          </div>
-                          <div className="flex space-x-3">
-                            <button className="flex items-center px-3 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
-                              <EyeIcon className="w-4 h-4 mr-2" />
-                              {t.viewOrder}
-                            </button>
-                            {order.status === 'delivered' && (
-                              <button
-                                className="flex items-center px-3 py-2 text-sm text-white rounded-lg hover:opacity-90 transition-opacity"
-                                style={{ backgroundColor: business.primaryColor }}
-                              >
-                                {t.reorder}
-                              </button>
-                            )}
-                          </div>
+                      ))}
+                      
+                      {sampleOrders.length > 3 && (
+                        <div className="text-center pt-4">
+                          <Link
+                            href={`/store/${business.slug}/account/orders`}
+                            className="text-sm text-gray-600 hover:text-gray-900"
+                          >
+                            +{sampleOrders.length - 3} more orders
+                          </Link>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

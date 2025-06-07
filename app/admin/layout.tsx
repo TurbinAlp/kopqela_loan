@@ -5,7 +5,6 @@ import { motion } from 'framer-motion'
 import { 
   Bars3Icon,
   XMarkIcon,
-  BellIcon,
   MagnifyingGlassIcon,
   ChevronDownIcon,
   HomeIcon,
@@ -21,6 +20,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../contexts/LanguageContext'
 import { usePathname } from 'next/navigation'
+import NotificationCenter from '../components/notifications/NotificationCenter'
 
 interface AdminLayoutProps {
   children: React.ReactNode
@@ -29,7 +29,6 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const { language, setLanguage } = useLanguage()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [notifications] = useState(3)
   const pathname = usePathname()
 
   const translations = {
@@ -207,19 +206,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               </div>
               
               {/* Notifications */}
-              <motion.div 
-                whileHover={{ scale: 1.05 }}
-                className="relative"
-              >
-                <button className="p-2 rounded-lg hover:bg-gray-100 relative">
-                  <BellIcon className="w-5 h-5 lg:w-6 lg:h-6 text-gray-600" />
-                  {notifications > 0 && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 lg:w-5 lg:h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                      {notifications}
-                    </span>
-                  )}
-                </button>
-              </motion.div>
+              <NotificationCenter variant="header" />
 
               {/* User Profile */}
               <div className="relative">
