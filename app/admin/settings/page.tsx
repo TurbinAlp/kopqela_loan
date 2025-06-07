@@ -19,6 +19,8 @@ import {
   ServerIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
+import AddUserModal from '../../components/AddUserModal'
+import EditUserModal from '../../components/EditUserModal'
 
 export default function SettingsPage() {
   const { language, setLanguage } = useLanguage()
@@ -26,6 +28,9 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('users')
   const [showPassword, setShowPassword] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false)
+  const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<{ id: number; name: string; email: string; role: 'Admin' | 'Manager' | 'Cashier'; status: 'Active' | 'Inactive'; lastLogin: string } | null>(null)
 
   // Form states
   const [businessSettings, setBusinessSettings] = useState({
@@ -57,10 +62,10 @@ export default function SettingsPage() {
     systemUpdates: false
   })
 
-  const [users] = useState([
-    { id: 1, name: 'John Admin', email: 'john@kopqela.com', role: 'Admin', status: 'Active', lastLogin: '2024-01-15' },
-    { id: 2, name: 'Mary Cashier', email: 'mary@kopqela.com', role: 'Cashier', status: 'Active', lastLogin: '2024-01-14' },
-    { id: 3, name: 'Peter Manager', email: 'peter@kopqela.com', role: 'Manager', status: 'Inactive', lastLogin: '2024-01-10' }
+  const [users, setUsers] = useState<{ id: number; name: string; email: string; role: 'Admin' | 'Manager' | 'Cashier'; status: 'Active' | 'Inactive'; lastLogin: string }[]>([
+    { id: 1, name: 'John Admin', email: 'john@kopqela.com', role: 'Admin' as const, status: 'Active' as const, lastLogin: '2024-01-15' },
+    { id: 2, name: 'Mary Cashier', email: 'mary@kopqela.com', role: 'Cashier' as const, status: 'Active' as const, lastLogin: '2024-01-14' },
+    { id: 3, name: 'Peter Manager', email: 'peter@kopqela.com', role: 'Manager' as const, status: 'Inactive' as const, lastLogin: '2024-01-10' }
   ])
 
   useEffect(() => {
@@ -274,6 +279,19 @@ export default function SettingsPage() {
     }))
   }
 
+  const handleUserAdded = (newUser: { id: number; name: string; email: string; role: 'Admin' | 'Manager' | 'Cashier'; status: 'Active' | 'Inactive'; lastLogin: string }) => {
+    setUsers(prev => [...prev, newUser])
+  }
+
+  const handleEditUser = (user: { id: number; name: string; email: string; role: 'Admin' | 'Manager' | 'Cashier'; status: 'Active' | 'Inactive'; lastLogin: string }) => {
+    setSelectedUser(user)
+    setIsEditUserModalOpen(true)
+  }
+
+  const handleUserUpdated = (updatedUser: { id: number; name: string; email: string; role: 'Admin' | 'Manager' | 'Cashier'; status: 'Active' | 'Inactive'; lastLogin: string }) => {
+    setUsers(prev => prev.map(user => user.id === updatedUser.id ? updatedUser : user))
+  }
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { 
@@ -339,7 +357,10 @@ export default function SettingsPage() {
           <motion.div variants={itemVariants} className="space-y-6">
             {/* Add User Button */}
             <div className="flex justify-end">
-              <button className="flex items-center space-x-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors">
+              <button 
+                onClick={() => setIsAddUserModalOpen(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+              >
                 <UserPlusIcon className="w-5 h-5" />
                 <span>{t.addUser}</span>
               </button>
@@ -386,7 +407,11 @@ export default function SettingsPage() {
                         <td className="py-4 px-6 text-gray-900">{user.lastLogin}</td>
                         <td className="py-4 px-6">
                           <div className="flex space-x-2">
-                            <button className="p-1 text-blue-600 hover:bg-blue-50 rounded" title={t.editUser}>
+                            <button 
+                              onClick={() => handleEditUser(user)}
+                              className="p-1 text-blue-600 hover:bg-blue-50 rounded" 
+                              title={t.editUser}
+                            >
                               <PencilIcon className="w-4 h-4" />
                             </button>
                             <button className="p-1 text-red-600 hover:bg-red-50 rounded" title={t.deleteUser}>
@@ -694,6 +719,21 @@ export default function SettingsPage() {
           </div>
         </motion.div>
       </div>
+
+      {/* Add User Modal */}
+      <AddUserModal
+        isOpen={isAddUserModalOpen}
+        onClose={() => setIsAddUserModalOpen(false)}
+        onUserAdded={handleUserAdded}
+      />
+
+      {/* Edit User Modal */}
+      <EditUserModal
+        isOpen={isEditUserModalOpen}
+        onClose={() => setIsEditUserModalOpen(false)}
+        onUserUpdated={handleUserUpdated}
+        user={selectedUser}
+      />
     </motion.div>
   )
 } 
