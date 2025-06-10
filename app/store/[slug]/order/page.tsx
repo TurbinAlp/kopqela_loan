@@ -11,7 +11,6 @@ import {
   CreditCardIcon,
   BanknotesIcon,
   ClockIcon,
-  MapPinIcon,
   InformationCircleIcon
 } from '@heroicons/react/24/outline'
 import { CheckIcon as CheckIconSolid } from '@heroicons/react/24/solid'
@@ -69,11 +68,23 @@ export default function OrderRequestPage() {
   })
   const [agreesToTerms, setAgreesToTerms] = useState(false)
   const [processedParams, setProcessedParams] = useState<string | null>(null)
+  const [customerType, setCustomerType] = useState('individual') // 'individual' | 'business'
   const [creditApplication, setCreditApplication] = useState({
+    // Individual fields
     employerName: '',
     jobTitle: '',
     monthlyIncome: '',
     employmentDuration: '',
+    
+    // Business fields
+    businessName: '',
+    businessRegistrationNumber: '',
+    businessType: '',
+    monthlyRevenue: '',
+    businessAge: '', // months in operation
+    businessAddress: '',
+    
+    // Common fields
     guarantorName: '',
     guarantorPhone: '',
     guarantorRelationship: '',
@@ -102,14 +113,24 @@ export default function OrderRequestPage() {
       next: 'Next',
       backToProducts: 'Back to Products',
       
-      // Credit Application
-      creditDetails: 'Credit Application Details',
-      creditTerms: 'Credit Terms & Agreement',
+      // Credit Purchase
+      creditDetails: 'Credit Purchase Information',
+      creditTerms: 'Credit Purchase Terms & Agreement',
+      customerType: 'Customer Type',
+      individualCustomer: 'Individual Customer',
+      businessCustomer: 'Business Customer',
       employmentInfo: 'Employment Information',
+      businessInfo: 'Business Information',
       employerName: 'Employer Name',
       jobTitle: 'Job Title/Position',
       monthlyIncome: 'Monthly Income (TZS)',
       employmentDuration: 'Employment Duration (months)',
+      businessName: 'Business Name',
+      businessRegistrationNumber: 'Business Registration Number',
+      businessType: 'Business Type',
+      monthlyRevenue: 'Monthly Business Revenue (TZS)',
+      businessAge: 'Business Age (months)',
+      businessAddress: 'Business Address',
       guarantorInfo: 'Guarantor Information',
       guarantorName: 'Guarantor Full Name',
       guarantorPhone: 'Guarantor Phone Number',
@@ -118,10 +139,10 @@ export default function OrderRequestPage() {
       creditOptions: 'Credit Terms',
       creditDuration: 'Repayment Period',
       downPayment: 'Down Payment (Optional)',
-      creditAmount: 'Credit Amount',
+      creditAmount: 'Total Amount to be Paid on Credit',
       interestRate: 'Interest Rate',
       monthlyPayment: 'Estimated Monthly Payment',
-      creditTermsAgreement: 'I agree to the credit terms and conditions',
+      creditTermsAgreement: 'I agree to purchase these products on credit terms',
       
       // Partial Payment
       partialPaymentSetup: 'Partial Payment Setup', 
@@ -216,14 +237,24 @@ export default function OrderRequestPage() {
       next: 'Ifuatayo',
       backToProducts: 'Rudi Bidhaa',
       
-      // Credit Application
-      creditDetails: 'Maelezo ya Mkopo',
-      creditTerms: 'Masharti ya Mkopo',
+      // Credit Purchase
+      creditDetails: 'Taarifa za Ununuzi kwa Mkopo',
+      creditTerms: 'Masharti ya Ununuzi kwa Mkopo',
+      customerType: 'Aina ya Mteja',
+      individualCustomer: 'Mteja Binafsi',
+      businessCustomer: 'Mteja wa Biashara',
       employmentInfo: 'Taarifa za Kazi',
+      businessInfo: 'Taarifa za Biashara',
       employerName: 'Jina la Mwajiri',
       jobTitle: 'Cheo/Nafasi ya Kazi',
       monthlyIncome: 'Mapato ya Kila Mwezi (TZS)',
       employmentDuration: 'Muda wa Kazi (miezi)',
+      businessName: 'Jina la Biashara',
+      businessRegistrationNumber: 'Nambari ya Usajili wa Biashara',
+      businessType: 'Aina ya Biashara',
+      monthlyRevenue: 'Mapato ya Kila Mwezi ya Biashara (TZS)',
+      businessAge: 'Umri wa Biashara (miezi)',
+      businessAddress: 'Anwani ya Biashara',
       guarantorInfo: 'Taarifa za Mdhamini',
       guarantorName: 'Jina Kamili la Mdhamini',
       guarantorPhone: 'Nambari ya Simu ya Mdhamini',
@@ -232,10 +263,10 @@ export default function OrderRequestPage() {
       creditOptions: 'Masharti ya Mkopo',
       creditDuration: 'Muda wa Kulipa',
       downPayment: 'Malipo ya Awali (Si Lazima)',
-      creditAmount: 'Kiasi cha Mkopo',
+      creditAmount: 'Jumla ya Kiasi cha Ununuzi kwa Mkopo',
       interestRate: 'Kiwango cha Riba',
       monthlyPayment: 'Malipo ya Kila Mwezi (Kadirio)',
-      creditTermsAgreement: 'Nakubali masharti ya mkopo',
+      creditTermsAgreement: 'Nakubali kununua bidhaa hizi kwa masharti ya mkopo',
       
       // Partial Payment
       partialPaymentSetup: 'Mpangilio wa Malipo ya Sehemu',
@@ -594,15 +625,8 @@ export default function OrderRequestPage() {
         return isDeliverySelected && isInfoComplete
       case 4:
         if (selectedPaymentMethod === 'credit') {
-          // Credit application validation
-          return creditApplication.employerName && 
-                 creditApplication.jobTitle && 
-                 creditApplication.monthlyIncome && 
-                 creditApplication.employmentDuration &&
-                 creditApplication.guarantorName && 
-                 creditApplication.guarantorPhone && 
-                 creditApplication.guarantorRelationship &&
-                 creditApplication.guarantorConsent
+          // Step 4 for credit: Only validate customer type selection
+          return customerType !== ''
         } else if (selectedPaymentMethod === 'partial') {
           // Partial payment validation
           return partialPayment.amountToPay > 0 && 
@@ -613,10 +637,39 @@ export default function OrderRequestPage() {
           return agreesToTerms
         }
       case 5:
-        // Credit terms validation (only for credit sales)
-        return selectedPaymentMethod === 'credit' && creditApplication.guarantorConsent
+        if (selectedPaymentMethod === 'credit') {
+          // Step 5 for credit: Validate employment/business information
+          if (customerType === 'individual') {
+            return creditApplication.employerName && 
+                   creditApplication.jobTitle && 
+                   creditApplication.monthlyIncome && 
+                   creditApplication.employmentDuration
+          } else {
+            return creditApplication.businessName && 
+                   creditApplication.businessType && 
+                   creditApplication.monthlyRevenue && 
+                   creditApplication.businessAge
+          }
+        } else if (selectedPaymentMethod === 'partial') {
+          // Partial payment review
+          return partialPayment.agreesToTerms
+        } else {
+          // Should not reach here for non-credit/partial payments
+          return agreesToTerms
+        }
       case 6:
-        // Final review for credit orders
+        if (selectedPaymentMethod === 'credit') {
+          // Step 6 for credit: Validate guarantor information and consent
+          return creditApplication.guarantorName && 
+                 creditApplication.guarantorPhone && 
+                 creditApplication.guarantorRelationship &&
+                 creditApplication.guarantorConsent
+        } else {
+          // Final review for other payment methods
+          return agreesToTerms
+        }
+      case 7:
+        // Final review step (for credit purchases)
         return agreesToTerms
       default:
         return false
@@ -657,11 +710,18 @@ export default function OrderRequestPage() {
         specialInstructions: ''
       })
       setAgreesToTerms(false)
+      setCustomerType('individual')
       setCreditApplication({
         employerName: '',
         jobTitle: '',
         monthlyIncome: '',
         employmentDuration: '',
+        businessName: '',
+        businessRegistrationNumber: '',
+        businessType: '',
+        monthlyRevenue: '',
+        businessAge: '',
+        businessAddress: '',
         guarantorName: '',
         guarantorPhone: '',
         guarantorRelationship: '',
@@ -891,44 +951,45 @@ export default function OrderRequestPage() {
             </div>
           )}
 
-          {/* Step 3: Order Details */}
+          {/* Step 3: Delivery & Customer Information (Improved UX) */}
           {currentStep === 3 && (
             <div className="space-y-8">
+              <h2 className="text-xl font-semibold text-gray-900">{t.orderDetails}</h2>
+              
+              {/* Progress indicator for this step */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <InformationCircleIcon className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-blue-700">
+                      {language === 'sw' 
+                        ? 'Hatua hii: Chagua jinsi ya kupokea bidhaa na ongeza taarifa zako muhimu tu.' 
+                        : 'This step: Choose how to receive your products and add your essential details only.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {/* Delivery Options */}
               <div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">{t.deliveryOptions}</h2>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">{t.deliveryOptions}</h3>
                 
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {deliveryOptions.map((option) => (
                     <div
                       key={option.id}
-                      className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
+                      className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
                         selectedDeliveryOption === option.id
-                          ? 'border-teal-500 bg-teal-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-teal-500 bg-teal-50 shadow-md'
+                          : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
                       }`}
                       onClick={() => setSelectedDeliveryOption(option.id)}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
-                          <MapPinIcon className="w-6 h-6 text-gray-600 mr-4" />
-                          <div>
-                            <h3 className="font-medium text-gray-900">
-                              {language === 'sw' ? option.nameSwahili : option.name}
-                            </h3>
-                            <p className="text-gray-600">
-                              {language === 'sw' ? option.descriptionSwahili : option.description}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {t.estimatedTime}: {language === 'sw' ? option.estimatedTimeSwahili : option.estimatedTime}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium text-gray-900">
-                            {option.cost === 0 ? t.free : formatPrice(option.cost)}
-                          </p>
-                          <div className={`w-4 h-4 rounded-full border-2 ${
+                          <div className={`w-4 h-4 rounded-full border-2 mr-3 ${
                             selectedDeliveryOption === option.id
                               ? 'border-teal-500 bg-teal-500'
                               : 'border-gray-300'
@@ -937,6 +998,22 @@ export default function OrderRequestPage() {
                               <CheckIconSolid className="w-3 h-3 text-white" />
                             )}
                           </div>
+                          <div>
+                            <h4 className="font-medium text-gray-900">
+                              {language === 'sw' ? option.nameSwahili : option.name}
+                            </h4>
+                            <p className="text-sm text-gray-600">
+                              {language === 'sw' ? option.descriptionSwahili : option.description}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {t.estimatedTime}: {language === 'sw' ? option.estimatedTimeSwahili : option.estimatedTime}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium text-gray-900">
+                            {option.cost === 0 ? t.free : formatPrice(option.cost)}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -944,11 +1021,16 @@ export default function OrderRequestPage() {
                 </div>
               </div>
 
-              {/* Customer Information */}
+              {/* Essential Customer Information Only */}
               <div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">{t.customerInformation}</h2>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">{t.customerInformation}</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  {language === 'sw' 
+                    ? 'Taarifa muhimu tu zinazohitajika ili kuweza kuwasilisha oda yako.' 
+                    : 'Only essential information needed to process your order.'}
+                </p>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       {t.fullName} *
@@ -957,8 +1039,8 @@ export default function OrderRequestPage() {
                       type="text"
                       value={customerInfo.fullName}
                       onChange={(e) => setCustomerInfo({...customerInfo, fullName: e.target.value})}
-                      placeholder={language === 'sw' ? 'Ingiza jina lako kamili...' : 'Enter your full name...'}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-600 font-normal placeholder:text-gray-500 placeholder:font-normal"
+                      placeholder={language === 'sw' ? 'Jina lako kamili...' : 'Your full name...'}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
                       required
                     />
                   </div>
@@ -971,27 +1053,14 @@ export default function OrderRequestPage() {
                       type="tel"
                       value={customerInfo.phone}
                       onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value})}
-                      placeholder={language === 'sw' ? '+255 123 456 789' : '+255 123 456 789'}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-600 font-normal placeholder:text-gray-500 placeholder:font-normal"
+                      placeholder="+255 123 456 789"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
                       required
                     />
                   </div>
                   
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t.emailAddress}
-                    </label>
-                    <input
-                      type="email"
-                      value={customerInfo.email}
-                      onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})}
-                      placeholder={language === 'sw' ? 'mfano@barua.com' : 'example@email.com'}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-600 font-normal placeholder:text-gray-500 placeholder:font-normal"
-                    />
-                  </div>
-                  
                   {selectedDeliveryOption === 'delivery' && (
-                    <div>
+                    <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         {t.deliveryAddress} *
                       </label>
@@ -999,346 +1068,544 @@ export default function OrderRequestPage() {
                         type="text"
                         value={customerInfo.address}
                         onChange={(e) => setCustomerInfo({...customerInfo, address: e.target.value})}
-                        placeholder={language === 'sw' ? 'Ingiza anwani yako ya utoaji...' : 'Enter your delivery address...'}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-600 font-normal placeholder:text-gray-500 placeholder:font-normal"
+                        placeholder={language === 'sw' ? 'Anwani ya utoaji...' : 'Delivery address...'}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
                         required
                       />
                     </div>
                   )}
-                  
+
+                  {/* Optional email with clear indication */}
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t.specialInstructions}
+                      {t.emailAddress} <span className="text-gray-500 font-normal">({language === 'sw' ? 'Si lazima' : 'Optional'})</span>
                     </label>
-                    <textarea
-                      value={customerInfo.specialInstructions}
-                      onChange={(e) => setCustomerInfo({...customerInfo, specialInstructions: e.target.value})}
-                      placeholder={t.specialInstructionsPlaceholder}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-600 font-normal placeholder:text-gray-500 placeholder:font-normal"
+                    <input
+                      type="email"
+                      value={customerInfo.email}
+                      onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})}
+                      placeholder={language === 'sw' ? 'barua@mfano.com' : 'email@example.com'}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {language === 'sw' 
+                        ? 'Kwa kupokea taarifa za oda na gharama za ziada tu' 
+                        : 'For order updates and cost notifications only'}
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Step 4: Credit Application Details (Credit Sales Only) */}
+          {/* Step 4: Credit Application - Improved Multi-Step Process */}
           {currentStep === 4 && selectedPaymentMethod === 'credit' && (
             <div className="space-y-8">
-              <h2 className="text-xl font-semibold text-gray-900">{t.creditDetails}</h2>
-              
-              {/* Employment Information */}
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">{t.employmentInfo}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t.employerName} *
-                    </label>
-                    <input
-                      type="text"
-                      value={creditApplication.employerName}
-                      onChange={(e) => setCreditApplication({...creditApplication, employerName: e.target.value})}
-                      placeholder={language === 'sw' ? 'Mfano: Kampuni ya ABC' : 'Example: ABC Company'}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-600 font-normal placeholder:text-gray-500 placeholder:font-normal"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t.jobTitle} *
-                    </label>
-                    <input
-                      type="text"
-                      value={creditApplication.jobTitle}
-                      onChange={(e) => setCreditApplication({...creditApplication, jobTitle: e.target.value})}
-                      placeholder={language === 'sw' ? 'Mfano: Mkuu wa Uongozi' : 'Example: Manager'}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-600 font-normal placeholder:text-gray-500 placeholder:font-normal"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t.monthlyIncome} *
-                    </label>
-                    <input
-                      type="number"
-                      value={creditApplication.monthlyIncome}
-                      onChange={(e) => setCreditApplication({...creditApplication, monthlyIncome: e.target.value})}
-                      placeholder={language === 'sw' ? '500000' : '500000'}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-600 font-normal placeholder:text-gray-500 placeholder:font-normal"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t.employmentDuration} *
-                    </label>
-                    <input
-                      type="number"
-                      value={creditApplication.employmentDuration}
-                      onChange={(e) => setCreditApplication({...creditApplication, employmentDuration: e.target.value})}
-                      placeholder={language === 'sw' ? '12' : '12'}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-600 font-normal placeholder:text-gray-500 placeholder:font-normal"
-                      required
-                    />
-                  </div>
-                </div>
+              <div className="text-center">
+                <h2 className="text-2xl font-semibold text-gray-900 mb-2">{t.creditDetails}</h2>
+                <p className="text-gray-600 max-w-2xl mx-auto">
+                  {language === 'sw' 
+                    ? 'Tutakusaidia kujaza ombi la mkopo kwa hatua rahisi. Hakuna haraka - chunguza kila hatua kwa utulivu.' 
+                    : 'We\'ll help you complete your credit application in easy steps. Take your time - review each step carefully.'}
+                </p>
               </div>
 
-              {/* Guarantor Information */}
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">{t.guarantorInfo}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t.guarantorName} *
-                    </label>
-                    <input
-                      type="text"
-                      value={creditApplication.guarantorName}
-                      onChange={(e) => setCreditApplication({...creditApplication, guarantorName: e.target.value})}
-                      placeholder={language === 'sw' ? 'Jina kamili la mdhamini...' : 'Full name of guarantor...'}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-600 font-normal placeholder:text-gray-500 placeholder:font-normal"
-                      required
-                    />
+              {/* Credit Application Progress */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    {language === 'sw' ? 'Maelezo ya Mkopo' : 'Credit Application Progress'}
+                  </h3>
+                  <span className="text-sm text-gray-500">
+                    {language === 'sw' ? 'Hatua 1 ya 3' : 'Step 1 of 3'}
+                  </span>
+                </div>
+                
+                {/* Progress bar */}
+                <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
+                  <div 
+                    className="h-2 rounded-full transition-all duration-300"
+                    style={{ 
+                      backgroundColor: business.primaryColor, 
+                      width: '33.33%' 
+                    }}
+                  ></div>
+                </div>
+
+                {/* What we're doing section */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                  <div className="flex items-start">
+                    <InformationCircleIcon className="h-5 w-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
+                    <div>
+                      <h4 className="font-medium text-blue-900 mb-1">
+                        {language === 'sw' ? 'Tunafanya Nini?' : 'What Are We Doing?'}
+                      </h4>
+                      <p className="text-sm text-blue-700">
+                        {language === 'sw' 
+                          ? 'Tutanunua bidhaa hizi kwa mkopo na wewe utalipa kwa awamu. Hakuna fedha zitakazohamishiwa kwako - utapokea bidhaa moja kwa moja.' 
+                          : 'You will purchase these products on credit and pay in installments. No cash will be transferred to you - you will receive the products directly.'}
+                      </p>
+                    </div>
                   </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t.guarantorPhone} *
-                    </label>
-                    <input
-                      type="tel"
-                      value={creditApplication.guarantorPhone}
-                      onChange={(e) => setCreditApplication({...creditApplication, guarantorPhone: e.target.value})}
-                      placeholder={language === 'sw' ? '+255 987 654 321' : '+255 987 654 321'}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-600 font-normal placeholder:text-gray-500 placeholder:font-normal"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t.guarantorRelationship} *
-                    </label>
-                    <select
-                      value={creditApplication.guarantorRelationship}
-                      onChange={(e) => setCreditApplication({...creditApplication, guarantorRelationship: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-600 font-normal"
-                      required
+                </div>
+                
+                {/* Customer Type Selection - Step 1 */}
+                <div>
+                  <h4 className="text-md font-medium text-gray-900 mb-4">{t.customerType}</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div 
+                      className={`p-6 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                        customerType === 'individual' 
+                          ? 'border-teal-500 bg-teal-50 shadow-md' 
+                          : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                      }`}
+                      onClick={() => setCustomerType('individual')}
                     >
-                      <option value="">Select relationship...</option>
-                      <option value="spouse">Spouse/Partner</option>
-                      <option value="parent">Parent</option>
-                      <option value="sibling">Brother/Sister</option>
-                      <option value="friend">Friend</option>
-                      <option value="colleague">Colleague</option>
-                      <option value="other">Other</option>
-                    </select>
+                      <div className="flex items-start">
+                        <div className={`w-4 h-4 rounded-full border-2 mt-1 mr-3 ${
+                          customerType === 'individual' 
+                            ? 'border-teal-500 bg-teal-500' 
+                            : 'border-gray-300'
+                        }`}>
+                          {customerType === 'individual' && (
+                            <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
+                          )}
+                        </div>
+                        <div>
+                          <h5 className="font-medium text-gray-900 mb-1">{t.individualCustomer}</h5>
+                          <p className="text-sm text-gray-600">
+                            {language === 'sw' ? 'Ununuzi wa kibinafsi kwa mkopo' : 'Personal credit purchase'}
+                          </p>
+                          <div className="mt-3 space-y-1">
+                            <p className="text-xs text-gray-500 flex items-center">
+                              <CheckIconSolid className="w-3 h-3 text-green-500 mr-1" />
+                              {language === 'sw' ? 'Muda wa haraka wa uthibitisho' : 'Fast verification process'}
+                            </p>
+                            <p className="text-xs text-gray-500 flex items-center">
+                              <CheckIconSolid className="w-3 h-3 text-green-500 mr-1" />
+                              {language === 'sw' ? 'Vikomo vya mkopo vinayofaa' : 'Flexible credit limits'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div 
+                      className={`p-6 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                        customerType === 'business' 
+                          ? 'border-teal-500 bg-teal-50 shadow-md' 
+                          : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                      }`}
+                      onClick={() => setCustomerType('business')}
+                    >
+                      <div className="flex items-start">
+                        <div className={`w-4 h-4 rounded-full border-2 mt-1 mr-3 ${
+                          customerType === 'business' 
+                            ? 'border-teal-500 bg-teal-500' 
+                            : 'border-gray-300'
+                        }`}>
+                          {customerType === 'business' && (
+                            <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
+                          )}
+                        </div>
+                        <div>
+                          <h5 className="font-medium text-gray-900 mb-1">{t.businessCustomer}</h5>
+                          <p className="text-sm text-gray-600">
+                            {language === 'sw' ? 'Ununuzi wa biashara kwa mkopo' : 'Business credit purchase'}
+                          </p>
+                          <div className="mt-3 space-y-1">
+                            <p className="text-xs text-gray-500 flex items-center">
+                              <CheckIconSolid className="w-3 h-3 text-green-500 mr-1" />
+                              {language === 'sw' ? 'Vikomo vya mkopo vya juu' : 'Higher credit limits'}
+                            </p>
+                            <p className="text-xs text-gray-500 flex items-center">
+                              <CheckIconSolid className="w-3 h-3 text-green-500 mr-1" />
+                              {language === 'sw' ? 'Masharti maalum ya biashara' : 'Special business terms'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div className="md:col-span-2">
-                    <label className="flex items-center">
+                </div>
+
+                {/* Next step preview */}
+                {customerType && (
+                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                    <p className="text-sm text-gray-600">
+                      <strong>{language === 'sw' ? 'Hatua inayofuata:' : 'Next step:'}</strong>{' '}
+                      {customerType === 'individual' 
+                        ? (language === 'sw' ? 'Taarifa za kazi na mapato' : 'Employment and income information')
+                        : (language === 'sw' ? 'Taarifa za biashara na mapato' : 'Business and revenue information')
+                      }
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: Employment/Business Information (Credit Only) */}
+          {currentStep === 5 && selectedPaymentMethod === 'credit' && (
+            <div className="space-y-8">
+              <div className="text-center">
+                <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+                  {customerType === 'individual' ? t.employmentInfo : t.businessInfo}
+                </h2>
+                <p className="text-gray-600 max-w-2xl mx-auto">
+                  {language === 'sw' 
+                    ? 'Taarifa hizi zitatusaidia kutathmini uwezo wako wa kulipa mkopo.' 
+                    : 'This information helps us assess your ability to repay the credit.'}
+                </p>
+              </div>
+
+              {/* Progress */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    {language === 'sw' ? 'Maelezo ya Mkopo' : 'Credit Application Progress'}
+                  </h3>
+                  <span className="text-sm text-gray-500">
+                    {language === 'sw' ? 'Hatua 2 ya 3' : 'Step 2 of 3'}
+                  </span>
+                </div>
+                
+                <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
+                  <div 
+                    className="h-2 rounded-full transition-all duration-300"
+                    style={{ 
+                      backgroundColor: business.primaryColor, 
+                      width: '66.66%' 
+                    }}
+                  ></div>
+                </div>
+
+                {/* Individual Employment Information */}
+                {customerType === 'individual' && (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {t.employerName} *
+                        </label>
+                        <input
+                          type="text"
+                          value={creditApplication.employerName}
+                          onChange={(e) => setCreditApplication({...creditApplication, employerName: e.target.value})}
+                          placeholder={language === 'sw' ? 'Jina la kampuni yako...' : 'Your company name...'}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {t.jobTitle} *
+                        </label>
+                        <input
+                          type="text"
+                          value={creditApplication.jobTitle}
+                          onChange={(e) => setCreditApplication({...creditApplication, jobTitle: e.target.value})}
+                          placeholder={language === 'sw' ? 'Cheo chako...' : 'Your job title...'}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {t.monthlyIncome} *
+                        </label>
+                        <input
+                          type="number"
+                          value={creditApplication.monthlyIncome}
+                          onChange={(e) => setCreditApplication({...creditApplication, monthlyIncome: e.target.value})}
+                          placeholder="500,000"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
+                          required
+                        />
+                        <p className="text-xs text-gray-500 mt-1">TZS</p>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {t.employmentDuration} *
+                        </label>
+                        <select
+                          value={creditApplication.employmentDuration}
+                          onChange={(e) => setCreditApplication({...creditApplication, employmentDuration: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
+                          required
+                        >
+                          <option value="">{language === 'sw' ? 'Chagua muda...' : 'Select duration...'}</option>
+                          <option value="6">{language === 'sw' ? 'Miezi 6' : '6 months'}</option>
+                          <option value="12">{language === 'sw' ? 'Mwaka 1' : '1 year'}</option>
+                          <option value="24">{language === 'sw' ? 'Miaka 2' : '2 years'}</option>
+                          <option value="36">{language === 'sw' ? 'Miaka 3+' : '3+ years'}</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Business Information */}
+                {customerType === 'business' && (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {t.businessName} *
+                        </label>
+                        <input
+                          type="text"
+                          value={creditApplication.businessName}
+                          onChange={(e) => setCreditApplication({...creditApplication, businessName: e.target.value})}
+                          placeholder={language === 'sw' ? 'Jina la biashara...' : 'Business name...'}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {t.businessType} *
+                        </label>
+                        <select
+                          value={creditApplication.businessType}
+                          onChange={(e) => setCreditApplication({...creditApplication, businessType: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
+                          required
+                        >
+                          <option value="">{language === 'sw' ? 'Chagua aina...' : 'Select type...'}</option>
+                          <option value="retail">{language === 'sw' ? 'Biashara ya Rejareja' : 'Retail'}</option>
+                          <option value="wholesale">{language === 'sw' ? 'Biashara ya Jumla' : 'Wholesale'}</option>
+                          <option value="services">{language === 'sw' ? 'Huduma' : 'Services'}</option>
+                          <option value="manufacturing">{language === 'sw' ? 'Utengenezaji' : 'Manufacturing'}</option>
+                          <option value="agriculture">{language === 'sw' ? 'Kilimo' : 'Agriculture'}</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {t.monthlyRevenue} *
+                        </label>
+                        <input
+                          type="number"
+                          value={creditApplication.monthlyRevenue}
+                          onChange={(e) => setCreditApplication({...creditApplication, monthlyRevenue: e.target.value})}
+                          placeholder="1,000,000"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
+                          required
+                        />
+                        <p className="text-xs text-gray-500 mt-1">TZS</p>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          {t.businessAge} *
+                        </label>
+                        <select
+                          value={creditApplication.businessAge}
+                          onChange={(e) => setCreditApplication({...creditApplication, businessAge: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
+                          required
+                        >
+                          <option value="">{language === 'sw' ? 'Chagua umri...' : 'Select age...'}</option>
+                          <option value="6">{language === 'sw' ? 'Miezi 6' : '6 months'}</option>
+                          <option value="12">{language === 'sw' ? 'Mwaka 1' : '1 year'}</option>
+                          <option value="24">{language === 'sw' ? 'Miaka 2' : '2 years'}</option>
+                          <option value="36">{language === 'sw' ? 'Miaka 3+' : '3+ years'}</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Business Registration (Optional) */}
+                    <div className="border-t pt-4">
+                      <h5 className="font-medium text-gray-900 mb-3">
+                        {language === 'sw' ? 'Usajili wa Biashara (Si Lazima)' : 'Business Registration (Optional)'}
+                      </h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {t.businessRegistrationNumber}
+                          </label>
+                          <input
+                            type="text"
+                            value={creditApplication.businessRegistrationNumber}
+                            onChange={(e) => setCreditApplication({...creditApplication, businessRegistrationNumber: e.target.value})}
+                            placeholder={language === 'sw' ? 'Nambari ya usajili...' : 'Registration number...'}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Next step preview */}
+                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">
+                    <strong>{language === 'sw' ? 'Hatua inayofuata:' : 'Next step:'}</strong>{' '}
+                    {language === 'sw' ? 'Taarifa za mdhamini na masharti ya mkopo' : 'Guarantor information and credit terms'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 6: Guarantor & Credit Terms (Credit Only) */}
+          {currentStep === 6 && selectedPaymentMethod === 'credit' && (
+            <div className="space-y-8">
+              <div className="text-center">
+                <h2 className="text-2xl font-semibold text-gray-900 mb-2">{t.guarantorInfo}</h2>
+                <p className="text-gray-600 max-w-2xl mx-auto">
+                  {language === 'sw' 
+                    ? 'Mdhamini ni mtu anayekubali kuwa na jukumu la mkopo ikitokea shida za malipo.' 
+                    : 'A guarantor is someone who agrees to be responsible for the credit if payment issues arise.'}
+                </p>
+              </div>
+
+              {/* Progress */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    {language === 'sw' ? 'Maelezo ya Mkopo' : 'Credit Application Progress'}
+                  </h3>
+                  <span className="text-sm text-gray-500">
+                    {language === 'sw' ? 'Hatua 3 ya 3' : 'Step 3 of 3'}
+                  </span>
+                </div>
+                
+                <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
+                  <div 
+                    className="h-2 rounded-full transition-all duration-300"
+                    style={{ 
+                      backgroundColor: business.primaryColor, 
+                      width: '100%' 
+                    }}
+                  ></div>
+                </div>
+
+                {/* Guarantor Information */}
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {t.guarantorName} *
+                      </label>
+                      <input
+                        type="text"
+                        value={creditApplication.guarantorName}
+                        onChange={(e) => setCreditApplication({...creditApplication, guarantorName: e.target.value})}
+                        placeholder={language === 'sw' ? 'Jina kamili...' : 'Full name...'}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {t.guarantorPhone} *
+                      </label>
+                      <input
+                        type="tel"
+                        value={creditApplication.guarantorPhone}
+                        onChange={(e) => setCreditApplication({...creditApplication, guarantorPhone: e.target.value})}
+                        placeholder="+255 123 456 789"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {t.guarantorRelationship} *
+                      </label>
+                      <select
+                        value={creditApplication.guarantorRelationship}
+                        onChange={(e) => setCreditApplication({...creditApplication, guarantorRelationship: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
+                        required
+                      >
+                        <option value="">{language === 'sw' ? 'Chagua uhusiano...' : 'Select relationship...'}</option>
+                        <option value="spouse">{language === 'sw' ? 'Mwenza/Mke' : 'Spouse/Partner'}</option>
+                        <option value="parent">{language === 'sw' ? 'Mzazi' : 'Parent'}</option>
+                        <option value="sibling">{language === 'sw' ? 'Ndugu' : 'Sibling'}</option>
+                        <option value="friend">{language === 'sw' ? 'Rafiki' : 'Friend'}</option>
+                        <option value="colleague">{language === 'sw' ? 'Mwenzangu Kazini' : 'Colleague'}</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Credit Terms Preview */}
+                  <div className="border-t pt-6">
+                    <h4 className="font-medium text-gray-900 mb-4">{t.creditOptions}</h4>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {t.creditDuration}
+                          </label>
+                          <select
+                            value={creditApplication.creditDuration}
+                            onChange={(e) => setCreditApplication({...creditApplication, creditDuration: e.target.value})}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
+                          >
+                            <option value="3">{language === 'sw' ? 'Miezi 3' : '3 months'}</option>
+                            <option value="6">{language === 'sw' ? 'Miezi 6' : '6 months'}</option>
+                            <option value="12">{language === 'sw' ? 'Mwaka 1' : '12 months'}</option>
+                          </select>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {t.downPayment}
+                          </label>
+                          <input
+                            type="number"
+                            value={creditApplication.downPayment}
+                            onChange={(e) => setCreditApplication({...creditApplication, downPayment: parseInt(e.target.value) || 0})}
+                            placeholder="0"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
+                            min="0"
+                            max={calculateTotal()}
+                          />
+                        </div>
+
+                        <div className="flex items-end">
+                          <div className="text-center">
+                            <p className="text-sm text-gray-600">{t.monthlyPayment}</p>
+                            <p className="text-lg font-semibold" style={{ color: business.primaryColor }}>
+                              {formatPrice(Math.round((calculateTotal() - creditApplication.downPayment) / parseInt(creditApplication.creditDuration)))}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Guarantor Consent */}
+                  <div className="border rounded-lg p-4 bg-yellow-50 border-yellow-200">
+                    <label className="flex items-start">
                       <input
                         type="checkbox"
                         checked={creditApplication.guarantorConsent}
                         onChange={(e) => setCreditApplication({...creditApplication, guarantorConsent: e.target.checked})}
-                        className="mr-2 text-teal-600 focus:ring-teal-500"
+                        className="mr-3 mt-1 text-teal-600 focus:ring-teal-500"
+                        required
                       />
-                      <span className="text-sm text-gray-700">{t.guarantorConsent}</span>
+                      <span className="text-sm text-gray-700">
+                        <strong>{t.guarantorConsent}</strong>
+                        <br />
+                        <span className="text-xs text-gray-600">
+                          {language === 'sw' 
+                            ? 'Hii ni muhimu kabisa - mdhamini lazima akubali kabla ya kukamilisha ombi.' 
+                            : 'This is essential - the guarantor must agree before completing the application.'}
+                        </span>
+                      </span>
                     </label>
                   </div>
                 </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Step 4: Partial Payment Setup (Partial Payment Only) */}
-          {currentStep === 4 && selectedPaymentMethod === 'partial' && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900">{t.partialPaymentSetup}</h2>
-              
-              {/* Payment Amount Configuration */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t.amountToPay} *
-                  </label>
-                  <input
-                    type="number"
-                    value={partialPayment.amountToPay}
-                    onChange={(e) => setPartialPayment({...partialPayment, amountToPay: parseInt(e.target.value) || 0})}
-                    placeholder={language === 'sw' ? 'Kiasi cha kulipa sasa...' : 'Amount to pay now...'}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-600 font-normal placeholder:text-gray-500 placeholder:font-normal"
-                    min="1"
-                    max={calculateTotal() - 1000} // Minimum 1000 remaining
-                    required
-                  />
-                  <p className="text-sm text-gray-500 mt-1">
-                    {t.minimumPayment}: {formatPrice(calculateTotal() * 0.3)} (30%)
-                  </p>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t.dueDate} *
-                  </label>
-                  <input
-                    type="date"
-                    value={partialPayment.dueDate}
-                    onChange={(e) => setPartialPayment({...partialPayment, dueDate: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-600 font-normal placeholder:text-gray-500 placeholder:font-normal"
-                    min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]} // Tomorrow
-                    required
-                  />
-                </div>
-              </div>
-              
-              {/* Payment Terms Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t.paymentTerms}
-                </label>
-                <select
-                  value={partialPayment.paymentTerms}
-                  onChange={(e) => setPartialPayment({...partialPayment, paymentTerms: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-600 font-normal"
-                >
-                  <option value="7">7 {t.days}</option>
-                  <option value="14">14 {t.days}</option>
-                  <option value="30">30 {t.days}</option>
-                  <option value="60">60 {t.days}</option>
-                  <option value="90">90 {t.days}</option>
-                </select>
-              </div>
-
-              {/* Payment Summary */}
-              <div className="bg-gray-50 rounded-lg p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Payment Summary</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">{t.orderTotal}:</span>
-                    <span className="font-medium">{formatPrice(calculateTotal())}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">{t.amountToPay}:</span>
-                    <span className="font-medium">{formatPrice(partialPayment.amountToPay)}</span>
-                  </div>
-                  <div className="flex justify-between border-t pt-3">
-                    <span className="text-gray-600">{t.remainingBalance}:</span>
-                    <span className="font-bold text-lg" style={{ color: business.primaryColor }}>
-                      {formatPrice(calculateTotal() - partialPayment.amountToPay)}
-                    </span>
-                  </div>
-                  {partialPayment.dueDate && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">{t.dueDate}:</span>
-                      <span className="font-medium">{new Date(partialPayment.dueDate).toLocaleDateString()}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Terms Agreement */}
-              <div className="border rounded-lg p-4">
-                <label className="flex items-start">
-                  <input
-                    type="checkbox"
-                    checked={partialPayment.agreesToTerms}
-                    onChange={(e) => setPartialPayment({...partialPayment, agreesToTerms: e.target.checked})}
-                    className="mr-3 mt-1 text-teal-600 focus:ring-teal-500"
-                  />
-                  <span className="text-sm text-gray-700">{t.paymentTermsAgreement}</span>
-                </label>
-              </div>
-            </div>
-          )}
-
-          {/* Step 5: Credit Terms (Credit Sales Only) */}
-          {currentStep === 5 && selectedPaymentMethod === 'credit' && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900">{t.creditTerms}</h2>
-              
-              {/* Credit Options */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t.creditDuration}
-                  </label>
-                  <select
-                    value={creditApplication.creditDuration}
-                    onChange={(e) => setCreditApplication({...creditApplication, creditDuration: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                  >
-                    <option value="3">3 months</option>
-                    <option value="6">6 months</option>
-                    <option value="12">12 months</option>
-                    <option value="18">18 months</option>
-                    <option value="24">24 months</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t.downPayment}
-                  </label>
-                  <input
-                    type="number"
-                    value={creditApplication.downPayment}
-                    onChange={(e) => setCreditApplication({...creditApplication, downPayment: parseInt(e.target.value) || 0})}
-                    placeholder={language === 'sw' ? 'Mfano: 100000' : 'Example: 100000'}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-600 font-normal placeholder:text-gray-500 placeholder:font-normal"
-                    min="0"
-                    max={calculateTotal()}
-                  />
-                </div>
-              </div>
-
-              {/* Credit Summary */}
-              <div className="bg-gray-50 rounded-lg p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">{t.creditOptions}</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">{t.orderTotal}:</span>
-                    <span className="font-medium">{formatPrice(calculateTotal())}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">{t.downPayment}:</span>
-                    <span className="font-medium">{formatPrice(creditApplication.downPayment)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">{t.creditAmount}:</span>
-                    <span className="font-medium">{formatPrice(calculateTotal() - creditApplication.downPayment)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">{t.interestRate}:</span>
-                    <span className="font-medium">15% per year</span>
-                  </div>
-                  <div className="flex justify-between border-t pt-3">
-                    <span className="text-gray-600">{t.monthlyPayment}:</span>
-                    <span className="font-bold text-lg" style={{ color: business.primaryColor }}>
-                      {formatPrice(((calculateTotal() - creditApplication.downPayment) * 1.15) / parseInt(creditApplication.creditDuration))}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Terms Agreement */}
-              <div className="border rounded-lg p-4">
-                <label className="flex items-start">
-                  <input
-                    type="checkbox"
-                    checked={creditApplication.guarantorConsent}
-                    onChange={(e) => setCreditApplication({...creditApplication, guarantorConsent: e.target.checked})}
-                    className="mr-3 mt-1 text-teal-600 focus:ring-teal-500"
-                  />
-                  <span className="text-sm text-gray-700">{t.creditTermsAgreement}</span>
-                </label>
               </div>
             </div>
           )}
@@ -1356,8 +1623,8 @@ export default function OrderRequestPage() {
                 <div className="space-y-2">
                   {orderItems.map((item) => (
                     <div key={item.productId} className="flex justify-between">
-                      <span>{language === 'sw' ? item.productNameSwahili : item.productName} × {item.quantity}</span>
-                      <span>{formatPrice(item.subtotal)}</span>
+                      <span className='text-gray-700'>{language === 'sw' ? item.productNameSwahili : item.productName} × {item.quantity}</span>
+                      <span className='text-gray-700'>{formatPrice(item.subtotal)}</span>
                     </div>
                   ))}
                 </div>
@@ -1406,16 +1673,16 @@ export default function OrderRequestPage() {
               <div className="border rounded-lg p-4 bg-gray-50">
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span>{t.orderTotal}:</span>
-                    <span>{formatPrice(calculateTotal())}</span>
+                    <span className='text-gray-700'>{t.orderTotal}:</span>
+                    <span className='text-gray-700'>{formatPrice(calculateTotal())}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>{t.deliveryFee}:</span>
-                    <span>{getDeliveryFee() === 0 ? t.free : formatPrice(getDeliveryFee())}</span>
+                    <span className='text-gray-700'>{t.deliveryFee}:</span>
+                    <span className='text-gray-700'>{getDeliveryFee() === 0 ? t.free : formatPrice(getDeliveryFee())}</span>
                   </div>
                   <div className="flex justify-between font-bold text-lg border-t pt-2">
-                    <span>{t.grandTotal}:</span>
-                    <span style={{ color: business.primaryColor }}>{formatPrice(getGrandTotal())}</span>
+                    <span className='text-gray-700'>{t.grandTotal}:</span>
+                    <span className='text-gray-700' style={{ color: business.primaryColor }}>{formatPrice(getGrandTotal())}</span>
                   </div>
                 </div>
               </div>
@@ -1472,4 +1739,4 @@ export default function OrderRequestPage() {
       </div>
     </div>
   )
-} 
+}

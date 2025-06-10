@@ -21,6 +21,7 @@ import {
 import { useLanguage } from '../contexts/LanguageContext'
 import { usePathname } from 'next/navigation'
 import NotificationCenter from '../components/notifications/NotificationCenter'
+import GlobalSearch from '../components/search/GlobalSearch'
 
 interface AdminLayoutProps {
   children: React.ReactNode
@@ -188,14 +189,24 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
             {/* Search - Hidden on very small screens */}
             <div className="hidden sm:flex flex-1 max-w-md mx-4">
-              <div className="relative w-full">
-                <MagnifyingGlassIcon className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder={t.searchPlaceholder}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
-                />
-              </div>
+              <GlobalSearch
+                placeholder={t.searchPlaceholder}
+                onResultSelect={(result) => {
+                  // Navigate based on result type
+                  switch (result.type) {
+                    case 'product':
+                      window.location.href = `/admin/products/${result.id}`
+                      break
+                    case 'customer':
+                      window.location.href = `/admin/customers/${result.id}`
+                      break
+                    case 'order':
+                      window.location.href = `/admin/sales/orders/${result.id}`
+                      break
+                  }
+                }}
+                className="w-full"
+              />
             </div>
 
             {/* Right side */}
@@ -226,14 +237,24 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           
           {/* Mobile search bar - Shows on small screens */}
           <div className="block sm:hidden px-4 pb-3">
-            <div className="relative">
-              <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder={t.searchPlaceholder}
-                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-gray-900 placeholder-gray-400 bg-white text-sm"
-              />
-            </div>
+            <GlobalSearch
+              placeholder={t.searchPlaceholder}
+              onResultSelect={(result) => {
+                // Navigate based on result type
+                switch (result.type) {
+                  case 'product':
+                    window.location.href = `/admin/products/${result.id}`
+                    break
+                  case 'customer':
+                    window.location.href = `/admin/customers/${result.id}`
+                    break
+                  case 'order':
+                    window.location.href = `/admin/sales/orders/${result.id}`
+                    break
+                }
+              }}
+              className="w-full"
+            />
           </div>
         </header>
 
@@ -255,4 +276,4 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       )}
     </div>
   )
-} 
+}

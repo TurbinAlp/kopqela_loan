@@ -592,22 +592,26 @@ export default function ProductsPage() {
                     </td>
                     <td className="py-4 px-6">
                       <div className="flex items-center justify-center space-x-2">
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title={t.view}
-                        >
-                          <EyeIcon className="w-4 h-4" />
-                        </motion.button>
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                          title={t.edit}
-                        >
-                          <PencilIcon className="w-4 h-4" />
-                        </motion.button>
+                        <Link href={`/admin/products/${product.id}`}>
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title={t.view}
+                          >
+                            <EyeIcon className="w-4 h-4" />
+                          </motion.button>
+                        </Link>
+                        <Link href={`/admin/products/${product.id}/edit`}>
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title={t.edit}
+                          >
+                            <PencilIcon className="w-4 h-4" />
+                          </motion.button>
+                        </Link>
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
@@ -662,22 +666,26 @@ export default function ProductsPage() {
               </div>
 
               <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                  title={t.view}
-                >
-                  <EyeIcon className="w-4 h-4" />
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                  title={t.edit}
-                >
-                  <PencilIcon className="w-4 h-4" />
-                </motion.button>
+                <Link href={`/admin/products/${product.id}`}>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    title={t.view}
+                  >
+                    <EyeIcon className="w-4 h-4" />
+                  </motion.button>
+                </Link>
+                <Link href={`/admin/products/${product.id}/edit`}>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                    title={t.edit}
+                  >
+                    <PencilIcon className="w-4 h-4" />
+                  </motion.button>
+                </Link>
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
