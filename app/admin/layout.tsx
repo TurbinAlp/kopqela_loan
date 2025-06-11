@@ -6,7 +6,6 @@ import {
   Bars3Icon,
   XMarkIcon,
   MagnifyingGlassIcon,
-  ChevronDownIcon,
   HomeIcon,
   ShoppingBagIcon,
   UserGroupIcon,
@@ -22,6 +21,7 @@ import { useLanguage } from '../contexts/LanguageContext'
 import { usePathname } from 'next/navigation'
 import NotificationCenter from '../components/notifications/NotificationCenter'
 import GlobalSearch from '../components/search/GlobalSearch'
+import UserDropdown from '../components/ui/UserDropdown'
 
 interface AdminLayoutProps {
   children: React.ReactNode
@@ -220,18 +220,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <NotificationCenter variant="header" />
 
               {/* User Profile */}
-              <div className="relative">
-                <button className="flex items-center space-x-2 lg:space-x-3 p-1 lg:p-2 rounded-lg hover:bg-gray-100">
-                  <div className="w-7 h-7 lg:w-8 lg:h-8 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center">
-                    <span className="text-white font-medium text-xs lg:text-sm">JA</span>
-                  </div>
-                  <div className="hidden lg:block text-left">
-                    <p className="text-sm font-medium text-gray-800">{t.adminName}</p>
-                    <p className="text-xs text-gray-500">Administrator</p>
-                  </div>
-                  <ChevronDownIcon className="w-3 h-3 lg:w-4 lg:h-4 text-gray-600" />
-                </button>
-              </div>
+              <UserDropdown />
             </div>
           </div>
           

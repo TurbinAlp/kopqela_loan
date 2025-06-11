@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { useSession } from 'next-auth/react'
 import { 
   ArrowUpIcon,
   ArrowDownIcon,
@@ -20,33 +21,81 @@ import {
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
 
-// TODO: Create useAuth hook for role management
+// Hook for user authentication and role management
 const useAuth = () => {
-  // This should be implemented with actual authentication
-  // For now, returning mock data
-  // 
-  // IMPORTANT: ADMIN sees EVERYTHING in the system
-  // - All admin dashboard components
-  // - All cashier dashboard components  
-  // - All quick actions (POS, Customer Lookup, Payment Collection, etc.)
-  // - All navigation items
-  // - All data views and analytics
-  // 
-  // Other roles will have restricted access defined later
+  const { data: session } = useSession()
+  
   return {
-    userRole: 'admin' // This will be dynamic based on logged-in user
-    // Future: 'cashier', 'manager', etc. with specific permissions
+    user: session?.user,
+    userRole: session?.user?.role?.toLowerCase() || 'customer', // Get role directly from session
+    isAuthenticated: !!session,
+    userName: session?.user?.firstName && session?.user?.lastName 
+      ? `${session.user.firstName} ${session.user.lastName}`
+      : session?.user?.name || session?.user?.email || 'User'
   }
 }
 
 export default function BusinessDashboard() {
   const { language } = useLanguage()
-  const { userRole } = useAuth()
+  const { userRole, isAuthenticated, userName } = useAuth()
   const [isVisible, setIsVisible] = useState(false)
+  const [dashboardData, setDashboardData] = useState({
+    stats: {
+      totalSales: "0",
+      pendingCreditApps: "0", 
+      lowStock: "0",
+      outstandingDebt: "0",
+      todaysSales: "0",
+      salesCount: "0",
+      cashPayments: "0",
+      creditSales: "0",
+      pendingPayments: "0"
+    },
+    loading: true
+  })
 
   useEffect(() => {
     setIsVisible(true)
+    fetchDashboardData()
   }, [])
+
+  const fetchDashboardData = async () => {
+    try {
+      // Simulate API call - In real implementation, this would fetch from your backend
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Mock data - replace with real API call
+      setDashboardData({
+        stats: {
+          totalSales: "2,450,000",
+          pendingCreditApps: "15",
+          lowStock: "8", 
+          outstandingDebt: "1,200,000",
+          todaysSales: "85,000",
+          salesCount: "45",
+          cashPayments: "65,000",
+          creditSales: "20,000",
+          pendingPayments: "12,000"
+        },
+        loading: false
+      })
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
+      setDashboardData(prev => ({ ...prev, loading: false }))
+    }
+  }
+
+  // Show loading or redirect if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-teal-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Checking authentication...</p>
+        </div>
+      </div>
+    )
+  }
 
   const translations = {
     en: {
@@ -177,7 +226,7 @@ export default function BusinessDashboard() {
   const adminDashboardStats = [
     {
       title: t.totalSales,
-      value: "2,450,000",
+      value: dashboardData.stats.totalSales,
       currency: t.currency,
       change: "+12.5%",
       trend: "up",
@@ -186,7 +235,7 @@ export default function BusinessDashboard() {
     },
     {
       title: t.pendingCreditApps,
-      value: "15",
+      value: dashboardData.stats.pendingCreditApps,
       change: "+3",
       trend: "up",
       icon: ClockIcon,
@@ -194,7 +243,7 @@ export default function BusinessDashboard() {
     },
     {
       title: t.lowStock,
-      value: "8",
+      value: dashboardData.stats.lowStock,
       change: "-2",
       trend: "down",
       icon: ArchiveBoxXMarkIcon,
@@ -202,7 +251,7 @@ export default function BusinessDashboard() {
     },
     {
       title: t.outstandingDebt,
-      value: "890,000",
+      value: dashboardData.stats.outstandingDebt,
       currency: t.currency,
       change: "-5.2%",
       trend: "down",
@@ -215,7 +264,7 @@ export default function BusinessDashboard() {
   const cashierDashboardStats = [
     {
       title: t.todaysSales,
-      value: "245,000",
+      value: dashboardData.stats.todaysSales,
       currency: t.currency,
       change: "+8.2%",
       trend: "up",
@@ -224,7 +273,7 @@ export default function BusinessDashboard() {
     },
     {
       title: t.salesCount,
-      value: "23",
+      value: dashboardData.stats.salesCount,
       change: "+5",
       trend: "up",
       icon: ShoppingCartIcon,
@@ -232,7 +281,7 @@ export default function BusinessDashboard() {
     },
     {
       title: t.cashPayments,
-      value: "180,000",
+      value: dashboardData.stats.cashPayments,
       currency: t.currency,
       change: "+15%",
       trend: "up",
@@ -241,7 +290,7 @@ export default function BusinessDashboard() {
     },
     {
       title: t.creditSales,
-      value: "65,000",
+      value: dashboardData.stats.creditSales,
       currency: t.currency,
       change: "-2%",
       trend: "down",
@@ -350,7 +399,7 @@ export default function BusinessDashboard() {
       {/* Welcome Section */}
       <motion.div variants={itemVariants} className="mb-8">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">
-          {t.welcome}, {userRole === 'admin' ? t.adminName : t.cashierName}!
+          {t.welcome}, {userName}!
         </h2>
         <p className="text-gray-600">
           {userRole === 'admin' ? t.businessSummary : t.todaySummary}
@@ -410,10 +459,16 @@ export default function BusinessDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">
-                  {stat.currency && <span className="text-sm text-gray-500">{stat.currency} </span>}
-                  {stat.value}
-                </p>
+                {dashboardData.loading ? (
+                  <div className="mt-1">
+                    <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                ) : (
+                  <p className="text-2xl font-bold text-gray-900 mt-1">
+                    {stat.currency && <span className="text-sm text-gray-500">{stat.currency} </span>}
+                    {stat.value}
+                  </p>
+                )}
               </div>
               <div className={`p-3 rounded-lg ${
                 stat.color === 'teal' ? 'bg-teal-100' :

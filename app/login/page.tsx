@@ -4,9 +4,15 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline'
 import { useLanguage, LanguageToggle } from '../contexts/LanguageContext'
+import { useNotifications } from '../contexts/NotificationContext'
+import { signIn } from 'next-auth/react'
+import { useAuthRedirect } from '../hooks/useAuthRedirect'
+import Spinner from '../components/ui/Spinner'
 
 export default function LoginPage() {
   const { language } = useLanguage()
+  const { showError, showSuccess } = useNotifications()
+  const { isLoading: authLoading } = useAuthRedirect()
   const [isVisible, setIsVisible] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
@@ -90,16 +96,87 @@ export default function LoginPage() {
     
     setIsLoading(true)
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          rememberMe
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        if (data.needsVerification) {
+          showError(
+            language === 'en' ? 'Email Not Verified' : 'Email Haijathibitishwa',
+            data.message
+          )
+        } else {
+          showError(
+            language === 'en' ? 'Login Failed' : 'Kuingia Kumeshindwa',
+            data.message
+          )
+        }
+        setIsLoading(false)
+        return
+      }
+
+      showSuccess(
+        language === 'en' ? 'Login Successful!' : 'Umeingia Kikamilifu!',
+        language === 'en' ? 'Welcome back!' : 'Karibu tena!'
+      )
+
+      // Redirect to appropriate page
+      const redirectUrl = data.data.user.businessSlug 
+        ? `/admin/dashboard/${data.data.user.businessSlug}` 
+        : '/admin/dashboard'
+      
+      window.location.href = redirectUrl
+
+    } catch (error) {
+      console.error('Login error:', error)
+      showError(
+        language === 'en' ? 'Login Error' : 'Hitilafu ya Kuingia',
+        language === 'en' ? 'Something went wrong. Please try again.' : 'Kuna tatizo. Jaribu tena.'
+      )
+    } finally {
       setIsLoading(false)
-      console.log('Email login:', { email, password, rememberMe })
-    }, 2000)
+    }
   }
 
-  const handleGoogleLogin = () => {
-    console.log('Google login')
-    // Implement Google OAuth
+  const handleGoogleLogin = async () => {
+    try {
+      const result = await signIn('google', {
+        callbackUrl: '/admin/dashboard', // Redirect after successful login
+        redirect: false
+      })
+      
+      if (result?.error) {
+        showError(
+          language === 'en' ? 'Google Sign In Failed' : 'Kuingia kwa Google Kumeshindwa',
+          result.error
+        )
+      } else if (result?.url) {
+        showSuccess(
+          language === 'en' ? 'Signed in successfully!' : 'Umeingia kikamilifu!',
+          language === 'en' ? 'Redirecting...' : 'Inakuelekeza...'
+        )
+        // Redirect to the callback URL
+        window.location.href = result.url
+      }
+    } catch (error) {
+      console.error('Google login error:', error)
+      showError(
+        language === 'en' ? 'Sign In Error' : 'Hitilafu ya Kuingia',
+        language === 'en' ? 'Something went wrong. Please try again.' : 'Kuna tatizo. Jaribu tena.'
+      )
+    }
   }
 
   // Animation variants
@@ -141,6 +218,21 @@ export default function LoginPage() {
       }
     }
   }
+
+  // Show loading screen while checking authentication - prevents flash
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-teal-400 via-teal-500 to-teal-600 flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <Spinner size="lg" color="white" />
+          <div className="text-white text-lg font-medium">Checking authentication...</div>
+        </div>
+      </div>
+    )
+  }
+
+  // If authenticated, the useAuthRedirect hook will handle the redirect
+  // This component will not render for authenticated users
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-400 via-teal-500 to-teal-600 flex items-center justify-center p-4 relative overflow-hidden">

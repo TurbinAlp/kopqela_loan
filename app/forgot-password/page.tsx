@@ -11,10 +11,13 @@ import {
 } from '@heroicons/react/24/outline'
 import { useLanguage, LanguageToggle } from '../contexts/LanguageContext'
 import { useNotifications } from '../contexts/NotificationContext'
+import { useAuthRedirect } from '../hooks/useAuthRedirect'
+import Spinner from '../components/ui/Spinner'
 
 export default function ForgotPasswordPage() {
   const { language } = useLanguage()
   const { showError, showSuccess } = useNotifications()
+  const { isLoading: authLoading } = useAuthRedirect()
   const [isVisible, setIsVisible] = useState(false)
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -173,6 +176,18 @@ export default function ForgotPasswordPage() {
       y: [-15, 15, -15],
       transition: { duration: 5, repeat: Infinity, ease: "easeInOut" }
     }
+  }
+
+  // Show loading screen while checking authentication - prevents flash
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-teal-400 via-teal-500 to-teal-600 flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <Spinner size="lg" color="white" />
+          <div className="text-white text-lg font-medium">Checking authentication...</div>
+        </div>
+      </div>
+    )
   }
 
   return (

@@ -12,11 +12,14 @@ import {
 } from '@heroicons/react/24/outline'
 import { useLanguage, LanguageToggle } from '../contexts/LanguageContext'
 import { useNotifications } from '../contexts/NotificationContext'
+import { useAuthRedirect } from '../hooks/useAuthRedirect'
+import Spinner from '../components/ui/Spinner'
 import { useSearchParams } from 'next/navigation'
 
 export default function ResetPasswordPage() {
   const { language } = useLanguage()
   const { showError, showSuccess } = useNotifications()
+  const { isLoading: authLoading } = useAuthRedirect()
   const searchParams = useSearchParams()
   const [isVisible, setIsVisible] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -197,6 +200,18 @@ export default function ResetPasswordPage() {
       y: [-15, 15, -15],
       transition: { duration: 5, repeat: Infinity, ease: "easeInOut" }
     }
+  }
+
+  // Show loading screen while checking authentication - prevents flash
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-400 via-red-500 to-red-600 flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <Spinner size="lg" color="white" />
+          <div className="text-white text-lg font-medium">Checking authentication...</div>
+        </div>
+      </div>
+    )
   }
 
   return (
