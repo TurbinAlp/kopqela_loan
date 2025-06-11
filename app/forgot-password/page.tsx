@@ -10,9 +10,11 @@ import {
   EnvelopeIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage, LanguageToggle } from '../contexts/LanguageContext'
+import { useNotifications } from '../contexts/NotificationContext'
 
 export default function ForgotPasswordPage() {
   const { language } = useLanguage()
+  const { showError, showSuccess } = useNotifications()
   const [isVisible, setIsVisible] = useState(false)
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -28,14 +30,14 @@ export default function ForgotPasswordPage() {
       title: "Forgot Password?",
       subtitle: "Enter your email to reset your password",
       successTitle: "Check Your Email!",
-      successSubtitle: "We've sent a password reset link to",
+      successSubtitle: "We've sent a password reset code to",
       email: "Email Address",
-      sendLink: "Send Reset Link",
+      sendLink: "Send Reset Code",
       backToLogin: "Back to Login",
       resendLink: "Resend Link",
       emailRequired: "Email is required",
       emailInvalid: "Please enter a valid email address",
-      checkInbox: "Check your inbox and click the link to reset your password",
+      checkInbox: "Check your inbox for the 6-digit code to reset your password",
       didntReceive: "Didn't receive the email?",
       checkSpam: "Check your spam folder or"
     },
@@ -43,14 +45,14 @@ export default function ForgotPasswordPage() {
       title: "Umesahau Nywila?",
       subtitle: "Ingiza email yako ili kubadilisha nywila",
       successTitle: "Angalia Email Yako!",
-      successSubtitle: "Tumetuma kiungo cha kubadilisha nywila kwa",
+      successSubtitle: "Tumetuma nambari ya kubadilisha nywila kwa",
       email: "Anuani ya Email",
-      sendLink: "Tuma Kiungo cha Kubadilisha",
+      sendLink: "Tuma Nambari ya Kubadilisha",
       backToLogin: "Rudi Kwenye Kuingia",
       resendLink: "Tuma Tena",
       emailRequired: "Email inahitajika",
       emailInvalid: "Tafadhali ingiza email sahihi",
-      checkInbox: "Angalia barua pepe yako na ubofye kiungo ili kubadilisha nywila",
+      checkInbox: "Angalia barua pepe yako kwa nambari ya tarakimu 6 ili kubadilisha nywila",
       didntReceive: "Hujapokea email?",
       checkSpam: "Angalia folda ya spam au"
     }
@@ -77,18 +79,79 @@ export default function ForgotPasswordPage() {
 
     setIsLoading(true)
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok) {
+        setIsSuccess(true)
+        showSuccess(
+          language === 'en' ? 'Reset Code Sent!' : 'Nambari Imetumwa!',
+          data.data?.message || 'Password reset code sent successfully'
+        )
+        
+        // Auto-redirect to reset password page after 3 seconds
+        setTimeout(() => {
+          window.location.href = `/reset-password?email=${encodeURIComponent(email)}`
+        }, 3000)
+      } else {
+        if (data.field) {
+          setError(data.error)
+        } else {
+          showError(
+            language === 'en' ? 'Request Failed' : 'Ombi Limeshindwa',
+            data.error || 'Failed to send reset code'
+          )
+        }
+      }
+    } catch (error) {
+      console.error('Forgot password error:', error)
+      showError(
+        language === 'en' ? 'Network Error' : 'Hitilafu ya Mtandao',
+        language === 'en' ? 'Please check your connection and try again' : 'Angalia muunganisho wako na ujaribu tena'
+      )
+    } finally {
       setIsLoading(false)
-      setIsSuccess(true)
-    }, 2000)
+    }
   }
 
-  const handleResend = () => {
+  const handleResend = async () => {
     setIsLoading(true)
-    setTimeout(() => {
+    
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok) {
+        showSuccess(
+          language === 'en' ? 'New Code Sent!' : 'Nambari Mpya Imetumwa!',
+          data.data?.message || 'New reset code sent successfully'
+        )
+      } else {
+        showError(
+          language === 'en' ? 'Resend Failed' : 'Kutuma Tena Kumeshindwa',
+          data.error || 'Failed to resend reset code'
+        )
+      }
+    } catch (error) {
+      console.error('Resend error:', error)
+      showError(
+        language === 'en' ? 'Network Error' : 'Hitilafu ya Mtandao',
+        language === 'en' ? 'Please check your connection and try again' : 'Angalia muunganisho wako na ujaribu tena'
+      )
+    } finally {
       setIsLoading(false)
-    }, 1500)
+    }
   }
 
   const containerVariants = {
@@ -193,6 +256,25 @@ export default function ForgotPasswordPage() {
                 <p className="text-gray-600 text-sm leading-relaxed">
                   {t.checkInbox}
                 </p>
+                
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-800 font-medium mb-2">
+                    {language === 'en' ? 'Next Step:' : 'Hatua Ijayo:'}
+                  </p>
+                  <p className="text-sm text-blue-700">
+                    {language === 'en' 
+                      ? 'Once you get the code, visit the Reset Password page to enter your code and new password.'
+                      : 'Ukipokea nambari, tembelea ukurasa wa Kubadilisha Nywila ili uweke nambari na nywila mpya.'
+                    }
+                  </p>
+                  <motion.a 
+                    href="/reset-password" 
+                    whileHover={{ scale: 1.02 }}
+                    className="inline-block mt-2 text-blue-600 hover:text-blue-800 font-semibold text-sm underline"
+                  >
+                    {language === 'en' ? '→ Go to Reset Password Page' : '→ Nenda Kwenye Ukurasa wa Kubadilisha Nywila'}
+                  </motion.a>
+                </div>
                 
                 <div className="text-sm text-gray-600">
                   <p>{t.didntReceive}</p>

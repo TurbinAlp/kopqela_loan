@@ -1,0 +1,391 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== USER MANAGEMENT ====================
+
+model User {
+  id               Int       @id @default(autoincrement())
+  firstName        String    @map("first_name") @db.VarChar(100)
+  lastName         String    @map("last_name") @db.VarChar(100)
+  email            String    @unique @db.VarChar(255)
+  phone            String?   @db.VarChar(20)
+  passwordHash     String?   @map("password_hash") @db.VarChar(255)
+  role             UserRole  @default(CUSTOMER)
+  businessId       Int?      @map("business_id")
+  isVerified       Boolean   @default(false) @map("is_verified")
+  verificationCode String?   @map("verification_code") @db.VarChar(10)
+  verificationExpiresAt DateTime? @map("verification_expires_at")
+  resetToken       String?   @map("reset_token") @db.VarChar(255)
+  resetTokenExpiresAt DateTime? @map("reset_token_expires_at")
+  lastLoginAt      DateTime? @map("last_login_at")
+  isActive         Boolean   @default(true) @map("is_active")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  business         Business? @relation(fields: [businessId], references: [id])
+  orders           Order[]
+  creditApplications CreditApplication[]
+  payments         Payment[]
+  customerProfiles CustomerProfile[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  CASHIER
+  CUSTOMER
+
+  @@map("user_role")
+}
+
+// ==================== BUSINESS MANAGEMENT ====================
+
+model Business {
+  id                Int       @id @default(autoincrement())
+  name              String    @db.VarChar(255)
+  description       String?   @db.Text
+  businessType      String    @map("business_type") @db.VarChar(100)
+  slug              String    @unique @db.VarChar(100)
+  address           String    @db.Text
+  phone             String?   @db.VarChar(20)
+  email             String?   @db.VarChar(255)
+  registrationNumber String? @map("registration_number") @db.VarChar(100)
+  status            BusinessStatus @default(PENDING)
+  logoUrl           String?   @map("logo_url") @db.VarChar(500)
+  primaryColor      String?   @map("primary_color") @db.VarChar(7)
+  secondaryColor    String?   @map("secondary_color") @db.VarChar(7)
+  currency          String    @default("TZS") @db.VarChar(3)
+  timezone          String    @default("Africa/Dar_es_Salaam") @db.VarChar(50)
+  language          String    @default("en") @db.VarChar(2)
+  isActive          Boolean   @default(true) @map("is_active")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  users             User[]
+  products          Product[]
+  categories        Category[]
+  orders            Order[]
+  creditApplications CreditApplication[]
+  payments          Payment[]
+  inventory         Inventory[]
+  customerProfiles  CustomerProfile[]
+  businessSettings  BusinessSetting[]
+
+  @@map("businesses")
+}
+
+enum BusinessStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+
+  @@map("business_status")
+}
+
+model BusinessSetting {
+  id         Int      @id @default(autoincrement())
+  businessId Int      @map("business_id")
+  key        String   @db.VarChar(100)
+  value      String   @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, key])
+  @@map("business_settings")
+}
+
+// ==================== CUSTOMER PROFILES ====================
+
+model CustomerProfile {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  businessId Int      @map("business_id")
+  customerType CustomerType @default(INDIVIDUAL) @map("customer_type")
+  joinDate   DateTime @default(now()) @map("join_date")
+  notes      String?  @db.Text
+  creditLimit Decimal? @map("credit_limit") @db.Decimal(10, 2)
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user       User     @relation(fields: [userId], references: [id])
+  business   Business @relation(fields: [businessId], references: [id])
+
+  @@unique([userId, businessId])
+  @@map("customer_profiles")
+}
+
+enum CustomerType {
+  INDIVIDUAL
+  BUSINESS
+
+  @@map("customer_type")
+}
+
+// ==================== PRODUCT MANAGEMENT ====================
+
+model Category {
+  id          Int      @id @default(autoincrement())
+  businessId  Int      @map("business_id")
+  name        String   @db.VarChar(255)
+  nameSwahili String?  @map("name_swahili") @db.VarChar(255)
+  description String?  @db.Text
+  parentId    Int?     @map("parent_id")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  parent      Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
+  products    Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  businessId  Int      @map("business_id")
+  categoryId  Int?     @map("category_id")
+  name        String   @db.VarChar(255)
+  nameSwahili String?  @map("name_swahili") @db.VarChar(255)
+  description String?  @db.Text
+  sku         String?  @db.VarChar(100)
+  barcode     String?  @db.VarChar(100)
+  price       Decimal  @db.Decimal(10, 2)
+  wholesalePrice Decimal? @map("wholesale_price") @db.Decimal(10, 2)
+  costPrice   Decimal? @map("cost_price") @db.Decimal(10, 2)
+  unit        String?  @db.VarChar(50)
+  imageUrl    String?  @map("image_url") @db.VarChar(500)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  category    Category? @relation(fields: [categoryId], references: [id])
+  inventory   Inventory[]
+  orderItems  OrderItem[]
+
+  @@unique([businessId, sku])
+  @@map("products")
+}
+
+model Inventory {
+  id          Int      @id @default(autoincrement())
+  businessId  Int      @map("business_id")
+  productId   Int      @map("product_id")
+  quantity    Int      @default(0)
+  reservedQuantity Int @default(0) @map("reserved_quantity")
+  reorderPoint Int?    @map("reorder_point")
+  maxStock    Int?     @map("max_stock")
+  location    String?  @db.VarChar(100)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, productId])
+  @@map("inventory")
+}
+
+// ==================== ORDER MANAGEMENT ====================
+
+model Order {
+  id           Int      @id @default(autoincrement())
+  businessId   Int      @map("business_id")
+  customerId   Int      @map("customer_id")
+  orderNumber  String   @unique @map("order_number") @db.VarChar(50)
+  status       OrderStatus @default(PENDING)
+  orderType    OrderType @default(RETAIL) @map("order_type")
+  subtotal     Decimal  @db.Decimal(10, 2)
+  taxAmount    Decimal  @default(0) @map("tax_amount") @db.Decimal(10, 2)
+  discountAmount Decimal @default(0) @map("discount_amount") @db.Decimal(10, 2)
+  totalAmount  Decimal  @map("total_amount") @db.Decimal(10, 2)
+  paymentMethod PaymentMethod @map("payment_method")
+  paymentStatus PaymentStatus @default(PENDING) @map("payment_status")
+  notes        String?  @db.Text
+  deliveryAddress String? @map("delivery_address") @db.Text
+  orderDate    DateTime @default(now()) @map("order_date")
+  deliveryDate DateTime? @map("delivery_date")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer     User     @relation(fields: [customerId], references: [id])
+  orderItems   OrderItem[]
+  payments     Payment[]
+  creditApplication CreditApplication?
+
+  @@map("orders")
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+
+  @@map("order_status")
+}
+
+enum OrderType {
+  RETAIL
+  WHOLESALE
+  CREDIT
+
+  @@map("order_type")
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  MOBILE_MONEY
+  BANK_TRANSFER
+  CREDIT
+  PARTIAL
+
+  @@map("payment_method")
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  PARTIAL
+  FAILED
+  REFUNDED
+
+  @@map("payment_status")
+}
+
+model OrderItem {
+  id         Int     @id @default(autoincrement())
+  orderId    Int     @map("order_id")
+  productId  Int     @map("product_id")
+  quantity   Int
+  unitPrice  Decimal @map("unit_price") @db.Decimal(10, 2)
+  totalPrice Decimal @map("total_price") @db.Decimal(10, 2)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product    Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+// ==================== PAYMENT MANAGEMENT ====================
+
+model Payment {
+  id            Int      @id @default(autoincrement())
+  businessId    Int      @map("business_id")
+  orderId       Int?     @map("order_id")
+  customerId    Int      @map("customer_id")
+  amount        Decimal  @db.Decimal(10, 2)
+  paymentMethod PaymentMethod @map("payment_method")
+  paymentStatus PaymentStatus @default(PENDING) @map("payment_status")
+  transactionId String?  @map("transaction_id") @db.VarChar(255)
+  reference     String?  @db.VarChar(255)
+  notes         String?  @db.Text
+  paidAt        DateTime? @map("paid_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  business      Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  order         Order?   @relation(fields: [orderId], references: [id])
+  customer      User     @relation(fields: [customerId], references: [id])
+
+  @@map("payments")
+}
+
+// ==================== CREDIT MANAGEMENT ====================
+
+model CreditApplication {
+  id                Int      @id @default(autoincrement())
+  businessId        Int      @map("business_id")
+  customerId        Int      @map("customer_id")
+  orderId           Int?     @unique @map("order_id")
+  applicationNumber String   @unique @map("application_number") @db.VarChar(50)
+  customerType      CustomerType @map("customer_type")
+  requestedAmount   Decimal  @map("requested_amount") @db.Decimal(10, 2)
+  approvedAmount    Decimal? @map("approved_amount") @db.Decimal(10, 2)
+  interestRate      Decimal  @default(0) @map("interest_rate") @db.Decimal(5, 2)
+  termMonths        Int      @map("term_months")
+  status            CreditStatus @default(PENDING)
+  
+  // Customer Information
+  employmentInfo    Json?    @map("employment_info")
+  businessInfo      Json?    @map("business_info")
+  guarantorInfo     Json?    @map("guarantor_info")
+  
+  // Credit Assessment
+  creditScore       Int?     @map("credit_score")
+  riskLevel         RiskLevel? @map("risk_level")
+  assessmentNotes   String?  @map("assessment_notes") @db.Text
+  
+  // Dates
+  applicationDate   DateTime @default(now()) @map("application_date")
+  reviewDate        DateTime? @map("review_date")
+  approvalDate      DateTime? @map("approval_date")
+  disbursementDate  DateTime? @map("disbursement_date")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  business          Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  customer          User     @relation(fields: [customerId], references: [id])
+  order             Order?   @relation(fields: [orderId], references: [id])
+
+  @@map("credit_applications")
+}
+
+enum CreditStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  DISBURSED
+  ACTIVE
+  COMPLETED
+  DEFAULTED
+
+  @@map("credit_status")
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  VERY_HIGH
+
+  @@map("risk_level")
+}

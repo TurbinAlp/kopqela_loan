@@ -11,8 +11,18 @@
   "dependencies": {
     "@headlessui/react": "^2.2.4",
     "@heroicons/react": "^2.2.0",
+    "@prisma/client": "^6.9.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/nodemailer": "^6.4.17",
+    "@types/pg": "^8.15.4",
+    "bcryptjs": "^3.0.2",
     "framer-motion": "^12.16.0",
+    "jsonwebtoken": "^9.0.2",
     "next": "15.3.3",
+    "nodemailer": "^7.0.3",
+    "pg": "^8.16.0",
+    "prisma": "^6.9.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

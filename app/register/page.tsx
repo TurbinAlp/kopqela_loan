@@ -9,23 +9,23 @@ import {
   XCircleIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
-  UserIcon,
-  BuildingOfficeIcon,
   SparklesIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage, LanguageToggle } from '../contexts/LanguageContext'
+import { useNotifications } from '../contexts/NotificationContext'
 
-type RegistrationStep = 'method' | 'details' | 'role' | 'business' | 'verification'
-type UserRole = 'customer' | 'business' | null
+type RegistrationStep = 'method' | 'details' | 'business' | 'verification'
 
 export default function RegisterPage() {
   const { language } = useLanguage()
+  const { showWarning, showError, showSuccess } = useNotifications()
   const [currentStep, setCurrentStep] = useState<RegistrationStep>('method')
   const [isVisible, setIsVisible] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [verificationTimer, setVerificationTimer] = useState(60)
+
   
   const [formData, setFormData] = useState({
     method: null as 'google' | 'email' | null,
@@ -35,11 +35,11 @@ export default function RegisterPage() {
     confirmPassword: '',
     phone: '',
     acceptTerms: false,
-    role: null as UserRole,
     businessName: '',
     businessType: '',
+    businessDescription: '',
     registrationNumber: '',
-    accessReason: '',
+    businessAddress: '',
     verificationCode: ''
   })
 
@@ -61,38 +61,35 @@ export default function RegisterPage() {
 
   const translations = {
     en: {
-      getStarted: "Let's Get Started!",
-      subtitle: "Choose how you'd like to sign up",
+      getStarted: "Start Your Business Journey!",
+      subtitle: "Register your business on our platform",
       signupGoogle: "Sign up with Google",
       orSignup: "Or sign up with email",
       signupEmail: "Sign up with Email",
-      createAccount: "Create Your Account",
-      detailsSubtitle: "Tell us about yourself",
+      createAccount: "Create Business Account",
+      detailsSubtitle: "Tell us about yourself as the business owner",
       fullName: "Full Name",
       email: "Email Address", 
       password: "Password",
       confirmPassword: "Confirm Password",
       phone: "Phone Number (Optional)",
       acceptTerms: "I agree to the Terms & Conditions",
-      selectRole: "What's Your Role?",
-      roleSubtitle: "Choose how you'll use the platform",
-      customer: "Customer",
-      customerDesc: "Browse and purchase products",
-      businessUser: "Business User", 
-      businessDesc: "Manage inventory and sales",
       businessInfo: "Business Information",
       businessSubtitle: "Tell us about your business",
       businessName: "Business Name",
       businessType: "Business Type",
       selectBusinessType: "Select business type",
+      businessDescription: "Business Description",
       registrationNumber: "Registration Number (Optional)",
-      accessReason: "Why do you need business access?",
+      businessAddress: "Business Address",
       verifyEmail: "Verify Your Email",
       verificationSubtitle: "We sent a code to",
       enterCode: "Enter 6-digit code",
       didntReceive: "Didn't receive the code?",
       resendIn: "Resend in",
       resendNow: "Resend now",
+      sending: "Sending...",
+      codeSentSuccess: "New verification code sent to your email!",
       next: "Next",
       previous: "Back", 
       createAccountBtn: "Create Account",
@@ -102,7 +99,11 @@ export default function RegisterPage() {
       // Business Types
       retail: "Retail Store",
       wholesale: "Wholesale",
-      online: "Online Business",
+      electronics: "Electronics",
+      fashion: "Fashion & Clothing",
+      food: "Food & Beverages",
+      health: "Health & Beauty",
+      automotive: "Automotive",
       service: "Service Provider",
       other: "Other",
       // Validation messages
@@ -113,46 +114,43 @@ export default function RegisterPage() {
       passwordMinLength: "Password must be at least 8 characters",
       passwordsMatch: "Passwords do not match",
       termsRequired: "Please accept the terms and conditions",
-      roleRequired: "Please select a role",
       businessNameRequired: "Business name is required",
       businessTypeRequired: "Please select business type",
-      accessReasonRequired: "Please provide a reason for business access",
+      businessDescRequired: "Business description is required",
+      businessAddressRequired: "Business address is required",
       codeRequired: "Verification code is required",
       codeInvalid: "Please enter a valid 6-digit code"
     },
     sw: {
-      getStarted: "Tuanze!",
-      subtitle: "Chagua jinsi ungependa kujisajili",
+      getStarted: "Anza Safari ya Biashara!",
+      subtitle: "Sajili biashara yako kwenye jukwaa letu",
       signupGoogle: "Jisajili kwa Google",
       orSignup: "Au jisajili kwa email", 
       signupEmail: "Jisajili kwa Email",
-      createAccount: "Tengeneza Akaunti Yako",
-      detailsSubtitle: "Tuambie kuhusu wewe",
+      createAccount: "Tengeneza Akaunti ya Biashara",
+      detailsSubtitle: "Tuambie kuhusu wewe kama mmiliki wa biashara",
       fullName: "Jina Kamili",
       email: "Anuani ya Email",
       password: "Nywila", 
       confirmPassword: "Thibitisha Nywila",
       phone: "Namba ya Simu (Si Lazima)",
       acceptTerms: "Nakubali Masharti na Vigezo",
-      selectRole: "Jukumu Lako ni Nini?",
-      roleSubtitle: "Chagua jinsi utakavyotumia mfumo",
-      customer: "Mteja",
-      customerDesc: "Angalia na nunua bidhaa",
-      businessUser: "Mtumiaji wa Biashara",
-      businessDesc: "Simamia hisa na mauzo",
       businessInfo: "Maelezo ya Biashara",
       businessSubtitle: "Tuambie kuhusu biashara yako",
       businessName: "Jina la Biashara",
       businessType: "Aina ya Biashara",
       selectBusinessType: "Chagua aina ya biashara",
+      businessDescription: "Maelezo ya Biashara",
       registrationNumber: "Namba ya Usajili (Si Lazima)",
-      accessReason: "Kwa nini unahitaji ufikiaji wa biashara?",
+      businessAddress: "Anwani ya Biashara",
       verifyEmail: "Thibitisha Email Yako",
       verificationSubtitle: "Tumetuma nambari kwa",
       enterCode: "Ingiza nambari ya takwimu 6",
       didntReceive: "Hujapokea nambari?", 
       resendIn: "Tuma tena baada ya",
       resendNow: "Tuma tena sasa",
+      sending: "Inatuma...",
+      codeSentSuccess: "Nambari mpya imetumwa kwenye email yako!",
       next: "Mbele",
       previous: "Rudi",
       createAccountBtn: "Tengeneza Akaunti",
@@ -162,7 +160,11 @@ export default function RegisterPage() {
       // Business Types
       retail: "Duka la Rejareja",
       wholesale: "Biashara ya Jumla",
-      online: "Biashara ya Mtandaoni",
+      electronics: "Vifaa vya Umeme",
+      fashion: "Mavazi na Mapambo",
+      food: "Chakula na Vinywaji",
+      health: "Afya na Urembo",
+      automotive: "Magari na Vipuri",
       service: "Mtoa Huduma",
       other: "Nyingine",
       // Validation messages
@@ -173,10 +175,10 @@ export default function RegisterPage() {
       passwordMinLength: "Nywila lazima iwe na vibambo 8 au zaidi",
       passwordsMatch: "Nywila hazifanani",
       termsRequired: "Tafadhali kubali masharti na vigezo",
-      roleRequired: "Tafadhali chagua jukumu",
       businessNameRequired: "Jina la biashara linahitajika",
       businessTypeRequired: "Tafadhali chagua aina ya biashara",
-      accessReasonRequired: "Tafadhali toa sababu ya uhitaji wa ufikiaji wa biashara",
+      businessDescRequired: "Maelezo ya biashara yanahitajika",
+      businessAddressRequired: "Anwani ya biashara inahitajika",
       codeRequired: "Nambari ya uthibitisho inahitajika",
       codeInvalid: "Tafadhali ingiza nambari sahihi ya takwimu 6"
     }
@@ -187,10 +189,119 @@ export default function RegisterPage() {
   const businessTypes = [
     { value: 'retail', label: t.retail },
     { value: 'wholesale', label: t.wholesale },
-    { value: 'online', label: t.online },
+    { value: 'electronics', label: t.electronics },
+    { value: 'fashion', label: t.fashion },
+    { value: 'food', label: t.food },
+    { value: 'health', label: t.health },
+    { value: 'automotive', label: t.automotive },
     { value: 'service', label: t.service },
     { value: 'other', label: t.other }
   ]
+
+  // API Integration Functions
+  const checkEmailAvailability = async (email: string): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/auth/check-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      })
+      const data = await response.json()
+      console.log('Email check response:', data) // Debug log
+      
+      // Handle both success and error responses
+      if (response.ok && data.success) {
+        return data.data.available
+      } else {
+        // If API returns error (email exists), it means email is not available
+        return false
+      }
+    } catch (error) {
+      console.error('Email check failed:', error)
+      return false
+    }
+  }
+
+  const registerBusinessOwner = async (): Promise<{ success: boolean; message: string; userId?: string; field?: string; emailWarning?: boolean }> => {
+    try {
+      const response = await fetch('/api/auth/register/business-owner', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: formData.fullName.split(' ')[0] || formData.fullName,
+          lastName: formData.fullName.split(' ').slice(1).join(' ') || 'User',
+          email: formData.email,
+          password: formData.password,
+          confirmPassword: formData.confirmPassword,
+          phone: formData.phone || undefined,
+          businessName: formData.businessName,
+          businessType: formData.businessType,
+          businessDescription: formData.businessDescription,
+          businessAddress: formData.businessAddress,
+          businessPhone: formData.phone || undefined,
+          registrationNumber: formData.registrationNumber || undefined
+        })
+      })
+      const data = await response.json()
+      
+      if (response.ok) {
+        return { 
+          success: true, 
+          message: data.data?.message || 'Registration successful', 
+          userId: data.data?.userId,
+          emailWarning: data.data?.emailWarning 
+        }
+      } else {
+        // Handle backend error response properly
+        return { 
+          success: false, 
+          message: data.error || data.message || 'Registration failed', 
+          field: data.field 
+        }
+      }
+    } catch (error) {
+      console.error('Registration failed:', error)
+      return { success: false, message: 'Registration failed. Please try again.' }
+    }
+  }
+
+  const verifyEmail = async (code: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const response = await fetch('/api/auth/verify-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          code: code
+        })
+      })
+      const data = await response.json()
+      return { success: response.ok, message: data.message }
+    } catch (error) {
+      console.error('Verification failed:', error)
+      return { success: false, message: 'Verification failed. Please try again.' }
+    }
+  }
+
+  const resendVerificationCode = async (): Promise<{ success: boolean; message: string }> => {
+    try {
+      const response = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email })
+      })
+      const data = await response.json()
+      
+      if (response.ok) {
+        return { success: true, message: data.data?.message || 'Verification code sent successfully' }
+      } else {
+        return { success: false, message: data.error || data.message || 'Failed to resend code' }
+      }
+    } catch (error) {
+      console.error('Resend failed:', error)
+      return { success: false, message: 'Failed to resend code. Please try again.' }
+    }
+  }
 
   const validateCurrentStep = (): boolean => {
     const newErrors: Record<string, string> = {}
@@ -199,29 +310,26 @@ export default function RegisterPage() {
       case 'method':
         if (!formData.method) return false
         break
-      
       case 'details':
         if (!formData.fullName.trim()) newErrors.fullName = t.nameRequired
         if (!formData.email.trim()) newErrors.email = t.emailRequired
-        else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = t.emailInvalid
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = t.emailInvalid
         if (!formData.password) newErrors.password = t.passwordRequired
         else if (formData.password.length < 8) newErrors.password = t.passwordMinLength
+        else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+          newErrors.password = language === 'en' 
+            ? 'Password must contain uppercase, lowercase and number' 
+            : 'Password lazima iwe na herufi kubwa, ndogo na nambari'
+        }
         if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = t.passwordsMatch
         if (!formData.acceptTerms) newErrors.acceptTerms = t.termsRequired
         break
-      
-      case 'role':
-        if (!formData.role) newErrors.role = t.roleRequired
-        break
-      
       case 'business':
-        if (formData.role === 'business') {
           if (!formData.businessName.trim()) newErrors.businessName = t.businessNameRequired
           if (!formData.businessType) newErrors.businessType = t.businessTypeRequired
-          if (!formData.accessReason.trim()) newErrors.accessReason = t.accessReasonRequired
-        }
+        if (!formData.businessDescription.trim()) newErrors.businessDescription = t.businessDescRequired
+        if (!formData.businessAddress.trim()) newErrors.businessAddress = t.businessAddressRequired
         break
-      
       case 'verification':
         if (!formData.verificationCode.trim()) newErrors.verificationCode = t.codeRequired
         else if (!/^\d{6}$/.test(formData.verificationCode)) newErrors.verificationCode = t.codeInvalid
@@ -236,38 +344,104 @@ export default function RegisterPage() {
     setFormData(prev => ({ ...prev, ...updates }))
   }
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!validateCurrentStep()) return
 
     setIsLoading(true)
-    setTimeout(() => {
-      setIsLoading(false)
-      
-      if (currentStep === 'method') {
-        setCurrentStep(formData.method === 'google' ? 'role' : 'details')
-      } else if (currentStep === 'details') {
-        setCurrentStep('role')
-      } else if (currentStep === 'role') {
-        if (formData.role === 'business') {
+    
+    try {
+      switch (currentStep) {
+        case 'method':
+          setCurrentStep('details')
+          break
+        case 'details':
+          // Check email availability before proceeding
+          const emailAvailable = await checkEmailAvailability(formData.email)
+          if (!emailAvailable) {
+            setErrors({ email: 'This email is already registered' })
+            return
+          }
           setCurrentStep('business')
-        } else {
+          break
+                case 'business':
+          // Register the business owner
+          const registrationResult = await registerBusinessOwner()
+          if (!registrationResult.success) {
+            // If there's a specific field error, set it to that field
+            if (registrationResult.field) {
+              setErrors({ [registrationResult.field]: registrationResult.message })
+            } else {
+              // Show general error as toast
+              showError(
+                language === 'en' ? 'Registration Failed' : 'Usajili Umeshindwa',
+                registrationResult.message
+              )
+            }
+            return
+          }
+          
+          // Check if email failed to send
+          if (registrationResult.emailWarning) {
+            showWarning(
+              language === 'en' ? 'Email Delivery Issue' : 'Tatizo la Kutuma Email',
+              language === 'en' 
+                ? 'Account created successfully, but verification email failed to send. You can request a new code below.'
+                : 'Akaunti imeundwa kikamilifu, lakini email ya uthibitisho imeshindwa kutumwa. Unaweza kuomba nambari mpya hapo chini.'
+            )
+          }
+          
           setCurrentStep('verification')
-          setVerificationTimer(60)
-        }
-      } else if (currentStep === 'business') {
-        setCurrentStep('verification')
-        setVerificationTimer(60)
-      } else if (currentStep === 'verification') {
-        console.log('Registration completed:', formData)
+          setVerificationTimer(60) // Start timer for resend
+          break
+        case 'verification':
+          // Verify email with the provided code
+          const verificationResult = await verifyEmail(formData.verificationCode)
+          if (!verificationResult.success) {
+            setErrors({ verificationCode: verificationResult.message })
+            return
+          }
+          // Success! Show toast and redirect
+          showSuccess(
+            language === 'en' ? 'Account Verified!' : 'Akaunti Imethibitishwa!',
+            language === 'en' ? 'Your account has been verified successfully. Redirecting to login...' : 'Akaunti yako imethibitishwa kikamilifu. Tunakuelekeza kwenye kuingia...'
+          )
+          setTimeout(() => {
+            window.location.href = '/login'
+          }, 2000)
+          break
       }
-    }, 1000)
+    } catch (error) {
+      console.error('Step processing failed:', error)
+      setErrors({ general: 'An error occurred. Please try again.' })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handlePrevious = () => {
-    if (currentStep === 'details') setCurrentStep('method')
-    else if (currentStep === 'role') setCurrentStep(formData.method === 'google' ? 'method' : 'details')
-    else if (currentStep === 'business') setCurrentStep('role')
-    else if (currentStep === 'verification') setCurrentStep(formData.role === 'business' ? 'business' : 'role')
+    switch (currentStep) {
+      case 'details':
+        setCurrentStep('method')
+        break
+      case 'business':
+        setCurrentStep('details')
+        break
+      case 'verification':
+        setCurrentStep('business')
+        break
+    }
+  }
+
+  const floatingVariants = {
+    animate: {
+      y: [-20, 20, -20],
+      x: [-10, 10, -10],
+      transition: {
+        duration: 6,
+        repeat: Infinity,
+        ease: "easeInOut"
+      }
+    }
   }
 
   const containerVariants = {
@@ -275,7 +449,10 @@ export default function RegisterPage() {
     visible: { 
       opacity: 1, 
       y: 0,
-      transition: { duration: 0.6, staggerChildren: 0.1 }
+      transition: {
+        duration: 0.8,
+        staggerChildren: 0.1
+      }
     }
   }
 
@@ -285,25 +462,17 @@ export default function RegisterPage() {
   }
 
   const slideVariants = {
-    enter: { x: 50, opacity: 0 },
-    center: { x: 0, opacity: 1 },
-    exit: { x: -50, opacity: 0 }
+    enter: { opacity: 0, x: 50 },
+    center: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: -50 }
   }
 
-  const floatingVariants = {
-    animate: {
-      y: [-15, 15, -15],
-      transition: { duration: 5, repeat: Infinity, ease: "easeInOut" }
-    }
-  }
-
-  const progressPercentage = { method: 20, details: 40, role: 60, business: 80, verification: 100 }[currentStep]
+  const progressPercentage = { method: 20, details: 40, business: 60, verification: 100 }[currentStep]
 
   const getStepTitle = () => {
     switch (currentStep) {
       case 'method': return t.getStarted
       case 'details': return t.createAccount
-      case 'role': return t.selectRole  
       case 'business': return t.businessInfo
       case 'verification': return t.verifyEmail
       default: return ''
@@ -314,12 +483,13 @@ export default function RegisterPage() {
     switch (currentStep) {
       case 'method': return t.subtitle
       case 'details': return t.detailsSubtitle
-      case 'role': return t.roleSubtitle
       case 'business': return t.businessSubtitle
       case 'verification': return `${t.verificationSubtitle} ${formData.email}`
       default: return ''
     }
   }
+
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-400 via-teal-500 to-teal-600 flex items-center justify-center p-4 relative overflow-hidden">
@@ -350,6 +520,16 @@ export default function RegisterPage() {
             </motion.div>
             <motion.h1 key={currentStep} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-2xl font-bold text-gray-800 mb-2">{getStepTitle()}</motion.h1>
             <motion.p key={`${currentStep}-subtitle`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="text-gray-600 text-sm">{getStepSubtitle()}</motion.p>
+            
+            {/* General Error Display */}
+            {errors.general && (
+              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-center text-red-700 text-sm">
+                  <XCircleIcon className="w-5 h-5 mr-2" />
+                  {errors.general}
+                </div>
+              </motion.div>
+            )}
           </div>
 
           {/* Step Content */}
@@ -359,7 +539,7 @@ export default function RegisterPage() {
               {/* Method Selection */}
               {currentStep === 'method' && (
                 <div className="space-y-6">
-                  <motion.button onClick={() => { updateFormData({ method: 'google' }); setTimeout(() => setCurrentStep('role'), 100); }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full bg-white border border-gray-300 hover:border-gray-400 rounded-xl py-4 px-6 flex items-center justify-center space-x-3 transition-all duration-300 hover:shadow-lg group">
+                  <motion.button onClick={() => { updateFormData({ method: 'google' }); setTimeout(() => setCurrentStep('business'), 100); }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full bg-white border border-gray-300 hover:border-gray-400 rounded-xl py-4 px-6 flex items-center justify-center space-x-3 transition-all duration-300 hover:shadow-lg group">
                     <svg className="w-5 h-5" viewBox="0 0 24 24">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                       <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -439,39 +619,7 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              {/* Role Selection */}
-              {currentStep === 'role' && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 gap-4">
-                    <motion.button onClick={() => updateFormData({ role: 'customer' })} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className={`p-6 border-2 rounded-xl transition-all duration-300 text-left ${formData.role === 'customer' ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:border-teal-300'}`}>
-                      <div className="flex items-center space-x-4">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${formData.role === 'customer' ? 'bg-teal-100' : 'bg-gray-100'}`}>
-                          <UserIcon className={`w-6 h-6 ${formData.role === 'customer' ? 'text-teal-600' : 'text-gray-600'}`} />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-800">{t.customer}</h3>
-                          <p className="text-sm text-gray-600">{t.customerDesc}</p>
-                        </div>
-                      </div>
-                    </motion.button>
-
-                    <motion.button onClick={() => updateFormData({ role: 'business' })} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className={`p-6 border-2 rounded-xl transition-all duration-300 text-left ${formData.role === 'business' ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:border-teal-300'}`}>
-                      <div className="flex items-center space-x-4">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${formData.role === 'business' ? 'bg-teal-100' : 'bg-gray-100'}`}>
-                          <BuildingOfficeIcon className={`w-6 h-6 ${formData.role === 'business' ? 'text-teal-600' : 'text-gray-600'}`} />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-800">{t.businessUser}</h3>
-                          <p className="text-sm text-gray-600">{t.businessDesc}</p>
-                        </div>
-                      </div>
-                    </motion.button>
-                  </div>
-                  {errors.role && <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center text-red-500 text-sm"><XCircleIcon className="w-4 h-4 mr-1" />{errors.role}</motion.div>}
-                </div>
-              )}
-
-              {/* Business Information */}
+              {/* Enhanced Business Information */}
               {currentStep === 'business' && (
                 <div className="space-y-6">
                   <div>
@@ -492,14 +640,20 @@ export default function RegisterPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.registrationNumber}</label>
-                    <motion.input whileFocus={{ scale: 1.02 }} type="text" value={formData.registrationNumber} onChange={(e) => updateFormData({ registrationNumber: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-300 text-gray-900 placeholder-gray-400" placeholder="REG123456" />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.businessDescription}</label>
+                    <motion.textarea whileFocus={{ scale: 1.02 }} value={formData.businessDescription} onChange={(e) => updateFormData({ businessDescription: e.target.value })} rows={3} className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-300 resize-none text-gray-900 placeholder-gray-400 ${errors.businessDescription ? 'border-red-500' : 'border-gray-300'}`} placeholder="Brief description of your business..." />
+                    {errors.businessDescription && <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center text-red-500 text-sm mt-1"><XCircleIcon className="w-4 h-4 mr-1" />{errors.businessDescription}</motion.div>}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.accessReason}</label>
-                    <motion.textarea whileFocus={{ scale: 1.02 }} value={formData.accessReason} onChange={(e) => updateFormData({ accessReason: e.target.value })} rows={4} className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-300 resize-none text-gray-900 placeholder-gray-400 ${errors.accessReason ? 'border-red-500' : 'border-gray-300'}`} placeholder="Explain why you need business access..." />
-                    {errors.accessReason && <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center text-red-500 text-sm mt-1"><XCircleIcon className="w-4 h-4 mr-1" />{errors.accessReason}</motion.div>}
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.businessAddress}</label>
+                    <motion.textarea whileFocus={{ scale: 1.02 }} value={formData.businessAddress} onChange={(e) => updateFormData({ businessAddress: e.target.value })} rows={2} className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-300 resize-none text-gray-900 placeholder-gray-400 ${errors.businessAddress ? 'border-red-500' : 'border-gray-300'}`} placeholder="Business physical address..." />
+                    {errors.businessAddress && <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center text-red-500 text-sm mt-1"><XCircleIcon className="w-4 h-4 mr-1" />{errors.businessAddress}</motion.div>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.registrationNumber}</label>
+                    <motion.input whileFocus={{ scale: 1.02 }} type="text" value={formData.registrationNumber} onChange={(e) => updateFormData({ registrationNumber: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-300 text-gray-900 placeholder-gray-400" placeholder="REG123456" />
                   </div>
                 </div>
               )}
@@ -512,19 +666,60 @@ export default function RegisterPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
                   </div>
+                  
+                  <div className="text-center mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{t.verifyEmail}</h3>
+                    <p className="text-sm text-gray-600">
+                      {t.verificationSubtitle} <span className="font-semibold text-teal-600">{formData.email}</span>
+                    </p>
+                  </div>
+                  
+
 
                   <div className="space-y-4">
                     <label className="block text-sm font-medium text-gray-700">{t.enterCode}</label>
-                    <motion.input whileFocus={{ scale: 1.02 }} type="text" value={formData.verificationCode} onChange={(e) => updateFormData({ verificationCode: e.target.value.replace(/\D/g, '').slice(0, 6) })} className={`w-full px-4 py-4 text-center text-2xl font-mono tracking-widest border rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-300 text-gray-900 placeholder-gray-400 ${errors.verificationCode ? 'border-red-500' : 'border-gray-300'}`} placeholder="000000" maxLength={6} />
+                    <motion.input whileFocus={{ scale: 1.02 }} type="text" value={formData.verificationCode} onChange={(e) => {
+                      const code = e.target.value.replace(/\D/g, '').slice(0, 6)
+                      updateFormData({ verificationCode: code })
+                      // Clear errors when user starts typing
+                      if (errors.verificationCode) {
+                        setErrors({ ...errors, verificationCode: '' })
+                      }
+                    }} className={`w-full px-4 py-4 text-center text-2xl font-mono tracking-widest border rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-300 text-gray-900 placeholder-gray-400 ${errors.verificationCode ? 'border-red-500' : 'border-gray-300'}`} placeholder="000000" maxLength={6} />
                     {errors.verificationCode && <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-center text-red-500 text-sm"><XCircleIcon className="w-4 h-4 mr-1" />{errors.verificationCode}</motion.div>}
                   </div>
+
+                  
 
                   <div className="text-sm text-gray-600">
                     <p>{t.didntReceive}</p>
                     {verificationTimer > 0 ? (
                       <p className="mt-2">{t.resendIn} <span className="font-semibold text-teal-600">{verificationTimer}s</span></p>
                     ) : (
-                      <motion.button onClick={() => setVerificationTimer(60)} whileHover={{ scale: 1.05 }} className="mt-2 text-teal-600 hover:text-teal-700 font-semibold">{t.resendNow}</motion.button>
+                      <motion.button onClick={async () => {
+                        setIsLoading(true)
+                        const result = await resendVerificationCode()
+                        if (result.success) {
+                          setVerificationTimer(60)
+                          showSuccess(
+                            language === 'en' ? 'Code Sent!' : 'Nambari Imetumwa!',
+                            result.message
+                          )
+                        } else {
+                          showError(
+                            language === 'en' ? 'Resend Failed' : 'Kutuma Tena Kumeshindwa',
+                            result.message
+                          )
+                        }
+                        setIsLoading(false)
+                      }} whileHover={{ scale: 1.05 }} className="mt-2 text-teal-600 hover:text-teal-700 font-semibold disabled:opacity-50" disabled={isLoading}>
+                        {isLoading ? (
+                          <span className="flex items-center">
+                            <div className="w-4 h-4 border-2 border-teal-600 border-t-transparent rounded-full animate-spin mr-2" />
+                            {t.sending}
+                          </span>
+                        ) : t.resendNow}
+                      </motion.button>
                     )}
                   </div>
                 </div>
@@ -548,10 +743,14 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* Sign In Link */}
-          <div className="text-center mt-6">
-            <span className="text-gray-600 text-sm">{t.alreadyHaveAccount} </span>
-            <motion.a whileHover={{ scale: 1.05 }} href="/login" className="text-teal-600 hover:text-teal-700 font-semibold text-sm">{t.signIn}</motion.a>
+          {/* Footer */}
+          <div className="text-center mt-8 pt-6 border-t border-gray-200">
+            <p className="text-sm text-gray-600">
+              {t.alreadyHaveAccount}{' '}
+              <a href="/login" className="text-teal-600 hover:text-teal-700 font-semibold transition-colors">
+                {t.signIn}
+              </a>
+            </p>
           </div>
         </motion.div>
       </motion.div>

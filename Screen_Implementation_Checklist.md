@@ -529,46 +529,84 @@
   - [x] Quantity controls with validation
   - [x] Back to catalog navigation
 
-### 23. Order Request Screen (`/store/[slug]/order`)
+### 23. Order Request Screen (`/store/[slug]/order`) - ✅ **UX OPTIMIZED**
 - [x] **Step 1: Product Confirmation**
   - [x] Product details review (business-specific with sample data)
   - [x] Quantity confirmation (within stock limits with +/- controls)
   - [x] Total price calculation (business pricing with currency formatting)
   - [x] Add/remove items functionality
-- [x] **Step 2: Payment Method**
+  - [x] Clear product summary with proper spacing
+  - [x] Visual feedback for product interactions
+- [x] **Step 2: Payment Method Selection**
   - [x] Full payment option (instant processing)
   - [x] Partial payment option (integrated 5-step flow)
   - [x] Credit application option (integrated 6-step flow)
   - [x] Payment method selection (business accepted methods)
-- [x] **Step 3: Order Details**
+  - [x] Clear payment method cards with descriptions
+  - [x] Processing time indicators for each method
+- [x] **Step 3: Delivery & Customer Information (SIMPLIFIED)**
   - [x] Delivery options (store pickup free, home delivery with fees)
-  - [x] Customer information form (name, phone, email, address)
-  - [x] Special instructions textarea
+  - [x] **Essential customer info only** (name*, phone*, address if delivery)
+  - [x] Email marked as optional with clear explanation
   - [x] Address validation for delivery option
-- [x] **Step 4: Integrated Payment Configuration**
-  - [x] Credit application (employment & guarantor info) for credit method
-  - [x] Partial payment setup (amount, due date, terms) for partial method
-  - [x] Dynamic step navigation based on payment method
-  - [x] Payment-specific validation and terms agreement
-- [x] **Step 5/6: Review & Submit**
+  - [x] **UX Enhancement:** Reduced cognitive load with minimal fields
+  - [x] **UX Enhancement:** Progress indicators explaining current step
+  - [x] **UX Enhancement:** Clear optional vs required field marking
+- [x] **Step 4: Credit Application - Customer Type (NEW PROGRESSIVE FLOW)**
+  - [x] **UX MAJOR IMPROVEMENT:** Customer type selection first (Individual vs Business)
+  - [x] Clear explanation of credit purchase vs loan application
+  - [x] Visual benefits for each customer type
+  - [x] Progress bar showing "Step 1 of 3" for credit application
+  - [x] Next step preview information
+  - [x] **Fixed Validation:** Only requires customer type selection for progression
+- [x] **Step 5: Credit Application - Employment/Business Info (CONTEXTUAL)**
+  - [x] **Individual Path:** Employment info (employer, job title, income, duration)
+  - [x] **Business Path:** Business info (name, type, revenue, age)
+  - [x] Progress bar showing "Step 2 of 3" for credit application
+  - [x] **UX Enhancement:** Contextual fields based on customer type
+  - [x] **UX Enhancement:** Optional business registration section
+  - [x] **Fixed Validation:** Validates only employment/business fields for progression
+- [x] **Step 6: Credit Application - Guarantor & Terms (FINAL CREDIT STEP)**
+  - [x] Guarantor information (name, phone, relationship)
+  - [x] Credit terms configuration (duration, down payment)
+  - [x] Monthly payment calculation display
+  - [x] Progress bar showing "Step 3 of 3" (100% complete)
+  - [x] **UX Enhancement:** Clear guarantor consent requirement with explanation
+  - [x] **UX Enhancement:** Real-time payment calculation updates
+  - [x] **Fixed Validation:** Validates guarantor info and consent for progression
+- [x] **Step 7: Final Review & Submission**
   - [x] Order summary with all details
   - [x] Payment method details (partial payment breakdown, credit terms)
   - [x] Total calculation with delivery fees
   - [x] Terms and conditions agreement
   - [x] Order submission with confirmation
-- [x] **Advanced Features**
+- [x] **MAJOR UX IMPROVEMENTS IMPLEMENTED:**
+  - [x] **Progressive Disclosure:** Credit application broken into 3 logical steps
+  - [x] **Reduced Cognitive Load:** Max 5 fields per step instead of 100+ on one page
+  - [x] **Fixed Validation Logic:** Step-by-step validation instead of all-at-once
+  - [x] **Clear Progress Indicators:** Visual progress bars with percentages
+  - [x] **Purchase-Focused Language:** Not loan application terminology
+  - [x] **Information Architecture:** Logical flow from simple to complex
+  - [x] **Contextual Help:** Explanations for what information is used for
+  - [x] **Consistent Typography:** `text-gray-700` for better readability
+- [x] **TECHNICAL IMPROVEMENTS:**
   - [x] Multi-step progress indicator with visual feedback
-  - [x] Dynamic step configuration (4/5/6 steps based on payment method)
-  - [x] Form validation for each step
+  - [x] Dynamic step configuration (4-7 steps based on payment method)
+  - [x] **Fixed form validation:** Each step validates independently
   - [x] Business-specific theming and pricing
-  - [x] Mobile-responsive design
-  - [x] Multilingual support (EN/SW)
-  - [x] URL parameter support for product preselection
-  - [x] Business-specific delivery fees and options
-  - [x] Order number generation
-  - [x] Payment method persistence and cleanup
-  - [x] Auto-calculation of partial payment amounts (50% default, 30% minimum)
+  - [x] Mobile-responsive design with improved form layouts
+  - [x] Multilingual support (EN/SW) with contextual translations
+  - [x] **Enhanced button states:** Next button properly enables per step
+  - [x] **Improved visual hierarchy:** Better spacing and organization
+  - [x] **Better error prevention:** Clear requirements per step
+- [x] **ACCESSIBILITY & USABILITY:**
+  - [x] Clear field labeling and required field indicators
+  - [x] Logical tab order through forms
+  - [x] Mobile-friendly input controls
+  - [x] Consistent color scheme with business branding
   - [x] Loading states and error handling
+  - [x] **Enhanced focus states:** Better keyboard navigation
+  - [x] **Improved contrast:** Better text readability
 
 
 ### 25. Partial Payment Setup Screen (Customer)
@@ -751,7 +789,6 @@
   - [x] Error messages
   - [x] Email templates
 
----
 
 ## Integration Features
 
