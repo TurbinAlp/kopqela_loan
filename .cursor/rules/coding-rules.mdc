@@ -1,0 +1,9 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+- hakikisha unafata es lint rules muda wote
+- design ya page hakikisha inakuaconsistency kwa page zote
+
+- usitumie alert kuonesha ujumbe kwa user, tumia notification ulioitengeneza

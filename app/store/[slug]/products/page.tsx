@@ -5,46 +5,47 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useBusiness } from '../../../contexts/BusinessContext'
 import { useLanguage } from '../../../contexts/LanguageContext'
+import { useProducts } from '../../../hooks/useProducts'
+import Image from 'next/image'
 import {
   MagnifyingGlassIcon,
-  FunnelIcon,
-  AdjustmentsHorizontalIcon
+  FunnelIcon
 } from '@heroicons/react/24/outline'
-import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid'
-
-interface Product {
-  id: number
-  name: string
-  nameSwahili: string
-  description: string
-  descriptionSwahili: string
-  category: string
-  price: number
-  originalPrice?: number
-  image: string
-  rating: number
-  reviewCount: number
-  inStock: boolean
-  stockCount: number
-  isWholesale: boolean
-  isRetail: boolean
-  tags: string[]
-}
 
 export default function ProductCatalogPage() {
-  const { business } = useBusiness()
+  const { currentBusiness: business } = useBusiness()
   const { language } = useLanguage()
   const searchParams = useSearchParams()
   
   const [searchQuery, setSearchQuery] = useState(searchParams?.get('search') || '')
   const [selectedCategory, setSelectedCategory] = useState(searchParams?.get('category') || 'all')
   const [priceRange, setPriceRange] = useState([0, 1000000])
-  const [sortBy, setSortBy] = useState('popular')
-  const [productType, setProductType] = useState('all')
+  const [sortBy, setSortBy] = useState('created')
   const [inStockOnly, setInStockOnly] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 12
+
+  // API filters based on UI state
+  const apiFilters = useMemo(() => ({
+    q: searchQuery || undefined,
+    category: selectedCategory !== 'all' ? parseInt(selectedCategory) : undefined,
+    minPrice: priceRange[0] > 0 ? priceRange[0] : undefined,
+    maxPrice: priceRange[1] < 1000000 ? priceRange[1] : undefined,
+    inStock: inStockOnly || undefined,
+    active: true,
+    sort: sortBy === 'popular' ? 'created' : sortBy as 'name' | 'price' | 'created' | 'updated',
+    order: sortBy === 'priceLowToHigh' ? 'asc' : 'desc' as 'asc' | 'desc',
+    page: currentPage,
+    limit: itemsPerPage,
+    lang: language as 'en' | 'sw'
+  }), [searchQuery, selectedCategory, priceRange, sortBy, inStockOnly, currentPage, itemsPerPage, language])
+
+  // Fetch products using API
+  const { products, pagination, loading, error } = useProducts(
+    business?.slug || '', 
+    apiFilters
+  )
 
   const translations = {
     en: {
@@ -81,7 +82,9 @@ export default function ProductCatalogPage() {
       page: 'Page',
       of: 'of',
       previous: 'Previous',
-      next: 'Next'
+      next: 'Next',
+      loading: 'Loading products...',
+      error: 'Error loading products'
     },
     sw: {
       productCatalog: 'Bidhaa Mbalimbali',
@@ -117,143 +120,19 @@ export default function ProductCatalogPage() {
       page: 'Ukurasa',
       of: 'wa',
       previous: 'Uliopita',
-      next: 'Ifuatayo'
+      next: 'Ifuatayo',
+      loading: 'Inapakia bidhaa...',
+      error: 'Hitilafu ya kupakia bidhaa'
     }
   }
 
   const t = translations[language]
 
-  // Generate sample products based on business type
-  const products: Product[] = useMemo(() => {
-    if (!business) return []
-    
-    if (business.businessType === 'Electronics') {
-      return [
-        {
-          id: 1, name: 'iPhone 15 Pro', nameSwahili: 'iPhone 15 Pro', 
-          description: 'Latest iPhone with advanced camera', descriptionSwahili: 'iPhone mpya na kamera bora',
-          category: 'Smartphones', price: 1200000, originalPrice: 1350000, image: '/images/products/iphone.jpg',
-          rating: 4.8, reviewCount: 124, inStock: true, stockCount: 15, isWholesale: false, isRetail: true,
-          tags: ['premium', 'new', 'apple']
-        },
-        {
-          id: 2, name: 'Samsung Galaxy S24', nameSwahili: 'Samsung Galaxy S24',
-          description: 'Powerful Android smartphone', descriptionSwahili: 'Simu ya Android yenye nguvu',
-          category: 'Smartphones', price: 950000, image: '/images/products/samsung.jpg',
-          rating: 4.6, reviewCount: 89, inStock: true, stockCount: 8, isWholesale: true, isRetail: true,
-          tags: ['android', 'samsung']
-        },
-        {
-          id: 3, name: 'MacBook Air M3', nameSwahili: 'MacBook Air M3',
-          description: 'Ultra-light laptop for professionals', descriptionSwahili: 'Laptop nyepesi kwa wafanyakazi',
-          category: 'Laptops', price: 1800000, image: '/images/products/macbook.jpg',
-          rating: 4.9, reviewCount: 67, inStock: false, stockCount: 0, isWholesale: false, isRetail: true,
-          tags: ['apple', 'professional']
-        },
-        {
-          id: 4, name: 'AirPods Pro', nameSwahili: 'AirPods Pro',
-          description: 'Wireless earbuds with noise canceling', descriptionSwahili: 'Vipute bila waya na kuzuia kelele',
-          category: 'Audio', price: 280000, image: '/images/products/airpods.jpg',
-          rating: 4.7, reviewCount: 156, inStock: true, stockCount: 25, isWholesale: false, isRetail: true,
-          tags: ['apple', 'wireless']
-        }
-      ]
-    } else if (business.businessType === 'Fashion & Clothing') {
-      return [
-        {
-          id: 1, name: 'Elegant Dress', nameSwahili: 'Nguo ya Kifahari',
-          description: 'Beautiful dress for special occasions', descriptionSwahili: 'Nguo nzuri kwa matukio maalum',
-          category: "Women's Wear", price: 65000, originalPrice: 75000, image: '/images/products/dress.jpg',
-          rating: 4.6, reviewCount: 34, inStock: true, stockCount: 12, isWholesale: false, isRetail: true,
-          tags: ['elegant', 'party']
-        },
-        {
-          id: 2, name: 'Casual T-Shirt', nameSwahili: 'Shati la Kawaida',
-          description: 'Comfortable cotton t-shirt', descriptionSwahili: 'Shati la pambajenye utulivu',
-          category: "Men's Wear", price: 18000, image: '/images/products/tshirt.jpg',
-          rating: 4.4, reviewCount: 67, inStock: true, stockCount: 45, isWholesale: true, isRetail: true,
-          tags: ['casual', 'cotton']
-        },
-        {
-          id: 3, name: 'Designer Shoes', nameSwahili: 'Viatu vya Kisanifu',
-          description: 'Stylish leather shoes', descriptionSwahili: 'Viatu vya ngozi vya kisanifu',
-          category: 'Shoes', price: 85000, image: '/images/products/shoes.jpg',
-          rating: 4.8, reviewCount: 23, inStock: false, stockCount: 0, isWholesale: false, isRetail: true,
-          tags: ['leather', 'formal']
-        }
-      ]
-    } else {
-      return [
-        {
-          id: 1, name: 'Rice 5kg', nameSwahili: 'Mchele Kilo 5',
-          description: 'Premium quality rice', descriptionSwahili: 'Mchele wa ubora wa juu',
-          category: 'Groceries', price: 12000, image: '/images/products/rice.jpg',
-          rating: 4.3, reviewCount: 145, inStock: true, stockCount: 50, isWholesale: true, isRetail: true,
-          tags: ['staple', 'quality']
-        },
-        {
-          id: 2, name: 'Cooking Oil 2L', nameSwahili: 'Mafuta ya Kupikia Lita 2',
-          description: 'Pure vegetable cooking oil', descriptionSwahili: 'Mafuta safi ya mboga ya kupikia',
-          category: 'Groceries', price: 8500, originalPrice: 9500, image: '/images/products/oil.jpg',
-          rating: 4.2, reviewCount: 78, inStock: true, stockCount: 35, isWholesale: true, isRetail: true,
-          tags: ['cooking', 'pure']
-        },
-        {
-          id: 3, name: 'Sugar 2kg', nameSwahili: 'Sukari Kilo 2',
-          description: 'Refined white sugar', descriptionSwahili: 'Sukari nyeupe iliyosafishwa',
-          category: 'Groceries', price: 6000, image: '/images/products/sugar.jpg',
-          rating: 4.1, reviewCount: 92, inStock: false, stockCount: 0, isWholesale: true, isRetail: true,
-          tags: ['sweet', 'baking']
-        }
-      ]
-    }
-  }, [business])
-
-  const categories = useMemo(() => Array.from(new Set(products.map(p => p.category))), [products])
-
-  // Filter and sort products
-  const filteredAndSortedProducts = useMemo(() => {
-    const filtered = products.filter(product => {
-      const name = language === 'sw' ? product.nameSwahili : product.name
-      const description = language === 'sw' ? product.descriptionSwahili : product.description
-      
-      const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           product.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-      
-      const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory
-      const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1]
-      const matchesType = productType === 'all' || 
-                         (productType === 'wholesale' && product.isWholesale) ||
-                         (productType === 'retail' && product.isRetail)
-      const matchesStock = !inStockOnly || product.inStock
-
-      return matchesSearch && matchesCategory && matchesPrice && matchesType && matchesStock
-    })
-
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'priceLowToHigh':
-          return a.price - b.price
-        case 'priceHighToLow':
-          return b.price - a.price
-        case 'rating':
-          return b.rating - a.rating
-        case 'newest':
-          return b.id - a.id
-        default:
-          return b.reviewCount - a.reviewCount
-      }
-    })
-
-    return filtered
-  }, [products, searchQuery, selectedCategory, priceRange, productType, inStockOnly, sortBy, language])
-
-  const totalPages = Math.ceil(filteredAndSortedProducts.length / itemsPerPage)
-  const paginatedProducts = filteredAndSortedProducts.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  )
+  // Extract categories from products (now from API)
+  const categories = useMemo(() => {
+    if (!products) return []
+    return Array.from(new Set(products.map(p => p.category?.name).filter(Boolean)))
+  }, [products])
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('sw-TZ', {
@@ -267,304 +146,268 @@ export default function ProductCatalogPage() {
     setSearchQuery('')
     setSelectedCategory('all')
     setPriceRange([0, 1000000])
-    setProductType('all')
+    setSortBy('created')
     setInStockOnly(false)
-    setSortBy('popular')
     setCurrentPage(1)
   }
 
   if (!business) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Loading...</h2>
-          <p className="text-gray-600">Please wait while we load the store information.</p>
-        </div>
+    return <div className="flex justify-center items-center min-h-screen">
+      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
       </div>
-    )
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{t.productCatalog}</h1>
-              <p className="text-gray-600">
-                {filteredAndSortedProducts.length} {t.productsFound}
-              </p>
-            </div>
-
-            <div className="mt-4 lg:mt-0 flex flex-col sm:flex-row gap-4">
-              <div className="relative">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t.searchPlaceholder}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-600 font-normal placeholder:text-gray-500 placeholder:font-normal"
-                />
-              </div>
-
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-600 font-normal"
-              >
-                <option value="popular">{t.popular}</option>
-                <option value="priceLowToHigh">{t.priceLowToHigh}</option>
-                <option value="priceHighToLow">{t.priceHighToLow}</option>
-                <option value="rating">{t.rating}</option>
-                <option value="newest">{t.newest}</option>
-              </select>
-
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="lg:hidden flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                <FunnelIcon className="w-5 h-5 mr-2" />
-                {t.filters}
-              </button>
-            </div>
-          </div>
+      <div className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <h1 className="text-3xl font-bold text-gray-900">{t.productCatalog}</h1>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Filters Sidebar */}
-          <div className={`lg:w-64 ${showFilters ? 'block' : 'hidden lg:block'}`}>
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-4">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">{t.filters}</h3>
+          <div className="lg:w-1/4">
+            <div className="bg-white rounded-lg shadow-md p-6 sticky top-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-lg font-semibold text-gray-900">{t.filters}</h2>
                 <button
                   onClick={clearFilters}
-                  className="text-sm text-teal-600 hover:text-teal-700"
+                  className="text-sm text-blue-600 hover:text-blue-800"
                 >
                   {t.clearFilters}
                 </button>
               </div>
 
+              {/* Search */}
+              <div className="mb-6">
+                <div className="relative">
+                  <MagnifyingGlassIcon className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder={t.searchPlaceholder}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
               {/* Category Filter */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t.category}
                 </label>
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-600 font-normal"
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="all">{t.allCategories}</option>
-                  {categories.map(category => (
-                    <option key={category} value={category}>{category}</option>
+                  {categories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
                   ))}
                 </select>
               </div>
 
               {/* Price Range */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t.priceRange}
                 </label>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="number"
-                      value={priceRange[0]}
-                      onChange={(e) => setPriceRange([parseInt(e.target.value) || 0, priceRange[1]])}
-                      placeholder={t.from}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-600 font-normal placeholder:text-gray-500 placeholder:font-normal"
-                    />
-                    <span className="text-gray-500">-</span>
-                    <input
-                      type="number"
-                      value={priceRange[1]}
-                      onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value) || 1000000])}
-                      placeholder={t.to}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-600 font-normal placeholder:text-gray-500 placeholder:font-normal"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Product Type */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  {t.productType}
-                </label>
                 <div className="space-y-2">
-                  {['all', 'wholesale', 'retail'].map((type) => (
-                    <label key={type} className="flex items-center text-gray-600">
-                      <input
-                        type="radio"
-                        name="productType"
-                        value={type}
-                        checked={productType === type}
-                        onChange={(e) => setProductType(e.target.value)}
-                        className="mr-2 text-teal-600 focus:ring-teal-500"
-                      />
-                      {type === 'all' ? t.allTypes : type === 'wholesale' ? t.wholesale : t.retail}
-                    </label>
-                  ))}
+                    <input
+                    type="range"
+                    min="0"
+                    max="1000000"
+                    step="1000"
+                      value={priceRange[1]}
+                    onChange={(e) => setPriceRange([0, parseInt(e.target.value)])}
+                    className="w-full"
+                    />
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <span>{formatPrice(0)}</span>
+                    <span>{formatPrice(priceRange[1])}</span>
+                  </div>
                 </div>
               </div>
 
               {/* Availability */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   {t.availability}
                 </label>
-                <label className="flex items-center text-gray-600">
+                <label className="flex items-center">
                   <input
                     type="checkbox"
                     checked={inStockOnly}
                     onChange={(e) => setInStockOnly(e.target.checked)}
-                    className="mr-2 text-teal-600 focus:ring-teal-500"
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
-                  {t.inStockOnly}
+                  <span className="ml-2 text-sm text-gray-600">{t.inStockOnly}</span>
                 </label>
+              </div>
+
+              {/* Sort By */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t.sortBy}
+                </label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="created">{t.newest}</option>
+                  <option value="name">{t.popular}</option>
+                  <option value="priceLowToHigh">{t.priceLowToHigh}</option>
+                  <option value="priceHighToLow">{t.priceHighToLow}</option>
+                </select>
               </div>
             </div>
           </div>
 
           {/* Products Grid */}
-          <div className="flex-1">
-            {paginatedProducts.length === 0 ? (
-              <div className="text-center py-12">
-                <AdjustmentsHorizontalIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t.noProductsFound}</h3>
-                <p className="text-gray-600">{t.noProductsDesc}</p>
+          <div className="lg:w-3/4">
+            {/* Results Header */}
+            <div className="flex justify-between items-center mb-6">
+              <p className="text-sm text-gray-600">
+                {loading ? t.loading : `${pagination.totalCount} ${t.productsFound}`}
+              </p>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="lg:hidden flex items-center text-sm text-gray-600"
+              >
+                <FunnelIcon className="w-4 h-4 mr-1" />
+                {t.filters}
+              </button>
+            </div>
+
+            {/* Loading State */}
+            {loading && (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
               </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {paginatedProducts.map((product) => {
-                    const name = language === 'sw' ? product.nameSwahili : product.name
-                    const description = language === 'sw' ? product.descriptionSwahili : product.description
-                    
-                    return (
-                      <div key={product.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-lg transition-shadow">
-                        <div className="aspect-w-4 aspect-h-3 bg-gray-200 relative">
-                          <div className="w-full h-48 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                            <span className="text-gray-500 text-sm">Product Image</span>
+            )}
+
+            {/* Error State */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+                <div className="flex">
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-red-800">{t.error}</h3>
+                    <div className="mt-2 text-sm text-red-700">{error}</div>
+                  </div>
                           </div>
-                          {!product.inStock && (
-                            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                              <span className="text-white font-semibold">{t.outOfStock}</span>
                             </div>
                           )}
-                          {product.originalPrice && (
-                            <div className="absolute top-2 left-2">
-                              <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
-                                {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
-                              </span>
-                            </div>
-                          )}
-                        </div>
+
+            {/* Products Grid */}
+            {!loading && !error && products && products.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {products.map((product) => (
+                  <Link
+                    key={product.id}
+                    href={`/store/${business.slug}/products/${product.id}`}
+                    className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden"
+                  >
+                    <div className="aspect-w-4 aspect-h-3 bg-gray-200">
+                      <Image
+                        src="/placeholder-product.jpg"
+                        alt={product.name}
+                        className="w-full h-48 object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%236b7280' font-family='Arial, sans-serif' font-size='14'%3ENo Image%3C/text%3E%3C/svg%3E"
+                        }}
+                      />
+                    </div>
 
                         <div className="p-4">
-                          <h3 className="text-lg font-semibold text-gray-900 mb-1">{name}</h3>
-                          <p className="text-sm text-gray-600 mb-3">{description}</p>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                        {product.name}
+                      </h3>
+                      
+                      {product.description && (
+                        <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                          {product.description}
+                        </p>
+                      )}
 
-                          {/* Rating */}
-                          <div className="flex items-center mb-3">
-                            <div className="flex items-center">
-                              {[...Array(5)].map((_, i) => (
-                                <StarIconSolid
-                                  key={i}
-                                  className={`w-4 h-4 ${i < Math.floor(product.rating) ? 'text-yellow-400' : 'text-gray-300'}`}
-                                />
-                              ))}
-                            </div>
-                            <span className="ml-2 text-sm text-gray-600">
-                              ({product.reviewCount} {t.reviews})
-                            </span>
-                          </div>
+                      {product.category && (
+                        <p className="text-xs text-blue-600 mb-2">
+                          {product.category.name}
+                        </p>
+                      )}
 
-                          {/* Price */}
-                          <div className="mb-4">
-                            <div className="flex items-center space-x-2">
-                              <span 
-                                className="text-xl font-bold"
-                                style={{ color: business.primaryColor }}
-                              >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-xl font-bold" style={{ color: '#14b8a6' }}>
                                 {formatPrice(product.price)}
-                              </span>
-                              {product.originalPrice && (
-                                <span className="text-sm text-gray-500 line-through">
-                                  {formatPrice(product.originalPrice)}
-                                </span>
-                              )}
-                            </div>
-                            <p className={`text-sm ${product.inStock ? 'text-green-600' : 'text-red-600'}`}>
-                              {product.inStock ? `${t.inStock} (${product.stockCount})` : t.outOfStock}
+                          </p>
+                          {product.wholesalePrice && product.wholesalePrice !== product.price && (
+                            <p className="text-sm text-gray-500">
+                              Wholesale: {formatPrice(product.wholesalePrice)}
                             </p>
-                          </div>
-
-                          {/* Product Types */}
-                          <div className="flex flex-wrap gap-1 mb-4">
-                            {product.isWholesale && (
-                              <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
-                                {t.wholesale}
-                              </span>
-                            )}
-                            {product.isRetail && (
-                              <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
-                                {t.retail}
-                              </span>
                             )}
                           </div>
 
-                          <Link
-                            href={`/store/${business.slug}/products/${product.id}`}
-                            className={`block w-full text-center px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                              product.inStock
-                                ? 'text-white hover:opacity-90'
-                                : 'text-gray-500 bg-gray-200 cursor-not-allowed'
-                            }`}
-                            style={{
-                              backgroundColor: product.inStock ? business.primaryColor : undefined
-                            }}
-                          >
-                            {product.inStock ? t.viewDetails : t.outOfStock}
-                          </Link>
+                        <div className="text-right">
+                          <p className={`text-sm font-medium ${
+                            product.inventory?.inStock ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {product.inventory?.inStock ? t.inStock : t.outOfStock}
+                          </p>
+                          {product.inventory?.quantity && (
+                            <p className="text-xs text-gray-500">
+                              Qty: {product.inventory.quantity}
+                            </p>
+                          )}
                         </div>
                       </div>
-                    )
-                  })}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!loading && !error && (!products || products.length === 0) && (
+              <div className="text-center py-12">
+                <div className="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                  <MagnifyingGlassIcon className="w-12 h-12 text-gray-400" />
                 </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">{t.noProductsFound}</h3>
+                <p className="text-gray-600">{t.noProductsDesc}</p>
+              </div>
+            )}
 
                 {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="mt-12 flex items-center justify-center">
-                    <nav className="flex items-center space-x-2">
+            {!loading && !error && products && products.length > 0 && pagination.totalPages > 1 && (
+              <div className="flex justify-center items-center space-x-2 mt-8">
                       <button
-                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                        disabled={currentPage === 1}
-                        className="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={!pagination.hasPreviousPage}
+                  className="px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {t.previous}
                       </button>
                       
                       <span className="px-4 py-2 text-sm text-gray-700">
-                        {t.page} {currentPage} {t.of} {totalPages}
+                  {t.page} {pagination.page} {t.of} {pagination.totalPages}
                       </span>
                       
                       <button
-                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                        disabled={currentPage === totalPages}
-                        className="px-3 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={!pagination.hasNextPage}
+                  className="px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {t.next}
                       </button>
-                    </nav>
                   </div>
-                )}
-              </>
             )}
           </div>
         </div>

@@ -5,7 +5,6 @@ import { LanguageProvider } from "./contexts/LanguageContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import ToastContainer from "./components/notifications/ToastContainer";
 import { AuthProvider } from "./components/providers/AuthProvider";
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],

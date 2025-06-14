@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useBusiness } from '../../../contexts/BusinessContext'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import {
@@ -65,7 +66,7 @@ interface OutstandingBalance {
 }
 
 export default function CustomerAccountPage() {
-  const { business } = useBusiness()
+  const { currentBusiness: business } = useBusiness()
   const { language } = useLanguage()
   
   const [activeTab, setActiveTab] = useState<'profile' | 'payments' | 'balances'>('profile')
@@ -401,10 +402,12 @@ export default function CustomerAccountPage() {
             <div className="bg-white rounded-lg shadow-sm p-6 sticky top-4">
               <div className="flex items-center mb-6">
                 {profileData.avatar ? (
-                  <img
+                  <Image
                     src={profileData.avatar}
                     alt={profileData.name}
-                    className="w-16 h-16 rounded-full"
+                    width={64}
+                    height={64}
+                    className="w-16 h-16 rounded-full object-cover"
                   />
                 ) : (
                   <UserCircleIconSolid className="w-16 h-16 text-gray-400" />
@@ -430,7 +433,7 @@ export default function CustomerAccountPage() {
                         : 'text-gray-700 hover:bg-gray-100'
                     }`}
                     style={{
-                      backgroundColor: activeTab === tab.id ? business.primaryColor : undefined
+                      backgroundColor: activeTab === tab.id ? '#14b8a6' : undefined
                     }}
                   >
                     <tab.icon className="w-5 h-5 mr-3" />
@@ -462,7 +465,7 @@ export default function CustomerAccountPage() {
                     <button
                       onClick={() => setEditingProfile(true)}
                       className="flex items-center px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity"
-                      style={{ backgroundColor: business.primaryColor }}
+                      style={{ backgroundColor: '#14b8a6' }}
                     >
                       <PencilIcon className="w-4 h-4 mr-2" />
                       {t.editProfile}
@@ -472,7 +475,7 @@ export default function CustomerAccountPage() {
                       <button
                         onClick={handleProfileSave}
                         className="px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity"
-                        style={{ backgroundColor: business.primaryColor }}
+                        style={{ backgroundColor: '#14b8a6' }}
                       >
                         {t.saveProfile}
                       </button>
@@ -570,7 +573,7 @@ export default function CustomerAccountPage() {
                     <Link
                       href={`/store/${business.slug}/account/orders`}
                       className="text-sm font-medium hover:opacity-90 transition-opacity"
-                      style={{ color: business.primaryColor }}
+                      style={{ color: '#14b8a6' }}
                     >
                       View All Orders →
                     </Link>
@@ -583,7 +586,7 @@ export default function CustomerAccountPage() {
                       <Link
                         href={`/store/${business.slug}/products`}
                         className="inline-flex items-center px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity"
-                        style={{ backgroundColor: business.primaryColor }}
+                        style={{ backgroundColor: '#14b8a6' }}
                       >
                         {t.browseProducts}
                       </Link>
@@ -601,7 +604,7 @@ export default function CustomerAccountPage() {
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="font-semibold" style={{ color: business.primaryColor }}>
+                            <p className="font-semibold" style={{ color: '#14b8a6' }}>
                               {formatPrice(order.total)}
                             </p>
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
@@ -732,7 +735,7 @@ export default function CustomerAccountPage() {
                           </span>
                           <button
                             className="flex items-center px-4 py-2 text-sm font-medium text-white rounded-lg hover:opacity-90 transition-opacity"
-                            style={{ backgroundColor: business.primaryColor }}
+                            style={{ backgroundColor: '#14b8a6' }}
                           >
                             {t.payNow}
                           </button>

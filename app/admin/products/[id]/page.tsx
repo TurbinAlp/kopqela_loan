@@ -1,103 +1,88 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   ArrowLeftIcon,
   PencilIcon,
-  TrashIcon,
   ArchiveBoxIcon,
   TagIcon,
   CubeIcon,
   CurrencyDollarIcon,
-  ClockIcon,
-  ExclamationTriangleIcon,
+  MapPinIcon,
   XCircleIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface Product {
   id: number
   name: string
   nameSwahili?: string
-  description: string
+  description?: string
   descriptionSwahili?: string
-  category: string
-  stock: number
+  category: { id: number; name: string; nameSwahili?: string } | null
   price: number
-  costPrice: number
-  status: 'inStock' | 'lowStock' | 'outOfStock'
-  image: string
-  sku: string
+  wholesalePrice?: number
+  costPrice?: number
+  sku?: string
   barcode?: string
-  weight?: number
-  dimensions?: {
-    length: number
-    width: number
-    height: number
-  }
-  supplier?: string
-  minStockLevel: number
-  maxStockLevel: number
-  reorderPoint: number
+  unit?: string
+  imageUrl?: string
+  images?: Array<{
+    id: number
+    url: string
+    filename: string
+    originalName: string
+    size: number
+    mimeType: string
+    isPrimary: boolean
+    sortOrder: number
+  }>
+  isActive: boolean
+  isDraft: boolean
+  inventory?: Array<{
+    quantity: number
+    reservedQuantity?: number
+    reorderPoint?: number
+    maxStock?: number
+    location?: string
+  }>
   createdAt: string
   updatedAt: string
-  tags: string[]
-  isActive: boolean
-}
-
-// Mock data - replace with actual API call
-const mockProduct: Product = {
-  id: 1,
-  name: 'Laptop Dell Inspiron 15',
-  nameSwahili: 'Kompyuta Dell Inspiron 15',
-  description: 'High-performance laptop with Intel Core i7 processor, 16GB RAM, and 512GB SSD. Perfect for business and professional use.',
-  descriptionSwahili: 'Kompyuta ya utendaji wa juu na kichakataji cha Intel Core i7, RAM ya 16GB, na SSD ya 512GB. Inafaa kwa biashara na matumizi ya kitaalamu.',
-  category: 'Electronics',
-  stock: 15,
-  price: 850000,
-  costPrice: 720000,
-  status: 'inStock',
-  image: '/images/laptop-dell.jpg',
-  sku: 'DELL-INS-15-001',
-  barcode: '1234567890123',
-  weight: 2.1,
-  dimensions: {
-    length: 35.8,
-    width: 23.6,
-    height: 1.8
-  },
-  supplier: 'Dell Technologies',
-  minStockLevel: 5,
-  maxStockLevel: 50,
-  reorderPoint: 10,
-  createdAt: '2024-01-15T10:30:00Z',
-  updatedAt: '2024-01-20T14:45:00Z',
-  tags: ['laptop', 'computer', 'dell', 'business'],
-  isActive: true
 }
 
 export default function ProductViewPage() {
   const { language } = useLanguage()
   const params = useParams()
-  const router = useRouter()
   const [product, setProduct] = useState<Product | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Simulate API call
     const fetchProduct = async () => {
-      setIsLoading(true)
-      // Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      setProduct(mockProduct)
-      setIsLoading(false)
+      try {
+        setIsLoading(true)
+        const response = await fetch(`/api/admin/products/${params.id}`)
+        const data = await response.json()
+        
+        if (data.success) {
+          setProduct(data.data)
+        } else {
+          setError(data.message || 'Failed to fetch product')
+        }
+      } catch {
+        setError('Failed to fetch product')
+      } finally {
+        setIsLoading(false)
+      }
     }
 
-    fetchProduct()
+    if (params.id) {
+      fetchProduct()
+    }
   }, [params.id])
 
   const translations = {
@@ -109,8 +94,6 @@ export default function ProductViewPage() {
       productInfo: 'Product Information',
       inventory: 'Inventory',
       pricing: 'Pricing',
-      specifications: 'Specifications',
-      activity: 'Activity',
       
       // Fields
       name: 'Product Name',
@@ -118,39 +101,31 @@ export default function ProductViewPage() {
       category: 'Category',
       sku: 'SKU',
       barcode: 'Barcode',
-      status: 'Status',
-      stock: 'Current Stock',
-      price: 'Selling Price',
-      costPrice: 'Cost Price',
-      profit: 'Profit Margin',
-      weight: 'Weight',
-      dimensions: 'Dimensions',
-      supplier: 'Supplier',
-      minStock: 'Minimum Stock',
+      unit: 'Unit',
+      currentStock: 'Current Stock',
+      reservedStock: 'Reserved Stock',
       maxStock: 'Maximum Stock',
       reorderPoint: 'Reorder Point',
-      tags: 'Tags',
+      location: 'Storage Location',
+      sellingPrice: 'Selling Price',
+      wholesalePrice: 'Wholesale Price',
+      costPrice: 'Cost Price',
+      profitMargin: 'Profit Margin',
+      status: 'Status',
       createdAt: 'Created',
       updatedAt: 'Last Updated',
       
       // Status
-      inStock: 'In Stock',
-      lowStock: 'Low Stock',
-      outOfStock: 'Out of Stock',
       active: 'Active',
       inactive: 'Inactive',
+      draft: 'Draft',
+      published: 'Published',
       
       // Units
-      kg: 'kg',
-      cm: 'cm',
-      currency: 'TSh',
-      
-      // Actions
-      confirmDelete: 'Are you sure you want to delete this product?',
-      deleteWarning: 'This action cannot be undone.',
-      cancel: 'Cancel',
-      delete: 'Delete',
-      loading: 'Loading...'
+      currency: 'TZS',
+      loading: 'Loading...',
+      notFound: 'Product not found',
+      noData: 'No data available'
     },
     sw: {
       backToProducts: 'Rudi kwenye Bidhaa',
@@ -158,106 +133,69 @@ export default function ProductViewPage() {
       editProduct: 'Hariri Bidhaa',
       deleteProduct: 'Futa Bidhaa',
       productInfo: 'Taarifa za Bidhaa',
-      inventory: 'Hesabu',
+      inventory: 'Hisa',
       pricing: 'Bei',
-      specifications: 'Vipimo',
-      activity: 'Shughuli',
       
       // Fields
       name: 'Jina la Bidhaa',
       description: 'Maelezo',
-      category: 'Jamii',
+      category: 'Kundi',
       sku: 'SKU',
       barcode: 'Barcode',
-      status: 'Hali',
-      stock: 'Stock ya Sasa',
-      price: 'Bei ya Kuuza',
-      costPrice: 'Bei ya Gharama',
-      profit: 'Faida',
-      weight: 'Uzito',
-      dimensions: 'Vipimo',
-      supplier: 'Msambazaji',
-      minStock: 'Stock ya Chini',
-      maxStock: 'Stock ya Juu',
+      unit: 'Kipimo',
+      currentStock: 'Hisa ya Sasa',
+      reservedStock: 'Hisa Iliyohifadhiwa',
+      maxStock: 'Hisa ya Juu',
       reorderPoint: 'Nukta ya Kuagiza',
-      tags: 'Lebo',
-      createdAt: 'Ilitengenezwa',
+      location: 'Mahali pa Uhifadhi',
+      sellingPrice: 'Bei ya Kuuza',
+      wholesalePrice: 'Bei ya Jumla',
+      costPrice: 'Bei ya Gharama',
+      profitMargin: 'Faida',
+      status: 'Hali',
+      createdAt: 'Ilipotengenezwa',
       updatedAt: 'Ilirekebishwa',
       
       // Status
-      inStock: 'Ipo Stock',
-      lowStock: 'Stock Kidogo',
-      outOfStock: 'Hakuna Stock',
       active: 'Inatumika',
       inactive: 'Haitumiki',
+      draft: 'Dondoo',
+      published: 'Imechapishwa',
       
       // Units
-      kg: 'kg',
-      cm: 'cm',
       currency: 'TSh',
-      
-      // Actions
-      confirmDelete: 'Una uhakika unataka kufuta bidhaa hii?',
-      deleteWarning: 'Kitendo hiki hakiwezi kubatilishwa.',
-      cancel: 'Ghairi',
-      delete: 'Futa',
-      loading: 'Inapakia...'
+      loading: 'Inapakia...',
+      notFound: 'Bidhaa haikupatikana',
+      noData: 'Hakuna data'
     }
   }
 
-  const t = translations[language as keyof typeof translations] || translations.en
+  const t = translations[language]
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'inStock':
-        return 'bg-green-100 text-green-800'
-      case 'lowStock':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'outOfStock':
-        return 'bg-red-100 text-red-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
+  const calculateProfitMargin = (selling: number, cost?: number) => {
+    if (!cost || cost === 0) return 0
+    return ((selling - cost) / cost * 100).toFixed(1)
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(language === 'sw' ? 'sw-TZ' : 'en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
 
-  const calculateProfitMargin = (price: number, cost: number) => {
-    return ((price - cost) / price * 100).toFixed(1)
-  }
-
-  const handleDelete = async () => {
-    // Implement delete logic here
-    console.log('Deleting product:', product?.id)
-    setShowDeleteModal(false)
-    router.push('/admin/products')
-  }
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
           <p className="text-gray-600">{t.loading}</p>
         </div>
       </div>
     )
   }
 
-  if (!product) {
+  if (error || !product) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <XCircleIcon className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <p className="text-gray-600">Product not found</p>
+          <p className="text-gray-600">{error || t.notFound}</p>
           <Link href="/admin/products" className="text-teal-600 hover:text-teal-700 mt-2 inline-block">
             {t.backToProducts}
           </Link>
@@ -265,6 +203,8 @@ export default function ProductViewPage() {
       </div>
     )
   }
+
+  const inventory = product.inventory?.[0]
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -290,14 +230,6 @@ export default function ProductViewPage() {
                 <PencilIcon className="h-4 w-4" />
                 <span>{t.editProduct}</span>
               </Link>
-              
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                <TrashIcon className="h-4 w-4" />
-                <span>{t.deleteProduct}</span>
-              </button>
             </div>
           </div>
           
@@ -332,59 +264,50 @@ export default function ProductViewPage() {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{t.category}</label>
-                  <p className="text-gray-900">{product.category}</p>
+                  <p className="text-gray-900">{product.category?.name || t.noData}</p>
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{t.sku}</label>
-                  <p className="text-gray-900 font-mono">{product.sku}</p>
+                  <p className="text-gray-900 font-mono">{product.sku || t.noData}</p>
                 </div>
                 
-                {product.barcode && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{t.barcode}</label>
-                    <p className="text-gray-900 font-mono">{product.barcode}</p>
-                  </div>
-                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.barcode}</label>
+                  <p className="text-gray-900 font-mono">{product.barcode || t.noData}</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.unit}</label>
+                  <p className="text-gray-900">{product.unit || t.noData}</p>
+                </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{t.status}</label>
-                  <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(product.status)}`}>
-                    {t[product.status as keyof typeof t]}
-                  </span>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.supplier}</label>
-                  <p className="text-gray-900">{product.supplier || '-'}</p>
-                </div>
-              </div>
-              
-              <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t.description}</label>
-                <p className="text-gray-900 leading-relaxed">
-                  {language === 'sw' && product.descriptionSwahili ? product.descriptionSwahili : product.description}
-                </p>
-              </div>
-              
-              {product.tags.length > 0 && (
-                <div className="mt-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.tags}</label>
-                  <div className="flex flex-wrap gap-2">
-                    {product.tags.map((tag, index) => (
-                      <span
-                        key={index}
-                        className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-md"
-                      >
-                        {tag}
+                  <div className="flex items-center space-x-2">
+                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${product.isActive ? 'text-green-600 bg-green-100' : 'text-gray-600 bg-gray-100'}`}>
+                      {product.isActive ? t.active : t.inactive}
+                    </span>
+                    {product.isDraft && (
+                      <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full text-blue-600 bg-blue-100">
+                        {t.draft}
                       </span>
-                    ))}
+                    )}
                   </div>
+                </div>
+              </div>
+              
+              {product.description && (
+                <div className="mt-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.description}</label>
+                  <p className="text-gray-900 leading-relaxed">
+                    {language === 'sw' && product.descriptionSwahili ? product.descriptionSwahili : product.description}
+                  </p>
                 </div>
               )}
             </motion.div>
 
-            {/* Specifications */}
+            {/* Pricing */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -392,24 +315,34 @@ export default function ProductViewPage() {
               className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
             >
               <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-                <CubeIcon className="h-5 w-5 mr-2 text-teal-600" />
-                {t.specifications}
+                <CurrencyDollarIcon className="h-5 w-5 mr-2 text-teal-600" />
+                {t.pricing}
               </h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {product.weight && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.sellingPrice}</label>
+                  <p className="text-2xl font-bold text-gray-900">{t.currency} {product.price?.toLocaleString()}</p>
+                </div>
+                
+                {product.wholesalePrice && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{t.weight}</label>
-                    <p className="text-gray-900">{product.weight} {t.kg}</p>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t.wholesalePrice}</label>
+                    <p className="text-xl font-semibold text-gray-700">{t.currency} {product.wholesalePrice.toLocaleString()}</p>
                   </div>
                 )}
                 
-                {product.dimensions && (
+                {product.costPrice && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{t.dimensions}</label>
-                    <p className="text-gray-900">
-                      {product.dimensions.length} × {product.dimensions.width} × {product.dimensions.height} {t.cm}
-                    </p>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t.costPrice}</label>
+                    <p className="text-lg font-medium text-gray-600">{t.currency} {product.costPrice.toLocaleString()}</p>
+                  </div>
+                )}
+                
+                {product.costPrice && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t.profitMargin}</label>
+                    <p className="text-lg font-medium text-green-600">{calculateProfitMargin(product.price, product.costPrice)}%</p>
                   </div>
                 )}
               </div>
@@ -424,8 +357,14 @@ export default function ProductViewPage() {
               animate={{ opacity: 1, x: 0 }}
               className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
             >
-              <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center mb-4">
-                <ArchiveBoxIcon className="h-16 w-16 text-gray-400" />
+              <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center mb-4 overflow-hidden">
+                {product.imageUrl ? (
+                  <Image src={product.imageUrl} alt={product.name} width={300} height={300} className="w-full h-full object-cover" />
+                ) : product.images && product.images.length > 0 ? (
+                  <Image src={product.images[0].url} alt={product.name} width={300} height={300} className="w-full h-full object-cover" />
+                ) : (
+                  <ArchiveBoxIcon className="h-16 w-16 text-gray-400" />
+                )}
               </div>
             </motion.div>
 
@@ -441,127 +380,71 @@ export default function ProductViewPage() {
                 {t.inventory}
               </h3>
               
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">{t.stock}</span>
-                  <span className="font-semibold text-gray-900">{product.stock}</span>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">{t.minStock}</span>
-                  <span className="text-gray-900">{product.minStockLevel}</span>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">{t.maxStock}</span>
-                  <span className="text-gray-900">{product.maxStockLevel}</span>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">{t.reorderPoint}</span>
-                  <span className="text-gray-900">{product.reorderPoint}</span>
-                </div>
-                
-                {product.stock <= product.reorderPoint && (
-                  <div className="flex items-center space-x-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <ExclamationTriangleIcon className="h-5 w-5 text-yellow-600" />
-                    <span className="text-sm text-yellow-800">Low stock alert</span>
+              {inventory ? (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">{t.currentStock}</span>
+                    <span className="font-semibold text-gray-900">{inventory.quantity}</span>
                   </div>
-                )}
-              </div>
+                  
+                  {inventory.reservedQuantity !== undefined && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">{t.reservedStock}</span>
+                      <span className="font-medium text-gray-700">{inventory.reservedQuantity}</span>
+                    </div>
+                  )}
+                  
+                  {inventory.maxStock && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">{t.maxStock}</span>
+                      <span className="font-medium text-gray-700">{inventory.maxStock}</span>
+                    </div>
+                  )}
+                  
+                  {inventory.reorderPoint && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">{t.reorderPoint}</span>
+                      <span className="font-medium text-gray-700">{inventory.reorderPoint}</span>
+                    </div>
+                  )}
+                  
+                  {inventory.location && (
+                    <div className="mt-4">
+                      <div className="flex items-center space-x-2 text-sm text-gray-600 mb-1">
+                        <MapPinIcon className="h-4 w-4" />
+                        <span>{t.location}</span>
+                      </div>
+                      <p className="text-gray-900 font-medium">{inventory.location}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-gray-500">{t.noData}</p>
+              )}
             </motion.div>
 
-            {/* Pricing */}
+            {/* Timestamps */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
               className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
             >
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <CurrencyDollarIcon className="h-5 w-5 mr-2 text-teal-600" />
-                {t.pricing}
-              </h3>
-              
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">{t.costPrice}</span>
-                  <span className="text-gray-900">{t.currency} {product.costPrice.toLocaleString()}</span>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">{t.price}</span>
-                  <span className="font-semibold text-gray-900">{t.currency} {product.price.toLocaleString()}</span>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">{t.profit}</span>
-                  <span className="text-green-600 font-semibold">{calculateProfitMargin(product.price, product.costPrice)}%</span>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Activity */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
-            >
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <ClockIcon className="h-5 w-5 mr-2 text-teal-600" />
-                {t.activity}
-              </h3>
-              
               <div className="space-y-4">
                 <div>
-                  <span className="text-sm text-gray-600">{t.createdAt}</span>
-                  <p className="text-gray-900 text-sm">{formatDate(product.createdAt)}</p>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.createdAt}</label>
+                  <p className="text-gray-900">{new Date(product.createdAt).toLocaleDateString()}</p>
                 </div>
                 
                 <div>
-                  <span className="text-sm text-gray-600">{t.updatedAt}</span>
-                  <p className="text-gray-900 text-sm">{formatDate(product.updatedAt)}</p>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.updatedAt}</label>
+                  <p className="text-gray-900">{new Date(product.updatedAt).toLocaleDateString()}</p>
                 </div>
               </div>
             </motion.div>
           </div>
         </div>
       </div>
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-xl p-6 max-w-md w-full mx-4"
-          >
-            <div className="flex items-center space-x-3 mb-4">
-              <ExclamationTriangleIcon className="h-6 w-6 text-red-600" />
-              <h3 className="text-lg font-semibold text-gray-900">{t.deleteProduct}</h3>
-            </div>
-            
-            <p className="text-gray-600 mb-2">{t.confirmDelete}</p>
-            <p className="text-sm text-gray-500 mb-6">{t.deleteWarning}</p>
-            
-            <div className="flex space-x-3">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                {t.cancel}
-              </button>
-              <button
-                onClick={handleDelete}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                {t.delete}
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
     </div>
   )
 }

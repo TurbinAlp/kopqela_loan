@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useBusiness } from '../../../contexts/BusinessContext'
@@ -51,7 +51,7 @@ interface DeliveryOption {
 }
 
 export default function OrderRequestPage() {
-  const { business } = useBusiness()
+  const { currentBusiness: business } = useBusiness()
   const { language } = useLanguage()
   const searchParams = useSearchParams()
   
@@ -391,7 +391,7 @@ export default function OrderRequestPage() {
   }
 
   // Generate storage key for this business
-  const getStorageKey = () => business ? `orderItems_${business.slug}` : 'orderItems'
+  const getStorageKey = useCallback(() => business ? `orderItems_${business.slug}` : 'orderItems', [business])
 
   // Load order items from localStorage on mount
   useEffect(() => {
@@ -409,7 +409,7 @@ export default function OrderRequestPage() {
         console.error('Error loading saved order items:', error)
       }
     }
-  }, [business]) // Only depend on business, not searchParams
+  }, [business, getStorageKey]) // Only depend on business, not searchParams
 
   // Handle URL params separately
   useEffect(() => {
@@ -487,8 +487,12 @@ export default function OrderRequestPage() {
     if (!business || orderItems.length === 0) return
     
     localStorage.setItem(getStorageKey(), JSON.stringify(orderItems))
-  }, [business, orderItems])
+  }, [business, orderItems, getStorageKey])
   
+  const calculateTotal = useCallback(() => {
+    return orderItems.reduce((total, item) => total + item.subtotal, 0)
+  }, [orderItems])
+
   // Auto-set default partial payment amount when payment method changes
   useEffect(() => {
     if (selectedPaymentMethod === 'partial' && orderItems.length > 0) {
@@ -501,7 +505,7 @@ export default function OrderRequestPage() {
         amountToPay: Math.max(defaultAmount, minAmount)
       }))
     }
-  }, [selectedPaymentMethod, orderItems])
+  }, [selectedPaymentMethod, orderItems, calculateTotal])
 
   const paymentMethods: PaymentMethod[] = [
     {
@@ -570,10 +574,6 @@ export default function OrderRequestPage() {
       currency: 'TZS',
       minimumFractionDigits: 0
     }).format(price)
-  }
-
-  const calculateTotal = () => {
-    return orderItems.reduce((total, item) => total + item.subtotal, 0)
   }
 
   const getDeliveryFee = () => {
@@ -786,7 +786,7 @@ export default function OrderRequestPage() {
                     ? 'text-white' 
                     : 'bg-gray-200 text-gray-500'
                 }`} style={{
-                  backgroundColor: step <= currentStep ? business.primaryColor : undefined
+                  backgroundColor: step <= currentStep ? '#14b8a6' : undefined
                 }}>
                   {step < currentStep ? (
                     <CheckIconSolid className="w-5 h-5" />
@@ -884,7 +884,7 @@ export default function OrderRequestPage() {
                   <div className="border-t pt-4">
                     <div className="flex justify-between items-center mb-4">
                       <span className="text-lg font-semibold text-gray-900">{t.total}:</span>
-                      <span className="text-xl font-bold" style={{ color: business.primaryColor }}>
+                      <span className="text-xl font-bold" style={{ color: '#14b8a6' }}>
                         {formatPrice(calculateTotal())}
                       </span>
                     </div>
@@ -1126,7 +1126,7 @@ export default function OrderRequestPage() {
                   <div 
                     className="h-2 rounded-full transition-all duration-300"
                     style={{ 
-                      backgroundColor: business.primaryColor, 
+                      backgroundColor: '#14b8a6', 
                       width: '33.33%' 
                     }}
                   ></div>
@@ -1274,7 +1274,7 @@ export default function OrderRequestPage() {
                   <div 
                     className="h-2 rounded-full transition-all duration-300"
                     style={{ 
-                      backgroundColor: business.primaryColor, 
+                      backgroundColor: '#14b8a6', 
                       width: '66.66%' 
                     }}
                   ></div>
@@ -1480,7 +1480,7 @@ export default function OrderRequestPage() {
                   <div 
                     className="h-2 rounded-full transition-all duration-300"
                     style={{ 
-                      backgroundColor: business.primaryColor, 
+                      backgroundColor: '#14b8a6', 
                       width: '100%' 
                     }}
                   ></div>
@@ -1575,7 +1575,7 @@ export default function OrderRequestPage() {
                         <div className="flex items-end">
                           <div className="text-center">
                             <p className="text-sm text-gray-600">{t.monthlyPayment}</p>
-                            <p className="text-lg font-semibold" style={{ color: business.primaryColor }}>
+                            <p className="text-lg font-semibold" style={{ color: '#14b8a6' }}>
                               {formatPrice(Math.round((calculateTotal() - creditApplication.downPayment) / parseInt(creditApplication.creditDuration)))}
                             </p>
                   </div>
@@ -1682,7 +1682,7 @@ export default function OrderRequestPage() {
                   </div>
                   <div className="flex justify-between font-bold text-lg border-t pt-2">
                     <span className='text-gray-700'>{t.grandTotal}:</span>
-                    <span className='text-gray-700' style={{ color: business.primaryColor }}>{formatPrice(getGrandTotal())}</span>
+                    <span className='text-gray-700' style={{ color: '#14b8a6' }}>{formatPrice(getGrandTotal())}</span>
                   </div>
                 </div>
               </div>
@@ -1720,7 +1720,7 @@ export default function OrderRequestPage() {
               onClick={handleNext}
               disabled={!validateStep(currentStep)}
               className="flex items-center px-6 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
-              style={{ backgroundColor: business.primaryColor }}
+              style={{ backgroundColor: '#14b8a6' }}
             >
               {t.next}
               <ChevronRightIcon className="w-4 h-4 ml-1" />
@@ -1730,7 +1730,7 @@ export default function OrderRequestPage() {
               onClick={handleSubmitOrder}
               disabled={!validateStep(getTotalSteps())}
               className="flex items-center px-6 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
-              style={{ backgroundColor: business.primaryColor }}
+              style={{ backgroundColor: '#14b8a6' }}
             >
               {t.submitOrder}
             </button>

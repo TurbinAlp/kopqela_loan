@@ -3,13 +3,8 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
-  UserGroupIcon,
-  BuildingOfficeIcon,
   LanguageIcon,
   CogIcon,
-  PencilIcon,
-  TrashIcon,
-  UserPlusIcon,
   EyeIcon,
   EyeSlashIcon,
   BellIcon,
@@ -19,31 +14,15 @@ import {
   ServerIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
-import AddUserModal from '../../components/AddUserModal'
-import EditUserModal from '../../components/EditUserModal'
 
 export default function SettingsPage() {
   const { language, setLanguage } = useLanguage()
   const [isVisible, setIsVisible] = useState(false)
-  const [activeTab, setActiveTab] = useState('users')
+  const [activeTab, setActiveTab] = useState('language')
   const [showPassword, setShowPassword] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false)
-  const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<{ id: number; name: string; email: string; role: 'Admin' | 'Manager' | 'Cashier'; status: 'Active' | 'Inactive'; lastLogin: string } | null>(null)
 
   // Form states
-  const [businessSettings, setBusinessSettings] = useState({
-    name: 'Kopqela Business Solutions',
-    email: 'info@kopqela.com',
-    phone: '+255 123 456 789',
-    address: 'Dar es Salaam, Tanzania',
-    openTime: '08:00',
-    closeTime: '18:00',
-    currency: 'TZS',
-    timezone: 'Africa/Dar_es_Salaam'
-  })
-
   const [emailSettings, setEmailSettings] = useState({
     smtpHost: 'smtp.gmail.com',
     smtpPort: '587',
@@ -62,55 +41,18 @@ export default function SettingsPage() {
     systemUpdates: false
   })
 
-  const [users, setUsers] = useState<{ id: number; name: string; email: string; role: 'Admin' | 'Manager' | 'Cashier'; status: 'Active' | 'Inactive'; lastLogin: string }[]>([
-    { id: 1, name: 'John Admin', email: 'john@kopqela.com', role: 'Admin' as const, status: 'Active' as const, lastLogin: '2024-01-15' },
-    { id: 2, name: 'Mary Cashier', email: 'mary@kopqela.com', role: 'Cashier' as const, status: 'Active' as const, lastLogin: '2024-01-14' },
-    { id: 3, name: 'Peter Manager', email: 'peter@kopqela.com', role: 'Manager' as const, status: 'Inactive' as const, lastLogin: '2024-01-10' }
-  ])
-
   useEffect(() => {
     setIsVisible(true)
   }, [])
 
   const translations = {
     en: {
-      pageTitle: "Settings",
-      pageSubtitle: "Manage system settings and configurations",
+      pageTitle: "General Settings",
+      pageSubtitle: "Manage language preferences and system configurations",
       
       // Tabs
-      userManagement: "User Management",
-      businessSettings: "Business Settings",
       languageSettings: "Language Settings", 
       systemSettings: "System Settings",
-      
-      // User Management
-      addUser: "Add New User",
-      editUser: "Edit User",
-      deleteUser: "Delete User",
-      userName: "Full Name",
-      userEmail: "Email Address",
-      userRole: "Role",
-      userStatus: "Status",
-      lastLogin: "Last Login",
-      actions: "Actions",
-      active: "Active",
-      inactive: "Inactive",
-      admin: "Admin",
-      manager: "Manager",
-      cashier: "Cashier",
-      permissions: "Permissions",
-      
-      // Business Settings
-      businessInfo: "Business Information",
-      businessName: "Business Name",
-      businessEmail: "Business Email",
-      businessPhone: "Phone Number",
-      businessAddress: "Address",
-      businessHours: "Business Hours",
-      openTime: "Opening Time",
-      closeTime: "Closing Time",
-      currency: "Currency",
-      timezone: "Timezone",
       
       // Language Settings
       defaultLanguage: "Default Language",
@@ -161,43 +103,12 @@ export default function SettingsPage() {
       testConnection: "Test Connection"
     },
     sw: {
-      pageTitle: "Mipangilio",
-      pageSubtitle: "Simamia mipangilio ya mfumo",
+      pageTitle: "Mipangilio ya Jumla",
+      pageSubtitle: "Simamia mapendeleo ya lugha na usanidi wa mfumo",
       
       // Tabs
-      userManagement: "Usimamizi wa Watumiaji",
-      businessSettings: "Mipangilio ya Biashara",
       languageSettings: "Mipangilio ya Lugha",
       systemSettings: "Mipangilio ya Mfumo",
-      
-      // User Management
-      addUser: "Ongeza Mtumiaji Mpya",
-      editUser: "Hariri Mtumiaji",
-      deleteUser: "Futa Mtumiaji",
-      userName: "Jina Kamili",
-      userEmail: "Barua Pepe",
-      userRole: "Jukumu",
-      userStatus: "Hali",
-      lastLogin: "Mwingio wa Mwisho",
-      actions: "Vitendo",
-      active: "Amilifu",
-      inactive: "Sio Amilifu",
-      admin: "Msimamizi",
-      manager: "Meneja",
-      cashier: "Mwajiri",
-      permissions: "Ruhusa",
-      
-      // Business Settings
-      businessInfo: "Maelezo ya Biashara",
-      businessName: "Jina la Biashara",
-      businessEmail: "Barua Pepe ya Biashara",
-      businessPhone: "Namba ya Simu",
-      businessAddress: "Anwani",
-      businessHours: "Masaa ya Biashara",
-      openTime: "Muda wa Kufungua",
-      closeTime: "Muda wa Kufunga",
-      currency: "Sarafu",
-      timezone: "Saa za Eneo",
       
       // Language Settings
       defaultLanguage: "Lugha Chaguo-msingi",
@@ -218,9 +129,9 @@ export default function SettingsPage() {
       notifications: "Mipangilio ya Arifa",
       emailNotifications: "Arifa za Barua Pepe",
       smsNotifications: "Arifa za SMS",
-      lowStockAlerts: "Arifa za Hisa Ndogo",
-      paymentReminders: "Vikumbuzi vya Malipo",
-      newOrderAlerts: "Arifa za Maagizo Mapya",
+      lowStockAlerts: "Arifa za Hisa Chache",
+      paymentReminders: "Vikumbusho vya Malipo",
+      newOrderAlerts: "Arifa za Oda Mpya",
       systemUpdates: "Masasisho ya Mfumo",
       
       // Security
@@ -229,12 +140,12 @@ export default function SettingsPage() {
       currentPassword: "Nywila ya Sasa",
       newPassword: "Nywila Mpya",
       confirmPassword: "Thibitisha Nywila",
-      enableTwoFactor: "Washa Uthibitisho wa Hatua Mbili",
+      enableTwoFactor: "Wezesha Uthibitishaji wa Hatua Mbili",
       
       // Backup
       backup: "Hifadhi na Urejeshaji",
       lastBackup: "Hifadhi ya Mwisho",
-      createBackup: "Tengeneza Hifadhi",
+      createBackup: "Unda Hifadhi",
       restoreBackup: "Rejesha Hifadhi",
       autoBackup: "Hifadhi Otomatiki",
       
@@ -254,15 +165,8 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setIsSaving(true)
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    await new Promise(resolve => setTimeout(resolve, 1000))
     setIsSaving(false)
-  }
-
-  const handleBusinessSettingChange = (field: string, value: string) => {
-    setBusinessSettings(prev => ({
-      ...prev,
-      [field]: value
-    }))
   }
 
   const handleEmailSettingChange = (field: string, value: string) => {
@@ -277,19 +181,6 @@ export default function SettingsPage() {
       ...prev,
       [field]: value
     }))
-  }
-
-  const handleUserAdded = (newUser: { id: number; name: string; email: string; role: 'Admin' | 'Manager' | 'Cashier'; status: 'Active' | 'Inactive'; lastLogin: string }) => {
-    setUsers(prev => [...prev, newUser])
-  }
-
-  const handleEditUser = (user: { id: number; name: string; email: string; role: 'Admin' | 'Manager' | 'Cashier'; status: 'Active' | 'Inactive'; lastLogin: string }) => {
-    setSelectedUser(user)
-    setIsEditUserModalOpen(true)
-  }
-
-  const handleUserUpdated = (updatedUser: { id: number; name: string; email: string; role: 'Admin' | 'Manager' | 'Cashier'; status: 'Active' | 'Inactive'; lastLogin: string }) => {
-    setUsers(prev => prev.map(user => user.id === updatedUser.id ? updatedUser : user))
   }
 
   const containerVariants = {
@@ -329,8 +220,6 @@ export default function SettingsPage() {
             <div className="overflow-x-auto scrollbar-hide">
               <nav className="-mb-px flex space-x-4 sm:space-x-8 min-w-max px-2 sm:px-0">
                 {[
-                  { id: 'users', label: t.userManagement, icon: UserGroupIcon },
-                  { id: 'business', label: t.businessSettings, icon: BuildingOfficeIcon },
                   { id: 'language', label: t.languageSettings, icon: LanguageIcon },
                   { id: 'system', label: t.systemSettings, icon: CogIcon }
                 ].map((tab) => (
@@ -351,171 +240,6 @@ export default function SettingsPage() {
             </div>
           </div>
         </motion.div>
-
-        {/* User Management Tab */}
-        {activeTab === 'users' && (
-          <motion.div variants={itemVariants} className="space-y-6">
-            {/* Add User Button */}
-            <div className="flex justify-end">
-              <button 
-                onClick={() => setIsAddUserModalOpen(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
-              >
-                <UserPlusIcon className="w-5 h-5" />
-                <span>{t.addUser}</span>
-              </button>
-            </div>
-
-            {/* Users Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">{t.userManagement}</h3>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="text-left py-3 px-6 font-medium text-gray-900">{t.userName}</th>
-                      <th className="text-left py-3 px-6 font-medium text-gray-900">{t.userEmail}</th>
-                      <th className="text-left py-3 px-6 font-medium text-gray-900">{t.userRole}</th>
-                      <th className="text-left py-3 px-6 font-medium text-gray-900">{t.userStatus}</th>
-                      <th className="text-left py-3 px-6 font-medium text-gray-900">{t.lastLogin}</th>
-                      <th className="text-left py-3 px-6 font-medium text-gray-900">{t.actions}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((user) => (
-                      <tr key={user.id} className="border-b border-gray-100">
-                        <td className="py-4 px-6 text-gray-900">{user.name}</td>
-                        <td className="py-4 px-6 text-gray-900">{user.email}</td>
-                        <td className="py-4 px-6">
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            user.role === 'Admin' ? 'bg-purple-100 text-purple-800' :
-                            user.role === 'Manager' ? 'bg-blue-100 text-blue-800' :
-                            'bg-green-100 text-green-800'
-                          }`}>
-                            {user.role}
-                          </span>
-                        </td>
-                        <td className="py-4 px-6">
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            user.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}>
-                            {user.status}
-                          </span>
-                        </td>
-                        <td className="py-4 px-6 text-gray-900">{user.lastLogin}</td>
-                        <td className="py-4 px-6">
-                          <div className="flex space-x-2">
-                            <button 
-                              onClick={() => handleEditUser(user)}
-                              className="p-1 text-blue-600 hover:bg-blue-50 rounded" 
-                              title={t.editUser}
-                            >
-                              <PencilIcon className="w-4 h-4" />
-                            </button>
-                            <button className="p-1 text-red-600 hover:bg-red-50 rounded" title={t.deleteUser}>
-                              <TrashIcon className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Business Settings Tab */}
-        {activeTab === 'business' && (
-          <motion.div variants={itemVariants} className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">{t.businessInfo}</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.businessName}</label>
-                  <input
-                    type="text"
-                    value={businessSettings.name}
-                    onChange={(e) => handleBusinessSettingChange('name', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.businessEmail}</label>
-                  <input
-                    type="email"
-                    value={businessSettings.email}
-                    onChange={(e) => handleBusinessSettingChange('email', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.businessPhone}</label>
-                  <input
-                    type="tel"
-                    value={businessSettings.phone}
-                    onChange={(e) => handleBusinessSettingChange('phone', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{t.currency}</label>
-                  <select
-                    value={businessSettings.currency}
-                    onChange={(e) => handleBusinessSettingChange('currency', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
-                  >
-                    <option value="TZS">TZS - Tanzanian Shilling</option>
-                    <option value="USD">USD - US Dollar</option>
-                    <option value="EUR">EUR - Euro</option>
-                  </select>
-                </div>
-              </div>
-              
-              <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t.businessAddress}</label>
-                <textarea
-                  value={businessSettings.address}
-                  onChange={(e) => handleBusinessSettingChange('address', e.target.value)}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
-                />
-              </div>
-              
-              <div className="mt-6">
-                <h4 className="font-medium text-gray-900 mb-4">{t.businessHours}</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.openTime}</label>
-                    <input
-                      type="time"
-                      value={businessSettings.openTime}
-                      onChange={(e) => handleBusinessSettingChange('openTime', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.closeTime}</label>
-                    <input
-                      type="time"
-                      value={businessSettings.closeTime}
-                      onChange={(e) => handleBusinessSettingChange('closeTime', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
 
         {/* Language Settings Tab */}
         {activeTab === 'language' && (
@@ -719,21 +443,6 @@ export default function SettingsPage() {
           </div>
         </motion.div>
       </div>
-
-      {/* Add User Modal */}
-      <AddUserModal
-        isOpen={isAddUserModalOpen}
-        onClose={() => setIsAddUserModalOpen(false)}
-        onUserAdded={handleUserAdded}
-      />
-
-      {/* Edit User Modal */}
-      <EditUserModal
-        isOpen={isEditUserModalOpen}
-        onClose={() => setIsEditUserModalOpen(false)}
-        onUserUpdated={handleUserUpdated}
-        user={selectedUser}
-      />
     </motion.div>
   )
 } 

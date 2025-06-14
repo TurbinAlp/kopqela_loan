@@ -15,7 +15,11 @@ import {
   ClockIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../../../contexts/LanguageContext'
+import { useNotifications } from '../../../../contexts/NotificationContext'
+import { useBusiness } from '../../../../contexts/BusinessContext'
 import Link from 'next/link'
+import { useCategories } from '../../../../hooks/useAdminProducts'
+import Image from 'next/image'
 
 interface ProductForm {
   nameEn: string
@@ -24,24 +28,40 @@ interface ProductForm {
   descriptionSw: string
   category: string
   productType: 'wholesale' | 'retail' | 'both'
+  sku: string
+  barcode: string
+  unit: string
   wholesalePrice: string
   retailPrice: string
   costPrice: string
   currentStock: string
+  reservedStock: string
   minimumStock: string
   reorderLevel: string
+  maxStock: string
   stockAlerts: boolean
-  images: File[]
+  images: Array<{ id?: number; url: string; originalName: string; filename: string; size: number; type: string; isPrimary?: boolean; sortOrder?: number }>
   primaryImageIndex: number
 }
 
 export default function EditProductPage() {
   const { language } = useLanguage()
+  const { showSuccess, showError } = useNotifications()
+  const { currentBusiness } = useBusiness()
   const params = useParams()
   // const router = useRouter()
   const [isVisible, setIsVisible] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('info')
+  const [uploading, setUploading] = useState(false)
+  const [businessSettings, setBusinessSettings] = useState<{
+    wholesaleMargin: number;
+    retailMargin: number;
+  }>({
+    wholesaleMargin: 30,
+    retailMargin: 50
+  })
   const [formData, setFormData] = useState<ProductForm>({
     nameEn: '',
     nameSw: '',
@@ -49,50 +69,139 @@ export default function EditProductPage() {
     descriptionSw: '',
     category: '',
     productType: 'both',
+    sku: '',
+    barcode: '',
+    unit: '',
     wholesalePrice: '',
     retailPrice: '',
     costPrice: '',
     currentStock: '',
+    reservedStock: '',
     minimumStock: '',
     reorderLevel: '',
+    maxStock: '',
     stockAlerts: true,
     images: [],
     primaryImageIndex: 0
   })
 
+  const { categories, loading: categoriesLoading, error: categoriesError } = useCategories();
+
   useEffect(() => {
     setIsVisible(true)
     
-    // Simulate loading existing product data
+    // Load business settings
+    const loadBusinessSettings = async () => {
+      if (!currentBusiness) return
+      
+      try {
+        const res = await fetch(`/api/admin/business/settings?businessId=${currentBusiness.id}`)
+        const data = await res.json()
+        if (data.success && data.data) {
+          setBusinessSettings({
+            wholesaleMargin: data.data.wholesaleMargin || 30,
+            retailMargin: data.data.retailMargin || 50
+          })
+        }
+      } catch (error) {
+        console.error('Failed to load business settings:', error)
+        // Keep default values if failed to load
+      }
+    }
+    
     const loadProductData = async () => {
       setIsLoading(true)
-      // Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Mock data - replace with actual product data
-      setFormData({
-        nameEn: 'Laptop Dell Inspiron 15',
-        nameSw: 'Kompyuta Dell Inspiron 15',
-        descriptionEn: 'High-performance laptop with Intel Core i7 processor',
-        descriptionSw: 'Kompyuta ya utendaji wa juu na kichakataji cha Intel Core i7',
-        category: 'electronics',
-        productType: 'both',
-        wholesalePrice: '800000',
-        retailPrice: '850000',
-        costPrice: '720000',
-        currentStock: '15',
-        minimumStock: '5',
-        reorderLevel: '10',
-        stockAlerts: true,
-        images: [],
-        primaryImageIndex: 0
-      })
-      
+      setLoadError(null)
+      try {
+        const res = await fetch(`/api/admin/products/${params.id}`)
+        const data = await res.json()
+        
+        if (!res.ok) {
+          throw new Error(data.message || 'Failed to fetch product')
+        }
+        
+        if (data.success && data.data) {
+          type ProductFromApi = {
+            id: number;
+            name: string;
+            nameSwahili?: string;
+            description?: string;
+            category?: { id: number; name: string; nameSwahili?: string } | null;
+            categoryId?: number;
+            productType?: 'wholesale' | 'retail' | 'both';
+            sku?: string;
+            barcode?: string;
+            unit?: string;
+            wholesalePrice?: number;
+            price?: number;
+            costPrice?: number;
+            inventory?: Array<{ 
+              quantity?: number; 
+              reservedQuantity?: number;
+              reorderPoint?: number;
+              maxStock?: number;
+              location?: string;
+            }>;
+            images?: Array<{
+              id: number;
+              url: string;
+              originalName: string;
+              filename: string;
+              size: number;
+              mimeType: string;
+              isPrimary?: boolean;
+              sortOrder?: number;
+            }>;
+            isActive?: boolean;
+            isDraft?: boolean;
+          };
+          const product: ProductFromApi = data.data;
+          
+          setFormData({
+            nameEn: product.name || '',
+            nameSw: product.nameSwahili || '',
+            descriptionEn: product.description || '',
+            descriptionSw: '',
+            category: product.categoryId?.toString() || product.category?.id?.toString() || '',
+            productType: product.productType || 'both',
+            sku: product.sku || '',
+            barcode: product.barcode || '',
+            unit: product.unit || '',
+            wholesalePrice: product.wholesalePrice?.toString() || '',
+            retailPrice: product.price?.toString() || '',
+            costPrice: product.costPrice?.toString() || '',
+            currentStock: product.inventory?.[0]?.quantity?.toString() || '0',
+            reservedStock: product.inventory?.[0]?.reservedQuantity?.toString() || '0',
+            minimumStock: product.inventory?.[0]?.reorderPoint?.toString() || '0', // Use reorderPoint as minimumStock
+            reorderLevel: product.inventory?.[0]?.reorderPoint?.toString() || '0',
+            maxStock: product.inventory?.[0]?.maxStock?.toString() || '1000',
+            stockAlerts: true,
+            images: (product.images || []).map((img) => ({
+              id: img.id,
+              url: img.url,
+              originalName: img.originalName,
+              filename: img.filename,
+              size: img.size,
+              type: img.mimeType,
+              isPrimary: img.isPrimary || false,
+              sortOrder: img.sortOrder || 0
+            })),
+            primaryImageIndex: Math.max(0, (product.images || []).findIndex((img) => img.isPrimary))
+          })
+        } else {
+          setLoadError(data.message || 'Product not found')
+        }
+      } catch (error) {
+        setLoadError(error instanceof Error ? error.message : 'Failed to load product')
+      }
       setIsLoading(false)
     }
     
-    loadProductData()
-  }, [params.id])
+    if (currentBusiness) {
+      loadBusinessSettings()
+      loadProductData()
+    }
+  }, [params.id, currentBusiness])
 
   const translations = {
     en: {
@@ -115,6 +224,10 @@ export default function EditProductPage() {
       category: "Category",
       selectCategory: "Select a category",
       productType: "Product Type",
+      sku: "SKU / Product Code",
+      barcode: "Barcode",
+      unit: "Unit of Measurement",
+      selectUnit: "Select unit",
       wholesale: "Wholesale Only",
       retail: "Retail Only",
       both: "Both Wholesale & Retail",
@@ -130,8 +243,10 @@ export default function EditProductPage() {
       
       // Inventory
       currentStock: "Current Stock",
+      reservedStock: "Reserved Stock",
       minimumStock: "Minimum Stock Level",
       reorderLevel: "Reorder Level",
+      maxStock: "Maximum Stock",
       stockAlerts: "Enable Stock Alerts",
       stockAlertsDesc: "Get notified when stock falls below minimum level",
       
@@ -191,6 +306,10 @@ export default function EditProductPage() {
       category: "Kundi",
       selectCategory: "Chagua kundi",
       productType: "Aina ya Bidhaa",
+      sku: "Nambari ya Bidhaa",
+      barcode: "Barcode",
+      unit: "Kipimo cha Bidhaa",
+      selectUnit: "Chagua kipimo",
       wholesale: "Jumla Tu",
       retail: "Rejareja Tu",
       both: "Jumla na Rejareja",
@@ -206,8 +325,10 @@ export default function EditProductPage() {
       
       // Inventory
       currentStock: "Hisa ya Sasa",
+      reservedStock: "Hisa Iliyohifadhiwa",
       minimumStock: "Kiwango cha Hisa Kidogo",
       reorderLevel: "Kiwango cha Kuagiza Upya",
+      maxStock: "Hisa ya Juu",
       stockAlerts: "Wezesha Arifa za Hisa",
       stockAlertsDesc: "Pata arifa wakati hisa inapungua chini ya kiwango",
       
@@ -251,16 +372,6 @@ export default function EditProductPage() {
 
   const t = translations[language]
 
-  const categories = [
-    { value: '', label: t.selectCategory },
-    { value: 'electronics', label: t.electronics },
-    { value: 'clothing', label: t.clothing },
-    { value: 'food', label: t.food },
-    { value: 'home', label: t.home },
-    { value: 'beauty', label: t.beauty },
-    { value: 'sports', label: t.sports }
-  ]
-
   const tabs = [
     { id: 'info', label: t.productInfo, icon: DocumentTextIcon },
     { id: 'pricing', label: t.pricing, icon: CalculatorIcon },
@@ -269,21 +380,113 @@ export default function EditProductPage() {
   ]
 
   const handleInputChange = (field: keyof ProductForm, value: string | boolean | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    console.log(`Changing ${field} to:`, value)
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value }
+      return newData
+    })
+    
+    // Show feedback for primary image change
+    if (field === 'primaryImageIndex' && typeof value === 'number') {
+      const successMessage = language === 'sw'
+        ? `Picha ya ${value + 1} imewekwa kama picha kuu`
+        : `Image ${value + 1} set as primary image`
+      showSuccess(
+        language === 'sw' ? 'Mafanikio' : 'Success',
+        successMessage
+      )
+    }
   }
 
-  const handleImageUpload = (files: FileList) => {
-    const newImages = Array.from(files).slice(0, 5 - formData.images.length)
-    setFormData(prev => ({
-      ...prev,
-      images: [...prev.images, ...newImages]
-    }))
+  const handleImageUpload = async (files: FileList) => {
+    if (files.length === 0) return
+    
+    if (!currentBusiness) {
+      showError(language === 'sw' ? 'Hitilafu' : 'Error', 'No business selected')
+      return
+    }
+    
+    setUploading(true)
+    try {
+      // Check file limit
+      if (formData.images.length + files.length > 5) {
+        const errorMessage = language === 'sw'
+          ? 'Unaweza kupakia picha 5 tu. Tafadhali ondoa baadhi za picha za zamani.'
+          : 'You can only upload up to 5 images. Please remove some existing images first.'
+        showError(
+          language === 'sw' ? 'Hitilafu' : 'Error',
+          errorMessage
+        )
+        return
+      }
+      
+      // Upload images to server
+      const formDataUpload = new FormData()
+      formDataUpload.append('businessId', currentBusiness.id.toString())
+      Array.from(files).forEach((file) => {
+        formDataUpload.append('images', file)
+      })
+      
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formDataUpload
+      })
+      
+      const data = await res.json()
+      
+      if (res.ok && data.success && data.data?.files) {
+        type UploadedImage = {
+          url: string;
+          originalName: string;
+          filename: string;
+          size: number;
+          type: string;
+        };
+        const newUploadedImages: UploadedImage[] = data.data.files.map((file: UploadedImage) => ({
+          url: file.url,
+          originalName: file.originalName,
+          filename: file.filename,
+          size: file.size,
+          type: file.type
+        }))
+        
+        setFormData((prev: ProductForm) => ({
+          ...prev,
+          images: [...prev.images, ...newUploadedImages]
+        }))
+        
+        // Clear file input
+        const fileInput = document.getElementById('image-upload') as HTMLInputElement
+        if (fileInput) fileInput.value = ''
+        
+        const successMessage = language === 'sw'
+          ? `Picha ${newUploadedImages.length} zimepakiwa kwa mafanikio!`
+          : `${newUploadedImages.length} image(s) uploaded successfully!`
+        showSuccess(
+          language === 'sw' ? 'Mafanikio' : 'Success',
+          successMessage
+        )
+      } else {
+        throw new Error(data.message || 'Upload failed')
+      }
+    } catch (error) {
+      console.error('Image upload error:', error)
+      const errorMessage = language === 'sw'
+        ? 'Imeshindwa kupakia picha. Jaribu tena.'
+        : 'Failed to upload images. Please try again.'
+      showError(
+        language === 'sw' ? 'Hitilafu' : 'Error',
+        errorMessage
+      )
+    } finally {
+      setUploading(false)
+    }
   }
 
   const removeImage = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev: ProductForm) => ({
       ...prev,
-      images: prev.images.filter((_, i) => i !== index),
+      images: prev.images.filter((_: unknown, i: number) => i !== index),
       primaryImageIndex: prev.primaryImageIndex === index ? 0 : 
         prev.primaryImageIndex > index ? prev.primaryImageIndex - 1 : prev.primaryImageIndex
     }))
@@ -293,9 +496,12 @@ export default function EditProductPage() {
     const costPrice = parseFloat(formData.costPrice)
     if (!costPrice) return
 
-    // Example calculation - 30% margin for wholesale, 50% for retail
-    const wholesalePrice = Math.round(costPrice * 1.3)
-    const retailPrice = Math.round(costPrice * 1.5)
+    // Use dynamic margins from business settings
+    const wholesaleMultiplier = 1 + (businessSettings.wholesaleMargin / 100)
+    const retailMultiplier = 1 + (businessSettings.retailMargin / 100)
+    
+    const wholesalePrice = Math.round(costPrice * wholesaleMultiplier)
+    const retailPrice = Math.round(costPrice * retailMultiplier)
     
     setFormData(prev => ({
       ...prev,
@@ -305,9 +511,66 @@ export default function EditProductPage() {
   }
 
   const handleSubmit = async () => {
-    // Handle form submission for updating product
-    console.log('Updating product:', formData)
-    // Add your update logic here
+    setIsLoading(true)
+    try {
+      // Prepare images array
+      const images = formData.images.map((img, idx) => ({
+        ...img,
+        isPrimary: idx === formData.primaryImageIndex,
+        sortOrder: idx
+      }))
+      // Prepare payload
+      const payload = {
+        nameEn: formData.nameEn,
+        nameSw: formData.nameSw,
+        descriptionEn: formData.descriptionEn,
+        category: formData.category,
+        productType: formData.productType,
+        wholesalePrice: formData.wholesalePrice ? parseFloat(formData.wholesalePrice) : undefined,
+        retailPrice: formData.retailPrice ? parseFloat(formData.retailPrice) : undefined,
+        costPrice: formData.costPrice ? parseFloat(formData.costPrice) : undefined,
+        currentStock: formData.currentStock ? parseInt(formData.currentStock) : undefined,
+        minimumStock: formData.minimumStock ? parseInt(formData.minimumStock) : undefined,
+        reorderLevel: formData.reorderLevel ? parseInt(formData.reorderLevel) : undefined,
+        stockAlerts: formData.stockAlerts,
+        images,
+        isDraft: false
+      }
+      const res = await fetch(`/api/admin/products/${params.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      const data = await res.json()
+      if (data.success) {
+        const successMessage = language === 'sw' 
+          ? 'Bidhaa imesasishwa kwa mafanikio!'
+          : 'Product updated successfully!'
+        showSuccess(
+          language === 'sw' ? 'Mafanikio' : 'Success',
+          successMessage
+        )
+        // Optionally refetch or reload
+        setTimeout(() => window.location.reload(), 1500)
+      } else {
+        const errorMessage = language === 'sw'
+          ? 'Imeshindwa kusasisha bidhaa: ' + (data.message || 'Hitilafu isiyojulikana')
+          : 'Failed to update product: ' + (data.message || 'Unknown error')
+        showError(
+          language === 'sw' ? 'Hitilafu' : 'Error',
+          errorMessage
+        )
+      }
+    } catch (e) {
+      const errorMessage = language === 'sw'
+        ? 'Hitilafu ya kusasisha bidhaa: ' + (e instanceof Error ? e.message : e)
+        : 'Error updating product: ' + (e instanceof Error ? e.message : e)
+      showError(
+        language === 'sw' ? 'Hitilafu' : 'Error',
+        errorMessage
+      )
+    }
+    setIsLoading(false)
   }
 
   const containerVariants = {
@@ -329,6 +592,39 @@ export default function EditProductPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
           <p className="text-gray-600">{t.loading}</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading product data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <ExclamationTriangleIcon className="w-8 h-8 text-red-600" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Failed to Load Product</h2>
+          <p className="text-gray-600 mb-4">{loadError}</p>
+          <Link
+            href="/admin/products"
+            className="inline-flex items-center space-x-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+          >
+            <ArrowLeftIcon className="w-4 h-4" />
+            <span>Back to Products</span>
+          </Link>
         </div>
       </div>
     )
@@ -418,23 +714,79 @@ export default function EditProductPage() {
                   </div>
                 </div>
 
+                {/* SKU, Barcode & Unit */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div className="min-w-0">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t.sku}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.sku || ''}
+                      onChange={(e) => handleInputChange('sku', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
+                      placeholder={language === 'en' ? 'SKU123' : 'BDH123'}
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t.barcode}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.barcode || ''}
+                      onChange={(e) => handleInputChange('barcode', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
+                      placeholder="123456789"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t.unit}
+                    </label>
+                    <select
+                      value={formData.unit || ''}
+                      onChange={(e) => handleInputChange('unit', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
+                    >
+                      <option value="">{t.selectUnit}</option>
+                      <option value="pieces">{language === 'en' ? 'Pieces' : 'Vipande'}</option>
+                      <option value="kg">{language === 'en' ? 'Kilograms (kg)' : 'Kilogramu (kg)'}</option>
+                      <option value="g">{language === 'en' ? 'Grams (g)' : 'Gramu (g)'}</option>
+                      <option value="liters">{language === 'en' ? 'Liters' : 'Lita'}</option>
+                      <option value="ml">{language === 'en' ? 'Milliliters (ml)' : 'Mililita (ml)'}</option>
+                      <option value="meters">{language === 'en' ? 'Meters' : 'Mita'}</option>
+                      <option value="cm">{language === 'en' ? 'Centimeters' : 'Sentimita'}</option>
+                      <option value="boxes">{language === 'en' ? 'Boxes' : 'Masanduku'}</option>
+                      <option value="packs">{language === 'en' ? 'Packs' : 'Vifurushi'}</option>
+                    </select>
+                  </div>
+                </div>
+
                 {/* Category & Product Type */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div className="min-w-0">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       {t.category}
                     </label>
-                    <select
-                      value={formData.category}
-                      onChange={(e) => handleInputChange('category', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
-                    >
-                      {categories.map((category) => (
-                        <option key={category.value} value={category.value}>
-                          {category.label}
-                        </option>
-                      ))}
-                    </select>
+                    {categoriesLoading ? (
+                      <div className="text-gray-500 text-sm py-2">Loading categories...</div>
+                    ) : categoriesError ? (
+                      <div className="text-red-500 text-sm py-2">Failed to load categories</div>
+                    ) : (
+                      <select
+                        value={formData.category}
+                        onChange={(e) => handleInputChange('category', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
+                      >
+                        <option value="">{t.selectCategory}</option>
+                        {categories.map((category: { id: number; name: string; nameSwahili?: string }) => (
+                          <option key={category.id} value={category.id}>
+                            {language === 'sw' && category.nameSwahili ? category.nameSwahili : category.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                   <div className="min-w-0">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -548,11 +900,11 @@ export default function EditProductPage() {
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <span className="text-gray-600">{t.wholesaleMargin}: </span>
-                        <span className="font-medium">30%</span>
+                        <span className="font-medium text-teal-900 font-bold">{businessSettings.wholesaleMargin}%</span>
                       </div>
                       <div>
                         <span className="text-gray-600">{t.retailMargin}: </span>
-                        <span className="font-medium">50%</span>
+                        <span className="font-medium text-teal-900 font-bold">{businessSettings.retailMargin}%</span>
                       </div>
                     </div>
                   </div>
@@ -580,6 +932,18 @@ export default function EditProductPage() {
                   </div>
                   <div className="min-w-0">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t.reservedStock}
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.reservedStock}
+                      onChange={(e) => handleInputChange('reservedStock', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       {t.minimumStock}
                     </label>
                     <input
@@ -601,6 +965,43 @@ export default function EditProductPage() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
                       placeholder="0"
                     />
+                  </div>
+                  <div className="min-w-0">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t.maxStock}
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.maxStock}
+                      onChange={(e) => handleInputChange('maxStock', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
+                      placeholder="1000"
+                    />
+                  </div>
+                </div>
+
+                {/* Inventory Summary */}
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-blue-800 mb-2">Inventory Summary</h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-blue-600">Available Stock: </span>
+                      <span className="font-medium text-blue-800">
+                        {(parseInt(formData.currentStock) || 0) - (parseInt(formData.reservedStock) || 0)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-blue-600">Stock Status: </span>
+                      <span className={`font-medium ${
+                        (parseInt(formData.currentStock) || 0) <= (parseInt(formData.minimumStock) || 0) 
+                          ? 'text-red-600' 
+                          : 'text-green-600'
+                      }`}>
+                        {(parseInt(formData.currentStock) || 0) <= (parseInt(formData.minimumStock) || 0) 
+                          ? 'Low Stock' 
+                          : 'In Stock'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -637,10 +1038,20 @@ export default function EditProductPage() {
                     onChange={(e) => e.target.files && handleImageUpload(e.target.files)}
                     className="hidden"
                     id="image-upload"
+                    disabled={uploading}
                   />
-                  <label htmlFor="image-upload" className="cursor-pointer">
-                    <PhotoIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600 mb-2">{t.dragDropImages}</p>
+                  <label htmlFor="image-upload" className={`cursor-pointer ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    {uploading ? (
+                      <div className="w-12 h-12 mx-auto mb-4 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <PhotoIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    )}
+                    <p className="text-gray-600 mb-2">
+                      {uploading 
+                        ? (language === 'sw' ? 'Inapakia picha...' : 'Uploading images...')
+                        : t.dragDropImages
+                      }
+                    </p>
                     <p className="text-sm text-gray-500">{t.maxImages}</p>
                   </label>
                 </div>
@@ -651,14 +1062,18 @@ export default function EditProductPage() {
                     {formData.images.map((image, index) => (
                       <div
                         key={index}
-                        className={`relative group border-2 rounded-lg overflow-hidden aspect-square ${
-                          index === formData.primaryImageIndex ? 'border-teal-500' : 'border-gray-200'
+                        className={`relative group border-2 rounded-lg overflow-hidden aspect-square transition-all duration-200 ${
+                          index === formData.primaryImageIndex 
+                            ? 'border-teal-500 ring-2 ring-teal-200 shadow-lg' 
+                            : 'border-gray-200 hover:border-gray-300'
                         }`}
                       >
-                        <img
-                          src={URL.createObjectURL(image)}
+                        <Image
+                          src={image.url}
                           alt={`Product ${index + 1}`}
                           className="w-full h-full object-cover"
+                          fill
+                          sizes="(max-width: 768px) 100vw, 33vw"
                         />
                         
                         {/* Overlay */}
@@ -667,7 +1082,11 @@ export default function EditProductPage() {
                             <div className="flex space-x-2">
                               {index !== formData.primaryImageIndex && (
                                 <button
-                                  onClick={() => handleInputChange('primaryImageIndex', index)}
+                                  onClick={() => {
+                                    console.log('Setting primary image index to:', index)
+                                    console.log('Current primary index:', formData.primaryImageIndex)
+                                    handleInputChange('primaryImageIndex', index)
+                                  }}
                                   className="p-2 bg-white text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
                                   title={t.setPrimary}
                                 >
@@ -687,8 +1106,9 @@ export default function EditProductPage() {
 
                         {/* Primary Badge */}
                         {index === formData.primaryImageIndex && (
-                          <div className="absolute top-2 left-2 bg-teal-500 text-white px-2 py-1 rounded text-xs font-medium">
-                            {t.primaryImage}
+                          <div className="absolute top-2 left-2 bg-gradient-to-r from-teal-500 to-teal-600 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center space-x-1 shadow-md">
+                            <StarIcon className="w-3 h-3 fill-current" />
+                            <span>{t.primaryImage}</span>
                           </div>
                         )}
                       </div>

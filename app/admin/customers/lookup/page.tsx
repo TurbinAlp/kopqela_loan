@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { 
   MagnifyingGlassIcon,
@@ -39,6 +39,49 @@ interface Order {
   status: 'completed' | 'pending' | 'cancelled'
   items: number
 }
+
+// Sample customers data
+const sampleCustomers: Customer[] = [
+  {
+    id: "CUST-001",
+    name: "Maria Mwangi",
+    phone: "+255 741 234 567",
+    email: "maria.mwangi@email.com",
+    registrationDate: "2023-05-15",
+    status: "active",
+    totalOrders: 24,
+    totalSpent: 1250000,
+    outstandingBalance: 85000,
+    creditLimit: 500000,
+    lastOrderDate: "2024-01-10"
+  },
+  {
+    id: "CUST-002",
+    name: "John Kimani",
+    phone: "+255 742 345 678",
+    email: "john.kimani@email.com",
+    registrationDate: "2023-08-20",
+    status: "active",
+    totalOrders: 15,
+    totalSpent: 750000,
+    outstandingBalance: 0,
+    creditLimit: 300000,
+    lastOrderDate: "2024-01-12"
+  },
+  {
+    id: "CUST-003",
+    name: "Grace Moshi",
+    phone: "+255 743 456 789",
+    email: "grace.moshi@email.com",
+    registrationDate: "2023-11-02",
+    status: "blocked",
+    totalOrders: 8,
+    totalSpent: 320000,
+    outstandingBalance: 180000,
+    creditLimit: 200000,
+    lastOrderDate: "2023-12-15"
+  }
+]
 
 export default function CustomerLookup() {
   const { language } = useLanguage()
@@ -165,49 +208,6 @@ export default function CustomerLookup() {
 
   const t = translations[language]
 
-  // Sample customers data
-  const sampleCustomers: Customer[] = [
-    {
-      id: "CUST-001",
-      name: "Maria Mwangi",
-      phone: "+255 741 234 567",
-      email: "maria.mwangi@email.com",
-      registrationDate: "2023-05-15",
-      status: "active",
-      totalOrders: 24,
-      totalSpent: 1250000,
-      outstandingBalance: 85000,
-      creditLimit: 500000,
-      lastOrderDate: "2024-01-10"
-    },
-    {
-      id: "CUST-002",
-      name: "John Kimani",
-      phone: "+255 742 345 678",
-      email: "john.kimani@email.com",
-      registrationDate: "2023-08-20",
-      status: "active",
-      totalOrders: 15,
-      totalSpent: 750000,
-      outstandingBalance: 0,
-      creditLimit: 300000,
-      lastOrderDate: "2024-01-12"
-    },
-    {
-      id: "CUST-003",
-      name: "Grace Moshi",
-      phone: "+255 743 456 789",
-      email: "grace.moshi@email.com",
-      registrationDate: "2023-11-02",
-      status: "blocked",
-      totalOrders: 8,
-      totalSpent: 320000,
-      outstandingBalance: 180000,
-      creditLimit: 200000,
-      lastOrderDate: "2023-12-15"
-    }
-  ]
-
   const sampleOrders: Order[] = [
     { id: "ORD-101", date: "2024-01-10", amount: 45000, status: "completed", items: 3 },
     { id: "ORD-099", date: "2024-01-05", amount: 32000, status: "completed", items: 2 },
@@ -216,7 +216,7 @@ export default function CustomerLookup() {
   ]
 
   // Search functionality
-  const handleSearch = async (query: string) => {
+  const handleSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
       setSearchResults([])
       return
@@ -242,11 +242,11 @@ export default function CustomerLookup() {
       setSearchResults(filtered)
       setIsSearching(false)
     }, 500)
-  }
+  }, [searchType])
 
   useEffect(() => {
     handleSearch(searchQuery)
-  }, [searchQuery, searchType])
+  }, [searchQuery, searchType, handleSearch])
 
   const getStatusColor = (status: string) => {
     switch (status) {

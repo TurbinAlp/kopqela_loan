@@ -11,6 +11,8 @@ import {
 } from '@heroicons/react/24/outline'
 import { useSession, signOut } from 'next-auth/react'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { useBusiness } from '../../contexts/BusinessContext'
+import { BuildingOfficeIcon } from '@heroicons/react/24/outline'
 
 interface UserDropdownProps {
   className?: string
@@ -19,6 +21,7 @@ interface UserDropdownProps {
 export default function UserDropdown({ className = '' }: UserDropdownProps) {
   const { language } = useLanguage()
   const { data: session } = useSession()
+  const { currentBusiness, businesses, setCurrentBusiness } = useBusiness()
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -215,6 +218,38 @@ export default function UserDropdown({ className = '' }: UserDropdownProps) {
             </div>
 
             <div className="py-1">
+              {/* Business Switcher - Only show if multiple businesses */}
+              {businesses.length > 1 && (
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <p className="text-xs font-medium text-gray-500 mb-2">Current Business</p>
+                  <div className="space-y-1">
+                    {businesses.map((business) => (
+                      <button
+                        key={business.id}
+                        onClick={() => {
+                          setCurrentBusiness(business)
+                          setIsOpen(false)
+                        }}
+                        className={`flex items-center space-x-2 w-full px-2 py-2 text-left text-sm rounded-lg transition-colors ${
+                          currentBusiness?.id === business.id
+                            ? 'bg-teal-50 text-teal-700'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <BuildingOfficeIcon className="w-4 h-4 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{business.name}</p>
+                          <p className="text-xs text-gray-500 truncate">{business.businessType}</p>
+                        </div>
+                        {currentBusiness?.id === business.id && (
+                          <div className="w-2 h-2 bg-teal-500 rounded-full flex-shrink-0" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Profile */}
               <motion.button
                 variants={menuItemVariants}

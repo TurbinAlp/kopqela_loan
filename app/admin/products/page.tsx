@@ -18,23 +18,54 @@ import {
   FunnelIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { useBusiness } from '../../contexts/BusinessContext'
 import Link from 'next/link'
+import Image from 'next/image'
+import DeleteConfirmModal from '../../components/ui/DeleteConfirmModal'
+import SuccessModal from '../../components/ui/SuccessModal'
+import Spinner from '../../components/ui/Spinner'
+import { useNotifications } from '../../contexts/NotificationContext'
 
 interface Product {
   id: number
   name: string
-  category: string
-  stock: number
+  nameSwahili?: string
+  description?: string
+  category: { id: number; name: string; nameSwahili?: string } | string
   price: number
-  status: 'inStock' | 'lowStock' | 'outOfStock'
-  image: string
-  sku: string
+  wholesalePrice?: number
+  costPrice?: number
+  sku?: string
+  barcode?: string
+  unit?: string
+  images?: Array<{
+    id: number
+    url: string
+    filename: string
+    originalName: string
+    size: number
+    mimeType: string
+    isPrimary: boolean
+    sortOrder: number
+  }>
+  isActive: boolean
+  isDraft: boolean
+  inventory?: {
+    quantity: number;
+    reservedQuantity?: number;
+    reorderPoint?: number;
+    maxStock?: number;
+    location?: string;
+  }
   createdAt: string
+  updatedAt: string
 }
 
 export default function ProductsPage() {
   const { language } = useLanguage()
-  const [isVisible, setIsVisible] = useState(false)
+  const { showError } = useNotifications()
+  const { currentBusiness } = useBusiness()
+  const [mounted, setMounted] = useState(false)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
@@ -44,9 +75,97 @@ export default function ProductsPage() {
   const [showFilters, setShowFilters] = useState(false)
   const [itemsPerPage] = useState(10)
 
+  // NEW: State for products and loading
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [categories, setCategories] = useState<Array<{id: number; name: string; nameSwahili?: string}>>([])
+  const [loadingCategories, setLoadingCategories] = useState(true)
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+  
+  // Delete modal state
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean
+    productId: number | null
+    productName: string
+  }>({
+    isOpen: false,
+    productId: null,
+    productName: ''
+  })
+
+  // Bulk delete modal state
+  const [bulkDeleteModal, setBulkDeleteModal] = useState<{
+    isOpen: boolean
+    productCount: number
+  }>({
+    isOpen: false,
+    productCount: 0
+  })
+
+  // Success modal state
+  const [successModal, setSuccessModal] = useState<{
+    isOpen: boolean
+    title: string
+    message: string
+  }>({
+    isOpen: false,
+    title: '',
+    message: ''
+  })
+
+
+
   useEffect(() => {
-    setIsVisible(true)
+    setMounted(true)
   }, [])
+
+  // NEW: Fetch products from API - only after component mounts
+  useEffect(() => {
+    if (!mounted || !currentBusiness) return
+    
+    setLoading(true)
+    
+    fetch(`/api/admin/products?businessId=${currentBusiness.id}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setProducts(data.data.products)
+        } else {
+          const errorMessage = data.message || 'Failed to fetch products'
+          showError('Error', errorMessage)
+        }
+      })
+      .catch(err => {
+        const errorMessage = err.message || 'Failed to fetch products'
+        showError('Error', errorMessage)
+      })
+      .finally(() => setLoading(false))
+  }, [mounted, currentBusiness, showError])
+
+  // Fetch categories
+  useEffect(() => {
+    if (!mounted || !currentBusiness) return
+    
+    setLoadingCategories(true)
+    
+    fetch(`/api/admin/categories?businessId=${currentBusiness.id}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Handle different API response structures
+          const categoriesData = data.data?.categories || data.data || []
+          setCategories(Array.isArray(categoriesData) ? categoriesData : [])
+        } else {
+          console.error('Failed to fetch categories:', data.message)
+          setCategories([])
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching categories:', err)
+        setCategories([])
+      })
+      .finally(() => setLoadingCategories(false))
+  }, [mounted, currentBusiness])
 
   const translations = {
     en: {
@@ -72,8 +191,10 @@ export default function ProductsPage() {
       // Table headers
       product: "Product",
       sku: "SKU",
-      category: "Category",
+      category: "Category", 
+      unit: "Unit",
       stock: "Stock",
+      location: "Location",
       price: "Price",
       status: "Status",
       actions: "Actions",
@@ -110,7 +231,20 @@ export default function ProductsPage() {
       exportExcel: "Export Excel",
       exportPDF: "Export PDF",
       
-      currency: "TZS"
+      currency: "TZS",
+      
+      // Delete modal
+      deleteProduct: "Delete Product",
+      deleteConfirmMessage: "Are you sure you want to delete this product? This will remove it from your inventory permanently.",
+      
+      // Success messages
+      deleteSuccess: "Product Deleted Successfully",
+      deleteSuccessMessage: "The product has been removed from your inventory.",
+      
+      // Error messages
+      error: "Error",
+      loadingProducts: "Loading Products",
+      loadingMessage: "Please wait while we fetch your products..."
     },
     sw: {
       pageTitle: "Usimamizi wa Bidhaa",
@@ -136,7 +270,9 @@ export default function ProductsPage() {
       product: "Bidhaa",
       sku: "SKU",
       category: "Kundi",
+      unit: "Kipimo",
       stock: "Hisa",
+      location: "Mahali",
       price: "Bei",
       status: "Hali",
       actions: "Vitendo",
@@ -173,128 +309,52 @@ export default function ProductsPage() {
       exportExcel: "Hamisha Excel",
       exportPDF: "Hamisha PDF",
       
-      currency: "TSh"
+      currency: "TSh",
+      
+      // Delete modal
+      deleteProduct: "Futa Bidhaa",
+      deleteConfirmMessage: "Je, una uhakika unataka kufuta bidhaa hii? Hii itaiondoa kabisa kwenye hisa yako.",
+      
+      // Success messages
+      deleteSuccess: "Bidhaa Imefutwa Kwa Ufanisi",
+      deleteSuccessMessage: "Bidhaa imeondolewa kwenye hisa yako.",
+      
+      // Error messages
+      error: "Hitilafu",
+      loadingProducts: "Inapakia Bidhaa",
+      loadingMessage: "Tafadhali subiri tunapokusanya bidhaa zako..."
     }
   }
 
   const t = translations[language]
 
-  // Sample products data (expanded)
-  const allProducts: Product[] = [
-    {
-      id: 1,
-      name: "Samsung Galaxy A54",
-      category: t.electronics,
-      stock: 45,
-      price: 850000,
-      status: "inStock",
-      image: "/api/placeholder/60/60",
-      sku: "SMG-A54-001",
-      createdAt: "2024-01-10"
-    },
-    {
-      id: 2,
-      name: "Cotton T-Shirt",
-      category: t.clothing,
-      stock: 8,
-      price: 25000,
-      status: "lowStock",
-      image: "/api/placeholder/60/60",
-      sku: "CTT-001",
-      createdAt: "2024-01-12"
-    },
-    {
-      id: 3,
-      name: "Instant Coffee",
-      category: t.food,
-      stock: 0,
-      price: 8500,
-      status: "outOfStock",
-      image: "/api/placeholder/60/60",
-      sku: "ICF-001",
-      createdAt: "2024-01-08"
-    },
-    {
-      id: 4,
-      name: "Garden Hose",
-      category: t.home,
-      stock: 23,
-      price: 45000,
-      status: "inStock",
-      image: "/api/placeholder/60/60",
-      sku: "GDH-001",
-      createdAt: "2024-01-15"
-    },
-    {
-      id: 5,
-      name: "Face Cream",
-      category: t.beauty,
-      stock: 12,
-      price: 35000,
-      status: "inStock",
-      image: "/api/placeholder/60/60",
-      sku: "FCR-001",
-      createdAt: "2024-01-14"
-    },
-    {
-      id: 6,
-      name: "Running Shoes",
-      category: t.sports,
-      stock: 5,
-      price: 120000,
-      status: "lowStock",
-      image: "/api/placeholder/60/60",
-      sku: "RNS-001",
-      createdAt: "2024-01-11"
-    },
-    {
-      id: 7,
-      name: "iPhone 15",
-      category: t.electronics,
-      stock: 15,
-      price: 1500000,
-      status: "inStock",
-      image: "/api/placeholder/60/60",
-      sku: "IPH-15-001",
-      createdAt: "2024-01-13"
-    },
-    {
-      id: 8,
-      name: "Jeans Trouser",
-      category: t.clothing,
-      stock: 20,
-      price: 55000,
-      status: "inStock",
-      image: "/api/placeholder/60/60",
-      sku: "JNS-001",
-      createdAt: "2024-01-09"
-    }
-  ]
-
-  const categories = [
-    { value: 'all', label: t.allCategories },
-    { value: t.electronics, label: t.electronics },
-    { value: t.clothing, label: t.clothing },
-    { value: t.food, label: t.food },
-    { value: t.home, label: t.home },
-    { value: t.beauty, label: t.beauty },
-    { value: t.sports, label: t.sports }
-  ]
-
-  const statuses = [
-    { value: 'all', label: t.allStatuses },
-    { value: 'inStock', label: t.inStock },
-    { value: 'lowStock', label: t.lowStock },
-    { value: 'outOfStock', label: t.outOfStock }
-  ]
-
   // Filter products based on search and filters
-  const filteredProducts = allProducts.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         product.sku.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory
-    const matchesStatus = selectedStatus === 'all' || product.status === selectedStatus
+  const filteredProducts = products.filter(product => {
+    const name = product.name || ''
+    const sku = product.sku || ''
+    const categoryName = typeof product.category === 'string' ? product.category : (product.category?.name || '')
+    const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         sku.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesCategory = selectedCategory === 'all' || categoryName === selectedCategory
     
+    // Status logic: compute status based on inventory/stock and product state
+    let status: string = 'inStock'
+    if (product.isDraft) {
+      status = 'draft'
+    } else if (!product.isActive) {
+      status = 'inactive'
+    } else if (product.isActive) {
+      status = 'active'
+    }
+    
+    // Override with stock status if inventory exists
+    if (product.inventory) {
+      if (product.inventory.quantity === 0) status = 'outOfStock'
+      else if (product.inventory.reorderPoint && product.inventory.quantity <= product.inventory.reorderPoint) status = 'lowStock'
+      else if (product.inventory.quantity > 0) status = 'inStock'
+    }
+    
+    const matchesStatus = selectedStatus === 'all' || status === selectedStatus
     return matchesSearch && matchesCategory && matchesStatus
   })
 
@@ -329,10 +389,76 @@ export default function ProductsPage() {
     }
   }
 
-  const handleBulkDelete = () => {
-    // Implement bulk delete logic
-    console.log('Deleting products:', selectedProducts)
-    setSelectedProducts([])
+  const handleBulkDeleteClick = () => {
+    if (selectedProducts.length === 0) return
+    
+    setBulkDeleteModal({
+      isOpen: true,
+      productCount: selectedProducts.length
+    })
+  }
+
+  const handleBulkDeleteConfirm = async () => {
+    setBulkDeleting(true)
+    
+    try {
+      // Delete products one by one
+      const deletePromises = selectedProducts.map(productId => 
+        fetch(`/api/admin/products/${productId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }).then(res => res.json())
+      )
+      
+      const results = await Promise.all(deletePromises)
+      
+      // Check if all deletions were successful
+      const successCount = results.filter(result => result.success).length
+      const failedCount = results.length - successCount
+      
+      if (successCount > 0) {
+        // Remove deleted products from local state
+        setProducts(prev => prev.filter(p => !selectedProducts.includes(p.id)))
+        setSelectedProducts([])
+        
+        // Show success message
+        const successMessage = language === 'sw'
+          ? `Bidhaa ${successCount} zimefutwa kwa mafanikio${failedCount > 0 ? `. ${failedCount} hazikufuta.` : '.'}`
+          : `${successCount} products deleted successfully${failedCount > 0 ? `. ${failedCount} failed to delete.` : '.'}`
+        
+        setSuccessModal({
+          isOpen: true,
+          title: language === 'sw' ? 'Bidhaa Zimefutwa' : 'Products Deleted',
+          message: successMessage
+        })
+      }
+      
+      if (failedCount > 0 && successCount === 0) {
+        // Show error if all failed
+        const errorMessage = language === 'sw'
+          ? 'Imeshindwa kufuta bidhaa. Jaribu tena.'
+          : 'Failed to delete products. Please try again.'
+        
+        showError(t.error || 'Error', errorMessage)
+      }
+      
+    } catch (error) {
+      console.error('Error during bulk delete:', error)
+      const errorMessage = language === 'sw'
+        ? 'Hitilafu imetokea wakati wa kufuta bidhaa.'
+        : 'An error occurred while deleting products.'
+      
+      showError(t.error || 'Error', errorMessage)
+    } finally {
+      setBulkDeleting(false)
+      setBulkDeleteModal({ isOpen: false, productCount: 0 })
+    }
+  }
+
+  const handleBulkDeleteClose = () => {
+    setBulkDeleteModal({ isOpen: false, productCount: 0 })
   }
 
   const handleExport = (format: string) => {
@@ -340,25 +466,82 @@ export default function ProductsPage() {
     console.log('Exporting data as:', format)
   }
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { 
-      opacity: 1,
-      transition: { duration: 0.6, staggerChildren: 0.1 }
+  const handleDeleteClick = (productId: number, productName: string) => {
+    setDeleteModal({
+      isOpen: true,
+      productId,
+      productName
+    })
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteModal.productId) return
+    
+    try {
+      const response = await fetch(`/api/admin/products/${deleteModal.productId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok && data.success) {
+        // Remove product from local state
+        setProducts(prev => prev.filter(p => p.id !== deleteModal.productId))
+        setDeleteModal({ isOpen: false, productId: null, productName: '' })
+        
+        // Show success modal
+        setSuccessModal({
+          isOpen: true,
+          title: t.deleteSuccess,
+          message: t.deleteSuccessMessage
+        })
+      } else {
+        console.error('Failed to delete product:', data.message || 'Unknown error')
+        const errorMessage = language === 'sw' 
+          ? 'Imeshindwa kufuta bidhaa. Jaribu tena.'
+          : 'Failed to delete product. Please try again.'
+        showError(t.error || 'Error', data.message || errorMessage)
+      }
+    } catch (error) {
+      console.error('Error deleting product:', error)
+      const errorMessage = language === 'sw'
+        ? 'Hitilafu ya mtandao: Imeshindwa kufuta bidhaa'
+        : 'Network error: Failed to delete product'
+      showError(t.error || 'Error', errorMessage)
     }
   }
+
+  const handleDeleteClose = () => {
+    setDeleteModal({ isOpen: false, productId: null, productName: '' })
+  }
+
+
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 }
   }
 
+  // Don't render anything until mounted to prevent hydration mismatch
+  if (!mounted) {
+    // Show loading spinner
+    if (loading) {
+      return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <Spinner size="lg" color="teal" className="mx-auto mb-4" />
+            <p className="text-gray-600">{t.loadingMessage}</p>
+          </div>
+        </div>
+      )
+    }
+  }
+
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate={isVisible ? "visible" : "hidden"}
-    >
+    <div>
       {/* Page Header */}
       <motion.div variants={itemVariants} className="mb-8">
         <div className="flex items-center justify-between">
@@ -440,10 +623,12 @@ export default function ProductsPage() {
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
+                  disabled={loadingCategories}
                 >
-                  {categories.map((category) => (
-                    <option key={category.value} value={category.value} className="text-gray-900">
-                      {category.label}
+                  <option value="all">{t.allCategories}</option>
+                  {Array.isArray(categories) && categories.map(category => (
+                    <option key={category.id} value={category.name}>
+                      {language === 'sw' && category.nameSwahili ? category.nameSwahili : category.name}
                     </option>
                   ))}
                 </select>
@@ -457,11 +642,13 @@ export default function ProductsPage() {
                   onChange={(e) => setSelectedStatus(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
                 >
-                  {statuses.map((status) => (
-                    <option key={status.value} value={status.value} className="text-gray-900">
-                      {status.label}
-                    </option>
-                  ))}
+                  <option value="all">{t.allStatuses}</option>
+                  <option value="inStock">{t.inStock}</option>
+                  <option value="lowStock">{t.lowStock}</option>
+                  <option value="outOfStock">{t.outOfStock}</option>
+                  <option value="active">{language === 'sw' ? 'Inatumika' : 'Active'}</option>
+                  <option value="inactive">{language === 'sw' ? 'Haitumiki' : 'Inactive'}</option>
+                  <option value="draft">{language === 'sw' ? 'Dondoo' : 'Draft'}</option>
                 </select>
               </div>
             </div>
@@ -479,11 +666,21 @@ export default function ProductsPage() {
                   {selectedProducts.length} selected
                 </span>
                 <button
-                  onClick={handleBulkDelete}
-                  className="flex items-center space-x-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 hover:text-red-800 transition-colors font-medium"
+                  onClick={handleBulkDeleteClick}
+                  disabled={bulkDeleting}
+                  className="flex items-center space-x-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 hover:text-red-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <TrashIcon className="w-4 h-4" />
-                  <span>{t.deleteSelected}</span>
+                  {bulkDeleting ? (
+                    <div className="w-4 h-4 border-2 border-red-700 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <TrashIcon className="w-4 h-4" />
+                  )}
+                  <span>
+                    {bulkDeleting 
+                      ? (language === 'sw' ? 'Inafuta...' : 'Deleting...') 
+                      : t.deleteSelected
+                    }
+                  </span>
                 </button>
               </div>
             )}
@@ -521,7 +718,51 @@ export default function ProductsPage() {
       )}
 
       {/* Products Display */}
-      {viewMode === 'list' ? (
+      {filteredProducts.length === 0 ? (
+        /* No Products Found */
+        <motion.div 
+          variants={itemVariants} 
+          className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center"
+        >
+          <ArchiveBoxIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            {searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all' 
+              ? (language === 'sw' ? 'Hakuna Bidhaa Zilizopatikana' : 'No Products Found')
+              : (language === 'sw' ? 'Hakuna Bidhaa' : 'No Products Yet')
+            }
+          </h3>
+          <p className="text-gray-600 mb-4">
+            {searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all' 
+              ? (language === 'sw' 
+                  ? 'Jaribu kubadilisha vichujio vyako au utafute kitu kingine.'
+                  : 'Try adjusting your filters or search for something else.'
+                )
+              : (language === 'sw' 
+                  ? 'Anza kwa kuongeza bidhaa ya kwanza.'
+                  : 'Get started by adding your first product.'
+                )
+            }
+          </p>
+          {(searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all') && (
+            <button
+              onClick={() => {
+                setSearchQuery('')
+                setSelectedCategory('all')
+                setSelectedStatus('all')
+              }}
+              className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors mr-3"
+            >
+              {language === 'sw' ? 'Ondoa Vichujio' : 'Clear Filters'}
+            </button>
+          )}
+          <Link
+            href="/admin/products/add"
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            {language === 'sw' ? 'Ongeza Bidhaa' : 'Add Product'}
+          </Link>
+        </motion.div>
+      ) : viewMode === 'list' ? (
         /* List View */
         <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm border border-gray-100">
           <div className="overflow-x-auto">
@@ -539,7 +780,9 @@ export default function ProductsPage() {
                   <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.product}</th>
                   <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.sku}</th>
                   <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.category}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.unit}</th>
                   <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.stock}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.location}</th>
                   <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.price}</th>
                   <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.status}</th>
                   <th className="text-center py-4 px-6 font-semibold text-gray-800">{t.actions}</th>
@@ -564,31 +807,54 @@ export default function ProductsPage() {
                     </td>
                     <td className="py-4 px-6">
                       <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                          <ArchiveBoxIcon className="w-6 h-6 text-gray-500" />
+                        <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+                          {(() => {
+                            // Find primary image first
+                            const primaryImage = product.images?.find(img => img.isPrimary);
+                            const imageToShow = primaryImage || product.images?.[0];
+                            
+                            if (imageToShow) {
+                              return <Image src={imageToShow.url} alt={product.name} width={48} height={48} className="w-full h-full object-cover" />;
+                            } else {
+                              return <ArchiveBoxIcon className="w-6 h-6 text-gray-500" />;
+                            }
+                          })()}
                         </div>
                         <div>
                           <p className="font-medium text-gray-800">{product.name}</p>
-                          <p className="text-sm text-gray-500">{product.createdAt}</p>
+                          <p className="text-sm text-gray-500">{product.createdAt.split('T')[0]}</p>
                         </div>
                       </div>
                     </td>
                     <td className="py-4 px-6">
-                      <span className="text-gray-700 font-mono text-sm">{product.sku}</span>
+                      <span className="text-gray-700 font-mono text-sm">{product.sku || '—'}</span>
                     </td>
                     <td className="py-4 px-6">
-                      <span className="text-gray-700">{product.category}</span>
+                      <span className="text-gray-700">{typeof product.category === 'string' ? product.category : product.category?.name}</span>
                     </td>
                     <td className="py-4 px-6">
-                      <span className="text-gray-700">{product.stock}</span>
+                      <span className="text-gray-700">{product.unit || '—'}</span>
                     </td>
                     <td className="py-4 px-6">
-                      <span className="font-semibold text-gray-800">{t.currency} {product.price.toLocaleString()}</span>
+                      <span className="text-gray-700">{product.inventory?.quantity ?? '—'}</span>
                     </td>
                     <td className="py-4 px-6">
-                      <span className={`px-3 py-1 text-sm rounded-full font-medium ${getStatusColor(product.status)}`}>
-                        {t[product.status as keyof typeof t]}
-                      </span>
+                      <span className="text-gray-700 text-sm">{product.inventory?.location || '—'}</span>
+                    </td>
+                    <td className="py-4 px-6">
+                      <span className="font-semibold text-gray-800">{t.currency} {product.price}</span>
+                    </td>
+                    <td className="py-4 px-6">
+                      {(() => {
+                        let status: string = 'inStock';
+                        if (product.inventory && product.inventory.quantity === 0) status = 'outOfStock';
+                        else if (product.inventory && product.inventory.quantity < 10) status = 'lowStock';
+                        return (
+                          <span className={`px-3 py-1 text-sm rounded-full font-medium ${getStatusColor(status)}`}>
+                            {t[status as keyof typeof t]}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="py-4 px-6">
                       <div className="flex items-center justify-center space-x-2">
@@ -615,6 +881,7 @@ export default function ProductsPage() {
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
+                          onClick={() => handleDeleteClick(product.id, product.name)}
                           className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title={t.delete}
                         >
@@ -646,22 +913,46 @@ export default function ProductsPage() {
                   onChange={() => handleSelectProduct(product.id)}
                   className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
                 />
-                <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(product.status)}`}>
-                  {t[product.status as keyof typeof t]}
+                <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor((() => {
+                  let status: string = 'inStock';
+                  if (product.inventory && product.inventory.quantity === 0) status = 'outOfStock';
+                  else if (product.inventory && product.inventory.quantity < 10) status = 'lowStock';
+                  return status;
+                })())}`}>
+                  {t[((() => {
+                    let status: string = 'inStock';
+                    if (product.inventory && product.inventory.quantity === 0) status = 'outOfStock';
+                    else if (product.inventory && product.inventory.quantity < 10) status = 'lowStock';
+                    return status;
+                  })()) as keyof typeof t]}
                 </span>
               </div>
 
-              <div className="w-full h-32 bg-gray-200 rounded-lg flex items-center justify-center mb-4">
-                <ArchiveBoxIcon className="w-12 h-12 text-gray-500" />
+              <div className="w-full h-32 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden mb-4">
+                {(() => {
+                  // Find primary image first
+                  const primaryImage = product.images?.find(img => img.isPrimary);
+                  const imageToShow = primaryImage || product.images?.[0];
+                  
+                  if (imageToShow) {
+                    return <Image src={imageToShow.url} alt={product.name} width={200} height={128} className="w-full h-full object-cover" />;
+                  } else {
+                    return <ArchiveBoxIcon className="w-12 h-12 text-gray-500" />;
+                  }
+                })()}
               </div>
 
               <div className="space-y-2 mb-4">
                 <h3 className="font-semibold text-gray-800">{product.name}</h3>
-                <p className="text-sm text-gray-500 font-mono">{product.sku}</p>
-                <p className="text-sm text-gray-600">{product.category}</p>
+                <p className="text-sm text-gray-500 font-mono">{product.sku || 'No SKU'}</p>
+                <p className="text-sm text-gray-600">{typeof product.category === 'string' ? product.category : product.category?.name}</p>
+                <div className="flex items-center justify-between text-sm text-gray-600">
+                  <span>{t.unit}: {product.unit || '—'}</span>
+                  <span>{t.stock}: {product.inventory?.quantity ?? '—'}</span>
+                </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">{t.stock}: {product.stock}</span>
-                  <span className="font-semibold text-gray-800">{t.currency} {product.price.toLocaleString()}</span>
+                  <span className="text-sm text-gray-600">{t.location}: {product.inventory?.location || '—'}</span>
+                  <span className="font-semibold text-gray-800">{t.currency} {product.price}</span>
                 </div>
               </div>
 
@@ -689,6 +980,7 @@ export default function ProductsPage() {
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
+                  onClick={() => handleDeleteClick(product.id, product.name)}
                   className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   title={t.delete}
                 >
@@ -744,6 +1036,39 @@ export default function ProductsPage() {
           </div>
         </motion.div>
       )}
-    </motion.div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={handleDeleteClose}
+        onConfirm={handleDeleteConfirm}
+        title={t.deleteProduct}
+        message={t.deleteConfirmMessage}
+        itemName={deleteModal.productName}
+      />
+
+      {/* Bulk Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={bulkDeleteModal.isOpen}
+        onClose={handleBulkDeleteClose}
+        onConfirm={handleBulkDeleteConfirm}
+        title={language === 'sw' ? 'Futa Bidhaa Zilizochaguliwa' : 'Delete Selected Products'}
+        message={language === 'sw' 
+          ? `Je, una uhakika unataka kufuta bidhaa ${bulkDeleteModal.productCount}? Hatua hii haiwezi kubatilishwa.`
+          : `Are you sure you want to delete ${bulkDeleteModal.productCount} products? This action cannot be undone.`
+        }
+        itemName=""
+      />
+
+      {/* Success Modal */}
+      <SuccessModal
+        isOpen={successModal.isOpen}
+        onClose={() => setSuccessModal({ isOpen: false, title: '', message: '' })}
+        title={successModal.title}
+        message={successModal.message}
+        autoClose={true}
+        autoCloseDelay={3000}
+      />
+    </div>
   )
 }

@@ -250,6 +250,12 @@ export default function GlobalSearch({
           }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder || t.searchPlaceholder}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck="false"
+          data-form-type="other"
+          name="search-query"
           className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent bg-white"
         />
         

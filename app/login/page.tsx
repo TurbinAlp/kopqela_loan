@@ -97,47 +97,35 @@ export default function LoginPage() {
     setIsLoading(true)
     
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          rememberMe
-        }),
+      const result = await signIn('credentials', {
+        email,
+        password,
+        callbackUrl: '/admin/dashboard',
+        redirect: false
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        if (data.needsVerification) {
+      if (result?.error) {
+        // Handle different error types
+        if (result.error === 'CredentialsSignin') {
           showError(
-            language === 'en' ? 'Email Not Verified' : 'Email Haijathibitishwa',
-            data.message
+            language === 'en' ? 'Login Failed' : 'Kuingia Kumeshindwa',
+            language === 'en' ? 'Invalid email or password' : 'Email au nenosiri sio sahihi'
           )
         } else {
           showError(
             language === 'en' ? 'Login Failed' : 'Kuingia Kumeshindwa',
-            data.message
+            result.error
           )
         }
-        setIsLoading(false)
-        return
+      } else if (result?.url) {
+        showSuccess(
+          language === 'en' ? 'Login Successful!' : 'Umeingia Kikamilifu!',
+          language === 'en' ? 'Welcome back!' : 'Karibu tena!'
+        )
+        
+        // Redirect to dashboard
+        window.location.href = result.url
       }
-
-      showSuccess(
-        language === 'en' ? 'Login Successful!' : 'Umeingia Kikamilifu!',
-        language === 'en' ? 'Welcome back!' : 'Karibu tena!'
-      )
-
-      // Redirect to appropriate page
-      const redirectUrl = data.data.user.businessSlug 
-        ? `/admin/dashboard/${data.data.user.businessSlug}` 
-        : '/admin/dashboard'
-      
-      window.location.href = redirectUrl
 
     } catch (error) {
       console.error('Login error:', error)

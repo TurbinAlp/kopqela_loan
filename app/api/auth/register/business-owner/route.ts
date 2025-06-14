@@ -98,28 +98,9 @@ export async function POST(request: NextRequest) {
     const verificationCode = generateVerificationCode()
     const verificationExpiry = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
     
-    // Use Prisma transaction to create business and user
+    // Use Prisma transaction to create user and business
     const result = await withTransaction(async (tx) => {
-      // Create business first
-      const business = await tx.business.create({
-        data: {
-          name: body.businessName,
-          description: body.businessDescription || '',
-          businessType: body.businessType,
-          slug: businessSlug,
-          address: body.businessAddress,
-          phone: body.businessPhone || body.phone,
-          registrationNumber: body.registrationNumber || null,
-          status: 'PENDING',
-        },
-        select: {
-          id: true,
-          slug: true,
-          name: true
-        }
-      })
-      
-      // Create user as business owner
+      // Create user first (business owner)
       const user = await tx.user.create({
         data: {
           firstName: body.firstName,
@@ -128,7 +109,6 @@ export async function POST(request: NextRequest) {
           phone: body.phone,
           passwordHash: hashedPassword,
           role: 'ADMIN', // Business owner is admin
-          businessId: business.id,
           isVerified: false,
           verificationCode: verificationCode,
           verificationExpiresAt: verificationExpiry,
@@ -139,6 +119,52 @@ export async function POST(request: NextRequest) {
           firstName: true,
           lastName: true
         }
+      })
+      
+      // Create business with owner reference (basic info only)
+      const business = await tx.business.create({
+        data: {
+          name: body.businessName,
+          businessType: body.businessType,
+          slug: businessSlug,
+          ownerId: user.id, // Set business owner
+          status: 'PENDING',
+          isActive: true
+        },
+        select: {
+          id: true,
+          slug: true,
+          name: true
+        }
+      })
+      
+      // Create business settings with detailed information
+      await tx.businessSetting.create({
+        data: {
+          businessId: business.id,
+          description: body.businessDescription || '',
+          address: body.businessAddress,
+          phone: body.businessPhone || body.phone,
+          email: body.email,
+          registrationNumber: body.registrationNumber || null,
+          currency: 'TZS',
+          timezone: 'Africa/Dar_es_Salaam',
+          language: 'sw',
+          taxRate: 18.0,
+          wholesaleMargin: 30.0,
+          retailMargin: 50.0,
+          financialYearStart: '01-01',
+          enableInventoryTracking: true,
+          enableCreditSales: false,
+          enableLoyaltyProgram: false,
+          enableTaxCalculation: true
+        }
+      })
+      
+      // Update user to link with business
+      await tx.user.update({
+        where: { id: user.id },
+        data: { businessId: business.id }
       })
       
       return { business, user }
