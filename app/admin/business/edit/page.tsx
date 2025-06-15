@@ -6,12 +6,17 @@ import {
   BuildingOfficeIcon,
   MapPinIcon,
   CurrencyDollarIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  PaintBrushIcon,
+  CogIcon,
+  PhotoIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import { useNotifications } from '../../../contexts/NotificationContext'
 import { useBusiness } from '../../../contexts/BusinessContext'
 import Link from 'next/link'
+import Image from 'next/image'
 
 interface BusinessSettings {
   // Basic Business Info
@@ -23,6 +28,7 @@ interface BusinessSettings {
   email: string
   phone: string
   website: string
+  registrationNumber: string
   
   // Address Information
   address: string
@@ -30,6 +36,19 @@ interface BusinessSettings {
   region: string
   country: string
   postalCode: string
+  
+  // Visual/Branding Settings
+  logoUrl: string
+  primaryColor: string
+  secondaryColor: string
+  
+  // Operational Settings
+  timezone: string
+  language: string
+  defaultPaymentMethod: string
+  invoicePrefix: string
+  orderPrefix: string
+  receiptFooterMessage: string
   
   // Financial Settings
   currency: string
@@ -43,6 +62,8 @@ interface BusinessSettings {
   enableCreditSales: boolean
   enableLoyaltyProgram: boolean
   enableTaxCalculation: boolean
+  enableMultiCurrency: boolean
+  enableMultiLocation: boolean
 }
 
 export default function EditBusinessPage() {
@@ -52,6 +73,7 @@ export default function EditBusinessPage() {
   const [activeTab, setActiveTab] = useState('company')
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false)
   const [settings, setSettings] = useState<BusinessSettings>({
     name: '',
     businessType: '',
@@ -59,11 +81,21 @@ export default function EditBusinessPage() {
     email: '',
     phone: '',
     website: '',
+    registrationNumber: '',
     address: '',
     city: '',
     region: '',
     country: 'Tanzania',
     postalCode: '',
+    logoUrl: '',
+    primaryColor: '#059669',
+    secondaryColor: '#10b981',
+    timezone: 'Africa/Dar_es_Salaam',
+    language: 'en',
+    defaultPaymentMethod: 'CASH',
+    invoicePrefix: 'INV',
+    orderPrefix: 'ORD',
+    receiptFooterMessage: '',
     currency: 'TZS',
     taxRate: 18.0,
     wholesaleMargin: 30.0,
@@ -72,7 +104,9 @@ export default function EditBusinessPage() {
     enableInventoryTracking: true,
     enableCreditSales: false,
     enableLoyaltyProgram: false,
-    enableTaxCalculation: true
+    enableTaxCalculation: true,
+    enableMultiCurrency: false,
+    enableMultiLocation: false
   })
 
   const translations = {
@@ -81,6 +115,8 @@ export default function EditBusinessPage() {
       backToBusiness: 'Back to Business',
       companyInfo: 'Company Information',
       businessDetails: 'Business Details',
+      brandingSettings: 'Branding & Visual',
+      operationalSettings: 'Operational Settings',
       financialSettings: 'Financial Settings',
       saveChanges: 'Save Changes',
       saving: 'Saving...',
@@ -94,6 +130,7 @@ export default function EditBusinessPage() {
       email: 'Business Email',
       phone: 'Business Phone',
       website: 'Website URL',
+      registrationNumber: 'Registration Number',
       
       // Address
       address: 'Street Address',
@@ -101,6 +138,19 @@ export default function EditBusinessPage() {
       region: 'Region/State',
       country: 'Country',
       postalCode: 'Postal Code',
+      
+      // Visual/Branding
+      logoUrl: 'Business Logo',
+      primaryColor: 'Primary Color',
+      secondaryColor: 'Secondary Color',
+      
+      // Operational
+      timezone: 'Timezone',
+      language: 'Default Language',
+      defaultPaymentMethod: 'Default Payment Method',
+      invoicePrefix: 'Invoice Prefix',
+      orderPrefix: 'Order Prefix',
+      receiptFooterMessage: 'Receipt Footer Message',
       
       // Financial
       currency: 'Currency',
@@ -114,16 +164,29 @@ export default function EditBusinessPage() {
       enableCreditSales: 'Enable Credit Sales',
       enableLoyaltyProgram: 'Enable Loyalty Program',
       enableTaxCalculation: 'Enable Tax Calculation',
+      enableMultiCurrency: 'Enable Multi-Currency',
+      enableMultiLocation: 'Enable Multi-Location',
       
       // Messages
       businessSaved: 'Business updated successfully',
-      businessError: 'Failed to update business'
+      businessError: 'Failed to update business',
+      
+      // Logo Upload
+      currentLogo: 'Current Logo',
+      clickToChange: 'Click "Remove" to change',
+      remove: 'Remove',
+      uploadLogo: 'Upload Logo',
+      changeLogo: 'Change Logo',
+      uploading: 'Uploading...',
+      dragDropText: 'PNG, JPG, JPEG up to 5MB'
     },
     sw: {
       pageTitle: 'Hariri Biashara',
       backToBusiness: 'Rudi kwa Biashara',
       companyInfo: 'Taarifa za Kampuni',
       businessDetails: 'Maelezo ya Biashara',
+      brandingSettings: 'Chapa na Muonekano',
+      operationalSettings: 'Mipangilio ya Uendeshaji',
       financialSettings: 'Mipangilio ya Kifedha',
       saveChanges: 'Hifadhi Mabadiliko',
       saving: 'Inahifadhi...',
@@ -137,6 +200,7 @@ export default function EditBusinessPage() {
       email: 'Barua Pepe ya Biashara',
       phone: 'Simu ya Biashara',
       website: 'Tovuti',
+      registrationNumber: 'Nambari ya Usajili',
       
       // Address
       address: 'Anwani ya Mtaa',
@@ -144,6 +208,19 @@ export default function EditBusinessPage() {
       region: 'Mkoa',
       country: 'Nchi',
       postalCode: 'Nambari ya Posta',
+      
+      // Visual/Branding
+      logoUrl: 'Logo ya Biashara',
+      primaryColor: 'Rangi ya Msingi',
+      secondaryColor: 'Rangi ya Pili',
+      
+      // Operational
+      timezone: 'Saa za Eneo',
+      language: 'Lugha ya Msingi',
+      defaultPaymentMethod: 'Njia ya Malipo ya Kawaida',
+      invoicePrefix: 'Kiambishi cha Ankara',
+      orderPrefix: 'Kiambishi cha Agizo',
+      receiptFooterMessage: 'Ujumbe wa Mwisho wa Risiti',
       
       // Financial
       currency: 'Sarafu',
@@ -157,10 +234,21 @@ export default function EditBusinessPage() {
       enableCreditSales: 'Wezesha Mauzo ya Mikopo',
       enableLoyaltyProgram: 'Wezesha Mpango wa Uongozi',
       enableTaxCalculation: 'Wezesha Hesabu ya Ushuru',
+      enableMultiCurrency: 'Wezesha Sarafu Nyingi',
+      enableMultiLocation: 'Wezesha Maeneo Mengi',
       
       // Messages
       businessSaved: 'Biashara imesasishwa',
-      businessError: 'Imeshindwa kusasisha biashara'
+      businessError: 'Imeshindwa kusasisha biashara',
+      
+      // Logo Upload
+      currentLogo: 'Logo ya Sasa',
+      clickToChange: 'Bofya "Ondoa" ili kubadilisha',
+      remove: 'Ondoa',
+      uploadLogo: 'Pakia Logo',
+      changeLogo: 'Badilisha Logo',
+      uploading: 'Inapakia...',
+      dragDropText: 'PNG, JPG, JPEG hadi MB 5'
     }
   }
 
@@ -169,6 +257,8 @@ export default function EditBusinessPage() {
   const tabs = [
     { id: 'company', label: t.companyInfo, icon: BuildingOfficeIcon },
     { id: 'details', label: t.businessDetails, icon: MapPinIcon },
+    { id: 'branding', label: t.brandingSettings, icon: PaintBrushIcon },
+    { id: 'operational', label: t.operationalSettings, icon: CogIcon },
     { id: 'financial', label: t.financialSettings, icon: CurrencyDollarIcon }
   ]
 
@@ -189,11 +279,21 @@ export default function EditBusinessPage() {
           email: business.email || '',
           phone: business.phone || '',
           website: business.website || '',
+          registrationNumber: business.registrationNumber || '',
           address: business.address || '',
           city: business.city || '',
           region: business.region || '',
           country: business.country || 'Tanzania',
           postalCode: business.postalCode || '',
+          logoUrl: business.logoUrl || '',
+          primaryColor: business.primaryColor || '#059669',
+          secondaryColor: business.secondaryColor || '#10b981',
+          timezone: business.timezone || 'Africa/Dar_es_Salaam',
+          language: business.language || 'en',
+          defaultPaymentMethod: business.defaultPaymentMethod || 'CASH',
+          invoicePrefix: business.invoicePrefix || 'INV',
+          orderPrefix: business.orderPrefix || 'ORD',
+          receiptFooterMessage: business.receiptFooterMessage || '',
           currency: business.currency || 'TZS',
           taxRate: business.taxRate || 18.0,
           wholesaleMargin: business.wholesaleMargin || 30.0,
@@ -202,7 +302,9 @@ export default function EditBusinessPage() {
           enableInventoryTracking: business.enableInventoryTracking ?? true,
           enableCreditSales: business.enableCreditSales ?? false,
           enableLoyaltyProgram: business.enableLoyaltyProgram ?? false,
-          enableTaxCalculation: business.enableTaxCalculation ?? true
+          enableTaxCalculation: business.enableTaxCalculation ?? true,
+          enableMultiCurrency: business.enableMultiCurrency ?? false,
+          enableMultiLocation: business.enableMultiLocation ?? false
         })
       }
     } catch (error) {
@@ -242,6 +344,69 @@ export default function EditBusinessPage() {
 
   const handleInputChange = (field: keyof BusinessSettings, value: string | number | boolean) => {
     setSettings(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !currentBusiness) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      showError(
+        language === 'sw' ? 'Chagua picha tu (PNG, JPG, JPEG)' : 'Please select image files only (PNG, JPG, JPEG)',
+        ''
+      )
+      return
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showError(
+        language === 'sw' ? 'Ukubwa wa picha haupaswi kuzidi MB 5' : 'Image size should not exceed 5MB',
+        ''
+      )
+      return
+    }
+
+    try {
+      setIsUploadingLogo(true)
+      
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('businessId', currentBusiness.id.toString())
+      
+      const response = await fetch('/api/admin/business/upload-logo', {
+        method: 'POST',
+        body: formData
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        setSettings(prev => ({ ...prev, logoUrl: data.logoUrl }))
+        showSuccess(
+          language === 'sw' ? 'Logo imepakiwa' : 'Logo uploaded successfully',
+          ''
+        )
+      } else {
+        showError(
+          language === 'sw' ? 'Imeshindwa kupakia logo' : 'Failed to upload logo',
+          data.message || ''
+        )
+      }
+    } catch (error) {
+      console.error('Logo upload error:', error)
+      showError(
+        language === 'sw' ? 'Imeshindwa kupakia logo' : 'Failed to upload logo',
+        ''
+      )
+    } finally {
+      setIsUploadingLogo(false)
+    }
+  }
+
+  const handleLogoRemove = () => {
+    setSettings(prev => ({ ...prev, logoUrl: '' }))
   }
 
   useEffect(() => {
@@ -334,6 +499,18 @@ export default function EditBusinessPage() {
                 value={settings.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t.registrationNumber}
+              </label>
+              <input
+                type="text"
+                value={settings.registrationNumber}
+                onChange={(e) => handleInputChange('registrationNumber', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
               />
             </div>
@@ -448,6 +625,212 @@ export default function EditBusinessPage() {
           </div>
         )}
 
+        {/* Branding Settings Tab */}
+        {activeTab === 'branding' && (
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t.logoUrl}
+              </label>
+              
+              {/* Logo Preview */}
+              {settings.logoUrl && (
+                <div className="mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <Image
+                        src={settings.logoUrl}
+                        alt="Business Logo"
+                        width={64}
+                        height={64}
+                        className="w-16 h-16 object-cover rounded-lg border"
+                      />
+                                             <div>
+                         <p className="text-sm font-medium text-gray-900">{t.currentLogo}</p>
+                         <p className="text-xs text-gray-500">{t.clickToChange}</p>
+                       </div>
+                    </div>
+                                         <button
+                       type="button"
+                       onClick={handleLogoRemove}
+                       className="flex items-center space-x-2 px-3 py-2 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                     >
+                       <TrashIcon className="w-4 h-4" />
+                       <span>{t.remove}</span>
+                     </button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Logo Upload */}
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-teal-400 transition-colors">
+                <input
+                  type="file"
+                  id="logo-upload"
+                  accept="image/*"
+                  onChange={handleLogoUpload}
+                  className="hidden"
+                  disabled={isUploadingLogo}
+                />
+                <label
+                  htmlFor="logo-upload"
+                  className={`cursor-pointer ${isUploadingLogo ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <div className="flex flex-col items-center">
+                    {isUploadingLogo ? (
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500 mb-3"></div>
+                    ) : (
+                      <PhotoIcon className="w-8 h-8 text-gray-400 mb-3" />
+                    )}
+                                         <p className="text-sm font-medium text-gray-900 mb-1">
+                       {isUploadingLogo ? t.uploading : settings.logoUrl ? t.changeLogo : t.uploadLogo}
+                     </p>
+                     <p className="text-xs text-gray-500">
+                       {t.dragDropText}
+                     </p>
+                  </div>
+                </label>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t.primaryColor}
+                </label>
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="color"
+                    value={settings.primaryColor}
+                    onChange={(e) => handleInputChange('primaryColor', e.target.value)}
+                    className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={settings.primaryColor}
+                    onChange={(e) => handleInputChange('primaryColor', e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                    placeholder="#059669"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t.secondaryColor}
+                </label>
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="color"
+                    value={settings.secondaryColor}
+                    onChange={(e) => handleInputChange('secondaryColor', e.target.value)}
+                    className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={settings.secondaryColor}
+                    onChange={(e) => handleInputChange('secondaryColor', e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                    placeholder="#10b981"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Operational Settings Tab */}
+        {activeTab === 'operational' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t.timezone}
+                </label>
+                <select
+                  value={settings.timezone}
+                  onChange={(e) => handleInputChange('timezone', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                >
+                  <option value="Africa/Dar_es_Salaam">Africa/Dar es Salaam</option>
+                  <option value="Africa/Nairobi">Africa/Nairobi</option>
+                  <option value="Africa/Kampala">Africa/Kampala</option>
+                  <option value="UTC">UTC</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t.language}
+                </label>
+                <select
+                  value={settings.language}
+                  onChange={(e) => handleInputChange('language', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                >
+                  <option value="en">English</option>
+                  <option value="sw">Kiswahili</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t.defaultPaymentMethod}
+                </label>
+                <select
+                  value={settings.defaultPaymentMethod}
+                  onChange={(e) => handleInputChange('defaultPaymentMethod', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                >
+                  <option value="CASH">Cash</option>
+                  <option value="MOBILE_MONEY">Mobile Money</option>
+                  <option value="BANK_TRANSFER">Bank Transfer</option>
+                  <option value="CARD">Card</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t.invoicePrefix}
+                </label>
+                <input
+                  type="text"
+                  value={settings.invoicePrefix}
+                  onChange={(e) => handleInputChange('invoicePrefix', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                  placeholder="INV"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t.orderPrefix}
+                </label>
+                <input
+                  type="text"
+                  value={settings.orderPrefix}
+                  onChange={(e) => handleInputChange('orderPrefix', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                  placeholder="ORD"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t.receiptFooterMessage}
+              </label>
+              <textarea
+                value={settings.receiptFooterMessage}
+                onChange={(e) => handleInputChange('receiptFooterMessage', e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                placeholder="Thank you for your business!"
+              />
+            </div>
+          </div>
+        )}
+
         {/* Financial Settings Tab */}
         {activeTab === 'financial' && (
           <div className="space-y-6">
@@ -505,6 +888,19 @@ export default function EditBusinessPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
                 />
               </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t.financialYearStart}
+                </label>
+                <input
+                  type="text"
+                  value={settings.financialYearStart}
+                  onChange={(e) => handleInputChange('financialYearStart', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                  placeholder="01-01"
+                />
+              </div>
             </div>
             
             {/* Feature Toggles */}
@@ -515,7 +911,9 @@ export default function EditBusinessPage() {
                 { key: 'enableInventoryTracking', label: t.enableInventoryTracking },
                 { key: 'enableCreditSales', label: t.enableCreditSales },
                 { key: 'enableLoyaltyProgram', label: t.enableLoyaltyProgram },
-                { key: 'enableTaxCalculation', label: t.enableTaxCalculation }
+                { key: 'enableTaxCalculation', label: t.enableTaxCalculation },
+                { key: 'enableMultiCurrency', label: t.enableMultiCurrency },
+                { key: 'enableMultiLocation', label: t.enableMultiLocation }
               ].map((feature) => (
                 <div key={feature.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <span className="text-sm font-medium text-gray-700">{feature.label}</span>

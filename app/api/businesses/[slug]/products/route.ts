@@ -203,22 +203,40 @@ export async function GET(
           description: product.description,
           sku: product.sku,
           barcode: product.barcode,
-          price: product.price,
-          wholesalePrice: product.wholesalePrice,
-          costPrice: product.costPrice,
+          price: Number(product.price),
+          wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : null,
+          costPrice: product.costPrice ? Number(product.costPrice) : null,
           unit: product.unit,
-                  imageUrl: (() => {
-          // Get primary image from product images, fallback to legacy imageUrl
-          const primaryImage = product.images?.find(img => img.isPrimary);
-          return primaryImage?.url || product.imageUrl || null;
-        })(),
+          imageUrl: (() => {
+            // Get primary image from product images
+            const primaryImage = product.images?.find(img => img.isPrimary);
+            return primaryImage?.url || null;
+          })(),
           isActive: product.isActive,
           category: product.category ? {
             id: product.category.id,
             name: lang === 'sw' && product.category.nameSwahili ? 
                   product.category.nameSwahili : product.category.name
           } : null,
-          inventory: product.inventory[0] || null,
+          inventory: product.inventory.length > 0 ? {
+            quantity: product.inventory[0].quantity,
+            reservedQuantity: product.inventory[0].reservedQuantity,
+            availableQuantity: product.inventory[0].quantity - product.inventory[0].reservedQuantity,
+            reorderPoint: product.inventory[0].reorderPoint,
+            maxStock: product.inventory[0].maxStock,
+            location: product.inventory[0].location,
+            inStock: product.inventory[0].quantity > 0,
+            lowStock: product.inventory[0].reorderPoint ? product.inventory[0].quantity <= product.inventory[0].reorderPoint : false
+          } : {
+            quantity: 0,
+            reservedQuantity: 0,
+            availableQuantity: 0,
+            reorderPoint: null,
+            maxStock: null,
+            location: null,
+            inStock: false,
+            lowStock: false
+          },
           createdAt: product.createdAt,
           updatedAt: product.updatedAt
         })),

@@ -1,10 +1,6 @@
 import { ReactNode } from 'react'
-import { BusinessProvider } from '../../contexts/BusinessContext'
-import { LanguageProvider } from '../../contexts/LanguageContext'
-import StoreNavigation from '../../components/store/StoreNavigation'
-import StoreFooter from '../../components/store/StoreFooter'
-import BusinessNotFound from '../../components/store/BusinessNotFound'
-import BusinessLoader from '../../components/store/BusinessLoader'
+import CustomerStoreNavigation from '../../components/store/CustomerStoreNavigation'
+import CustomerStoreFooter from '../../components/store/CustomerStoreFooter'
 
 interface StoreLayoutProps {
   children: ReactNode
@@ -12,30 +8,12 @@ interface StoreLayoutProps {
 
 export default function StoreLayout({ children }: StoreLayoutProps) {
   return (
-    <html lang="en">
-      <body>
-        <LanguageProvider>
-          <BusinessProvider>
-            <StoreContent>{children}</StoreContent>
-          </BusinessProvider>
-        </LanguageProvider>
-      </body>
-    </html>
-  )
-}
-
-function StoreContent({ children }: { children: ReactNode }) {
-  return (
     <div className="min-h-screen bg-gray-50">
-      <StoreNavigation />
+      <CustomerStoreNavigation />
       <main className="flex-1">
-        <BusinessLoader>
-          <BusinessNotFound>
-            {children}
-          </BusinessNotFound>
-        </BusinessLoader>
+        {children}
       </main>
-      <StoreFooter />
+      <CustomerStoreFooter />
     </div>
   )
 } 

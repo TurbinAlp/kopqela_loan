@@ -1,15 +1,18 @@
 'use client'
 
 import Link from 'next/link'
-import { useBusiness } from '../../contexts/BusinessContext'
+import { useParams } from 'next/navigation'
+import { useCustomerBusiness } from '../../hooks/useCustomerBusiness'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { ShoppingBagIcon, CreditCardIcon } from '@heroicons/react/24/outline'
 
 export default function CustomerHero() {
-  const { business } = useBusiness()
+  const params = useParams()
+  const slug = params.slug as string
+  const { business, isLoading } = useCustomerBusiness(slug)
   const { language } = useLanguage()
 
-  if (!business) return null
+  if (isLoading || !business) return null
 
   const translations = {
     en: {
@@ -34,11 +37,14 @@ export default function CustomerHero() {
 
   const t = translations[language]
 
+  const primaryColor = business.businessSetting?.primaryColor || '#059669'
+  const secondaryColor = business.businessSetting?.secondaryColor || '#10b981'
+
   return (
     <div 
       className="relative bg-gradient-to-br text-white overflow-hidden"
       style={{
-        background: `linear-gradient(135deg, ${business.primaryColor}dd 0%, ${business.secondaryColor}aa 50%, ${business.primaryColor}dd 100%)`
+        background: `linear-gradient(135deg, ${primaryColor}dd 0%, ${secondaryColor}aa 50%, ${primaryColor}dd 100%)`
       }}
     >
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-24">
@@ -61,7 +67,7 @@ export default function CustomerHero() {
               {t.shopNow}
             </Link>
 
-            {business.settings.allowCredit && (
+            {business.businessSetting?.enableCreditSales && (
               <Link
                 href={`/store/${business.slug}/credit`}
                 className="inline-flex items-center px-8 py-4 border-2 border-white text-lg font-medium rounded-lg text-white hover:bg-white hover:text-gray-900 transition-all"

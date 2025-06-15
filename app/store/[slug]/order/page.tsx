@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
-import { useBusiness } from '../../../contexts/BusinessContext'
+import { useSearchParams, useParams } from 'next/navigation'
+import { useCustomerBusiness } from '../../../hooks/useCustomerBusiness'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import {
   ChevronLeftIcon,
@@ -51,7 +51,9 @@ interface DeliveryOption {
 }
 
 export default function OrderRequestPage() {
-  const { currentBusiness: business } = useBusiness()
+  const params = useParams()
+  const slug = params.slug as string
+  const { business } = useCustomerBusiness(slug)
   const { language } = useLanguage()
   const searchParams = useSearchParams()
   

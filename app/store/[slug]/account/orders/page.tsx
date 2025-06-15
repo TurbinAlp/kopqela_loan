@@ -2,7 +2,8 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { useBusiness } from '../../../../contexts/BusinessContext'
+import { useParams } from 'next/navigation'
+import { useCustomerBusiness } from '../../../../hooks/useCustomerBusiness'
 import { useLanguage } from '../../../../contexts/LanguageContext'
 import {
   ShoppingBagIcon,
@@ -41,7 +42,9 @@ interface Order {
 }
 
 export default function OrderHistoryPage() {
-  const { business } = useBusiness()
+  const params = useParams()
+  const slug = params.slug as string
+  const { business } = useCustomerBusiness(slug)
   const { language } = useLanguage()
   
   const [searchQuery, setSearchQuery] = useState('')

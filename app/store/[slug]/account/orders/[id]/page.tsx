@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { useBusiness } from '../../../../../contexts/BusinessContext'
+import { useCustomerBusiness } from '../../../../../hooks/useCustomerBusiness'
 import { useLanguage } from '../../../../../contexts/LanguageContext'
 import {
   ChevronLeftIcon,
@@ -63,7 +63,8 @@ interface Order {
 export default function OrderDetailsPage() {
   const params = useParams()
   const orderId = params?.id as string
-  const { business } = useBusiness()
+  const slug = params?.slug as string
+  const { business } = useCustomerBusiness(slug)
   const { language } = useLanguage()
   
   const [activeTab, setActiveTab] = useState('details')

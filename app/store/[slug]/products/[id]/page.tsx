@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { useBusiness } from '../../../../contexts/BusinessContext'
+import { useCustomerBusiness } from '../../../../hooks/useCustomerBusiness'
 import { useLanguage } from '../../../../contexts/LanguageContext'
 import {
   HeartIcon,
@@ -50,10 +50,11 @@ interface Review {
 }
 
 export default function ProductDetailsPage() {
-  const { business } = useBusiness()
   const { language } = useLanguage()
   const params = useParams()
   const productId = parseInt(params?.id as string)
+  const slug = params?.slug as string
+  const { business } = useCustomerBusiness(slug)
   
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [quantity, setQuantity] = useState(1)

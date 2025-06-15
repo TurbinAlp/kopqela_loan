@@ -1,14 +1,17 @@
 'use client'
 
-import { useBusiness } from '../../contexts/BusinessContext'
+import { useParams } from 'next/navigation'
+import { useCustomerBusiness } from '../../hooks/useCustomerBusiness'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { CheckCircleIcon, TruckIcon, CreditCardIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
 
 export default function AboutBusiness() {
-  const { business } = useBusiness()
+  const params = useParams()
+  const slug = params.slug as string
+  const { business, isLoading } = useCustomerBusiness(slug)
   const { language } = useLanguage()
 
-  if (!business) return null
+  if (isLoading || !business) return null
 
   const translations = {
     en: {
@@ -70,28 +73,28 @@ export default function AboutBusiness() {
           <div>
             <h2 className="text-3xl font-bold text-gray-900 mb-6">{t.aboutUs}</h2>
             <p className="text-lg text-gray-600 mb-8">
-              {business.description}
+              {business.businessSetting?.description || 'Welcome to our store'}
             </p>
             
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
                 <div 
                   className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: business.primaryColor }}
+                  style={{ backgroundColor: business.businessSetting?.primaryColor || '#059669' }}
                 />
-                <span className="text-gray-700">Established business in {business.address}</span>
+                <span className="text-gray-700">Established business in {business.businessSetting?.address || 'Tanzania'}</span>
               </div>
               <div className="flex items-center space-x-3">
                 <div 
                   className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: business.primaryColor }}
+                  style={{ backgroundColor: business.businessSetting?.primaryColor || '#059669' }}
                 />
-                <span className="text-gray-700">Serving {business.deliveryAreas.length}+ areas</span>
+                <span className="text-gray-700">Quality service provider</span>
               </div>
               <div className="flex items-center space-x-3">
                 <div 
                   className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: business.primaryColor }}
+                  style={{ backgroundColor: business.businessSetting?.primaryColor || '#059669' }}
                 />
                 <span className="text-gray-700">Specialized in {business.businessType}</span>
               </div>
@@ -108,11 +111,11 @@ export default function AboutBusiness() {
                   <div key={feature.title} className="text-center p-4">
                     <div 
                       className="w-12 h-12 rounded-lg mx-auto mb-4 flex items-center justify-center"
-                      style={{ backgroundColor: `${business.primaryColor}20` }}
+                      style={{ backgroundColor: `${business.businessSetting?.primaryColor || '#059669'}20` }}
                     >
                       <Icon 
                         className="w-6 h-6"
-                        style={{ color: business.primaryColor }}
+                        style={{ color: business.businessSetting?.primaryColor || '#059669' }}
                       />
                     </div>
                     <h4 className="font-semibold text-gray-900 mb-2">{feature.title}</h4>

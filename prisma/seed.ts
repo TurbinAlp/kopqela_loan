@@ -52,9 +52,14 @@ async function main() {
       passwordHash: hashedPassword,
       role: 'ADMIN',
       isActive: true,
-      isVerified: true,
-      businessId: business.id
+      isVerified: true
     }
+  })
+
+  // Update business to set owner
+  await prisma.business.update({
+    where: { id: business.id },
+    data: { ownerId: user.id }
   })
 
   console.log('✅ Admin user created:', user.email)

@@ -1,14 +1,17 @@
 'use client'
 
 import Link from 'next/link'
-import { useBusiness } from '../../contexts/BusinessContext'
+import { useParams } from 'next/navigation'
+import { useCustomerBusiness } from '../../hooks/useCustomerBusiness'
 import { useLanguage } from '../../contexts/LanguageContext'
 
 export default function CategoriesGrid() {
-  const { business } = useBusiness()
+  const params = useParams()
+  const slug = params.slug as string
+  const { business, isLoading } = useCustomerBusiness(slug)
   const { language } = useLanguage()
 
-  if (!business) return null
+  if (isLoading || !business) return null
 
   const translations = {
     en: {
@@ -42,7 +45,7 @@ export default function CategoriesGrid() {
             >
               <div 
                 className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-white font-bold text-xl"
-                style={{ backgroundColor: business.primaryColor }}
+                style={{ backgroundColor: business.businessSetting?.primaryColor || '#059669' }}
               >
                 {category.charAt(0)}
               </div>

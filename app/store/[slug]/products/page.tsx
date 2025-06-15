@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
-import { useBusiness } from '../../../contexts/BusinessContext'
+import { useSearchParams, useParams } from 'next/navigation'
+import { useCustomerBusiness } from '../../../hooks/useCustomerBusiness'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import { useProducts } from '../../../hooks/useProducts'
 import Image from 'next/image'
@@ -13,7 +13,9 @@ import {
 } from '@heroicons/react/24/outline'
 
 export default function ProductCatalogPage() {
-  const { currentBusiness: business } = useBusiness()
+  const params = useParams()
+  const slug = params.slug as string
+  const { business, isLoading: businessLoading } = useCustomerBusiness(slug)
   const { language } = useLanguage()
   const searchParams = useSearchParams()
   
@@ -151,7 +153,7 @@ export default function ProductCatalogPage() {
     setCurrentPage(1)
   }
 
-  if (!business) {
+  if (businessLoading || !business) {
     return <div className="flex justify-center items-center min-h-screen">
       <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
       </div>

@@ -81,8 +81,6 @@ export function useProducts(businessSlug: string, filters: ProductFilters = {}) 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-
-
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true)
@@ -95,7 +93,9 @@ export function useProducts(businessSlug: string, filters: ProductFilters = {}) 
         }
       })
 
-      const response = await fetch(`/api/businesses/${businessSlug}/products?${params}`, {
+      const url = `/api/businesses/${businessSlug}/products?${params}`
+
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -120,11 +120,13 @@ export function useProducts(businessSlug: string, filters: ProductFilters = {}) 
     } finally {
       setLoading(false)
     }
-  }, [businessSlug, filters])
+  }, [businessSlug, JSON.stringify(filters)])
 
   useEffect(() => {
     if (businessSlug) {
       fetchProducts()
+    } else {
+      setLoading(false)
     }
   }, [businessSlug, fetchProducts])
 

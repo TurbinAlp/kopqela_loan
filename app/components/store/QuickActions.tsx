@@ -1,15 +1,18 @@
 'use client'
 
 import Link from 'next/link'
-import { useBusiness } from '../../contexts/BusinessContext'
+import { useParams } from 'next/navigation'
+import { useCustomerBusiness } from '../../hooks/useCustomerBusiness'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { ShoppingBagIcon, CreditCardIcon, PhoneIcon } from '@heroicons/react/24/outline'
 
 export default function QuickActions() {
-  const { business } = useBusiness()
+  const params = useParams()
+  const slug = params.slug as string
+  const { business, isLoading } = useCustomerBusiness(slug)
   const { language } = useLanguage()
 
-  if (!business) return null
+  if (isLoading || !business) return null
 
   const translations = {
     en: {
@@ -47,7 +50,7 @@ export default function QuickActions() {
     }
   ]
 
-  if (business.settings.allowCredit) {
+  if (business.businessSetting?.enableCreditSales) {
     actions.push({
       name: t.applyCredit,
       href: `/store/${business.slug}/credit`,
@@ -56,12 +59,14 @@ export default function QuickActions() {
     })
   }
 
-  actions.push({
-    name: t.contactUs,
-    href: `tel:${business.contactPhone}`,
-    icon: PhoneIcon,
-    color: 'bg-orange-500 hover:bg-orange-600'
-  })
+  if (business.businessSetting?.phone) {
+    actions.push({
+      name: t.contactUs,
+      href: `tel:${business.businessSetting.phone}`,
+      icon: PhoneIcon,
+      color: 'bg-orange-500 hover:bg-orange-600'
+    })
+  }
 
   return (
     <div className="bg-gray-50 py-12">

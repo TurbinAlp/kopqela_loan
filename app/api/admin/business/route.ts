@@ -89,13 +89,34 @@ export async function GET(request: NextRequest) {
           // Business settings data
           description: business.businessSetting?.description,
           address: business.businessSetting?.address,
+          city: business.businessSetting?.city,
+          region: business.businessSetting?.region,
+          country: business.businessSetting?.country,
+          postalCode: business.businessSetting?.postalCode,
           phone: business.businessSetting?.phone,
           email: business.businessSetting?.email,
+          website: business.businessSetting?.website,
           registrationNumber: business.businessSetting?.registrationNumber,
           logoUrl: business.businessSetting?.logoUrl,
+          primaryColor: business.businessSetting?.primaryColor,
+          secondaryColor: business.businessSetting?.secondaryColor,
           currency: business.businessSetting?.currency,
           timezone: business.businessSetting?.timezone,
           language: business.businessSetting?.language,
+          defaultPaymentMethod: business.businessSetting?.defaultPaymentMethod,
+          invoicePrefix: business.businessSetting?.invoicePrefix,
+          orderPrefix: business.businessSetting?.orderPrefix,
+          receiptFooterMessage: business.businessSetting?.receiptFooterMessage,
+          taxRate: business.businessSetting?.taxRate,
+          wholesaleMargin: business.businessSetting?.wholesaleMargin,
+          retailMargin: business.businessSetting?.retailMargin,
+          financialYearStart: business.businessSetting?.financialYearStart,
+          enableInventoryTracking: business.businessSetting?.enableInventoryTracking,
+          enableCreditSales: business.businessSetting?.enableCreditSales,
+          enableLoyaltyProgram: business.businessSetting?.enableLoyaltyProgram,
+          enableTaxCalculation: business.businessSetting?.enableTaxCalculation,
+          enableMultiCurrency: business.businessSetting?.enableMultiCurrency,
+          enableMultiLocation: business.businessSetting?.enableMultiLocation,
           owner: business.owner ? {
             id: business.owner.id,
             name: `${business.owner.firstName} ${business.owner.lastName}`,
@@ -164,13 +185,34 @@ export async function PUT(request: NextRequest) {
       description,
       businessType,
       address,
+      city,
+      region,
+      country,
+      postalCode,
       phone,
       email,
+      website,
       registrationNumber,
       currency,
       timezone,
       language,
-      logoUrl
+      logoUrl,
+      primaryColor,
+      secondaryColor,
+      defaultPaymentMethod,
+      invoicePrefix,
+      orderPrefix,
+      receiptFooterMessage,
+      taxRate,
+      wholesaleMargin,
+      retailMargin,
+      financialYearStart,
+      enableInventoryTracking,
+      enableCreditSales,
+      enableLoyaltyProgram,
+      enableTaxCalculation,
+      enableMultiCurrency,
+      enableMultiLocation
     } = updateData
 
     // Update business basic info
@@ -182,23 +224,65 @@ export async function PUT(request: NextRequest) {
     const settingsUpdate: {
       description?: string | null
       address?: string | null
+      city?: string | null
+      region?: string | null
+      country?: string | null
+      postalCode?: string | null
       phone?: string | null
       email?: string | null
+      website?: string | null
       registrationNumber?: string | null
       currency?: string
       timezone?: string
       language?: string
       logoUrl?: string | null
+      primaryColor?: string | null
+      secondaryColor?: string | null
+      defaultPaymentMethod?: string | null
+      invoicePrefix?: string | null
+      orderPrefix?: string | null
+      receiptFooterMessage?: string | null
+      taxRate?: number
+      wholesaleMargin?: number
+      retailMargin?: number
+      financialYearStart?: string | null
+      enableInventoryTracking?: boolean
+      enableCreditSales?: boolean
+      enableLoyaltyProgram?: boolean
+      enableTaxCalculation?: boolean
+      enableMultiCurrency?: boolean
+      enableMultiLocation?: boolean
     } = {}
     if (description !== undefined) settingsUpdate.description = description
     if (address !== undefined) settingsUpdate.address = address
+    if (city !== undefined) settingsUpdate.city = city
+    if (region !== undefined) settingsUpdate.region = region
+    if (country !== undefined) settingsUpdate.country = country
+    if (postalCode !== undefined) settingsUpdate.postalCode = postalCode
     if (phone !== undefined) settingsUpdate.phone = phone
     if (email !== undefined) settingsUpdate.email = email
+    if (website !== undefined) settingsUpdate.website = website
     if (registrationNumber !== undefined) settingsUpdate.registrationNumber = registrationNumber
     if (currency) settingsUpdate.currency = currency
     if (timezone) settingsUpdate.timezone = timezone
     if (language) settingsUpdate.language = language
     if (logoUrl !== undefined) settingsUpdate.logoUrl = logoUrl
+    if (primaryColor !== undefined) settingsUpdate.primaryColor = primaryColor
+    if (secondaryColor !== undefined) settingsUpdate.secondaryColor = secondaryColor
+    if (defaultPaymentMethod !== undefined) settingsUpdate.defaultPaymentMethod = defaultPaymentMethod
+    if (invoicePrefix !== undefined) settingsUpdate.invoicePrefix = invoicePrefix
+    if (orderPrefix !== undefined) settingsUpdate.orderPrefix = orderPrefix
+    if (receiptFooterMessage !== undefined) settingsUpdate.receiptFooterMessage = receiptFooterMessage
+    if (taxRate !== undefined) settingsUpdate.taxRate = taxRate
+    if (wholesaleMargin !== undefined) settingsUpdate.wholesaleMargin = wholesaleMargin
+    if (retailMargin !== undefined) settingsUpdate.retailMargin = retailMargin
+    if (financialYearStart !== undefined) settingsUpdate.financialYearStart = financialYearStart
+    if (enableInventoryTracking !== undefined) settingsUpdate.enableInventoryTracking = enableInventoryTracking
+    if (enableCreditSales !== undefined) settingsUpdate.enableCreditSales = enableCreditSales
+    if (enableLoyaltyProgram !== undefined) settingsUpdate.enableLoyaltyProgram = enableLoyaltyProgram
+    if (enableTaxCalculation !== undefined) settingsUpdate.enableTaxCalculation = enableTaxCalculation
+    if (enableMultiCurrency !== undefined) settingsUpdate.enableMultiCurrency = enableMultiCurrency
+    if (enableMultiLocation !== undefined) settingsUpdate.enableMultiLocation = enableMultiLocation
 
     // Update business and settings in transaction
     const updatedBusiness = await prisma.$transaction(async (tx) => {

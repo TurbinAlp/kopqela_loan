@@ -1,19 +1,24 @@
 'use client'
 
 import Link from 'next/link'
-import { useBusiness } from '../../contexts/BusinessContext'
+import { useParams } from 'next/navigation'
+import { useCustomerBusiness } from '../../hooks/useCustomerBusiness'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useProducts } from '../../hooks/useProducts'
 import { ShoppingCartIcon } from '@heroicons/react/24/solid'
 import Image from 'next/image'
 
 export default function FeaturedProducts() {
-  const { currentBusiness: business } = useBusiness()
+  const params = useParams()
+  const slug = params.slug as string
+  const { business, isLoading: businessLoading } = useCustomerBusiness(slug)
   const { language } = useLanguage()
 
-  // Fetch featured products (limit to 3, newest first)
+  // Fetch featured products (limit to 3, newest first) - only when business is loaded
+  console.log('FeaturedProducts: business slug:', business?.slug, 'URL slug:', slug)
+  
   const { products, loading, error } = useProducts(
-    business?.slug || '', 
+    slug, // Use URL slug directly since it matches the API endpoint
     {
       active: true,
       sort: 'created',
@@ -23,7 +28,9 @@ export default function FeaturedProducts() {
     }
   )
 
-  if (!business) return null
+  if (businessLoading || !business) return null
+
+  // console.log('FeaturedProducts: loading:', loading, 'error:', error, 'products:', products?.length)
 
   const translations = {
     en: {
@@ -66,6 +73,9 @@ export default function FeaturedProducts() {
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             <span className="ml-3 text-gray-600">{t.loading}</span>
+            <div className="ml-3 text-xs text-gray-400">
+              Debug: slug={slug}, business={business?.name}
+            </div>
           </div>
         </div>
       </div>
@@ -87,6 +97,9 @@ export default function FeaturedProducts() {
           </div>
           <div className="text-center py-12">
             <p className="text-gray-600">{t.noProducts}</p>
+            <div className="mt-4 text-xs text-gray-400">
+              Debug: error={error}, products={products?.length}, loading={loading}
+            </div>
           </div>
         </div>
       </div>
@@ -115,8 +128,10 @@ export default function FeaturedProducts() {
             >
               <div className="aspect-w-4 aspect-h-3 bg-gray-200">
                 <Image
-                  src="/placeholder-product.jpg"
+                  src="/globe.svg"
                   alt={product.name}
+                  width={400}
+                  height={300}
                   className="w-full h-48 object-cover"
                   onError={(e) => {
                     e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%236b7280' font-family='Arial, sans-serif' font-size='14'%3ENo Image%3C/text%3E%3C/svg%3E"
