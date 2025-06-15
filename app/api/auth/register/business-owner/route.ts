@@ -18,7 +18,7 @@ interface BusinessOwnerRegistrationData {
   firstName: string
   lastName: string
   email: string
-  phone: string
+  phone?: string  // Make phone optional
   password: string
   confirmPassword: string
   
@@ -36,9 +36,9 @@ export async function POST(request: NextRequest) {
     // Parse request body
     const body: BusinessOwnerRegistrationData = await request.json()
     
-    // Validate required fields
+    // Validate required fields (phone is optional)
     const requiredFields = [
-      'firstName', 'lastName', 'email', 'phone', 'password', 'confirmPassword',
+      'firstName', 'lastName', 'email', 'password', 'confirmPassword',
       'businessName', 'businessType', 'businessAddress'
     ]
     
@@ -53,8 +53,9 @@ export async function POST(request: NextRequest) {
       throw new ValidationError('Invalid email format', 'email')
     }
     
-    if (!isValidPhone(body.phone)) {
-      throw new ValidationError('Invalid phone number format', 'phone')
+    // Only validate phone if provided (phone is optional)
+    if (body.phone && !isValidPhone(body.phone)) {
+      throw new ValidationError('Invalid phone number format. Please use Tanzania format (e.g., +255712345678 or 0712345678)', 'phone')
     }
     
     if (!isValidPassword(body.password)) {
@@ -159,12 +160,6 @@ export async function POST(request: NextRequest) {
           enableLoyaltyProgram: false,
           enableTaxCalculation: true
         }
-      })
-      
-      // Update user to link with business
-      await tx.user.update({
-        where: { id: user.id },
-        data: { businessId: business.id }
       })
       
       return { business, user }

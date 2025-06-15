@@ -360,6 +360,15 @@ export default function RegisterPage() {
             : 'Password lazima iwe na herufi kubwa, ndogo na nambari'
         }
         if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = t.passwordsMatch
+        // Validate phone number if provided
+        if (formData.phone && formData.phone.trim()) {
+          const phoneRegex = /^(\+255|0)[67]\d{8}$/
+          if (!phoneRegex.test(formData.phone.replace(/\s+/g, ''))) {
+            newErrors.phone = language === 'en' 
+              ? 'Please enter a valid Tanzania phone number (e.g., +255712345678 or 0712345678)' 
+              : 'Tafadhali ingiza namba sahihi ya simu ya Tanzania (mfano: +255712345678 au 0712345678)'
+          }
+        }
         if (!formData.acceptTerms) newErrors.acceptTerms = t.termsRequired
         break
       case 'business':
@@ -660,7 +669,27 @@ export default function RegisterPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">{t.phone}</label>
-                    <motion.input whileFocus={{ scale: 1.02 }} type="tel" value={formData.phone} onChange={(e) => updateFormData({ phone: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-300 text-gray-900 placeholder-gray-400" placeholder="+255 123 456 789" />
+                    <motion.input 
+                      whileFocus={{ scale: 1.02 }} 
+                      type="tel" 
+                      value={formData.phone} 
+                      onChange={(e) => updateFormData({ phone: e.target.value })} 
+                      className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-300 text-gray-900 placeholder-gray-400 ${errors.phone ? 'border-red-500' : 'border-gray-300'}`} 
+                      placeholder={language === 'en' ? '+255712345678 or 0712345678' : '+255712345678 au 0712345678'} 
+                    />
+                    {errors.phone && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: -10 }} 
+                        animate={{ opacity: 1, y: 0 }} 
+                        className="flex items-center text-red-500 text-sm mt-1"
+                      >
+                        <XCircleIcon className="w-4 h-4 mr-1" />
+                        {errors.phone}
+                      </motion.div>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">
+                      {language === 'en' ? 'Optional - Tanzania phone number format' : 'Si lazima - Muundo wa namba ya simu ya Tanzania'}
+                    </p>
                   </div>
 
                   <div>

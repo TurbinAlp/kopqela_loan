@@ -3,7 +3,16 @@
 import { useParams } from 'next/navigation'
 import { useCustomerBusiness } from '../../hooks/useCustomerBusiness'
 import { useLanguage } from '../../contexts/LanguageContext'
-import { CheckCircleIcon, TruckIcon, CreditCardIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
+import { 
+  CheckCircleIcon, 
+  TruckIcon, 
+  CreditCardIcon, 
+  ShieldCheckIcon,
+  StarIcon,
+  HeartIcon,
+  LightBulbIcon,
+  GiftIcon
+} from '@heroicons/react/24/outline'
 
 export default function AboutBusiness() {
   const params = useParams()
@@ -42,28 +51,104 @@ export default function AboutBusiness() {
 
   const t = translations[language]
 
-  const features = [
-    {
-      icon: CheckCircleIcon,
-      title: t.qualityProducts,
-      description: t.qualityDesc
-    },
-    {
-      icon: TruckIcon,
-      title: t.fastDelivery,
-      description: t.deliveryDesc
-    },
-    {
-      icon: CreditCardIcon,
-      title: t.securePayments,
-      description: t.paymentsDesc
-    },
-    {
-      icon: ShieldCheckIcon,
-      title: t.trustedService,
-      description: t.serviceDesc
+  // Icon mapping
+  const iconMap = {
+    CheckCircleIcon,
+    TruckIcon,
+    CreditCardIcon,
+    ShieldCheckIcon,
+    StarIcon,
+    HeartIcon,
+    LightBulbIcon,
+    GiftIcon
+  }
+
+  // Get features from business settings or use defaults
+  const getFeatures = () => {
+    const features = []
+    
+    // Feature 1
+    if (business.businessSetting?.feature1Title) {
+      features.push({
+        icon: iconMap[business.businessSetting.feature1Icon as keyof typeof iconMap] || CheckCircleIcon,
+        title: language === 'sw' 
+          ? (business.businessSetting.feature1TitleSwahili || business.businessSetting.feature1Title)
+          : business.businessSetting.feature1Title,
+        description: language === 'sw'
+          ? (business.businessSetting.feature1DescriptionSwahili || business.businessSetting.feature1Description)
+          : business.businessSetting.feature1Description
+      })
     }
-  ]
+    
+    // Feature 2
+    if (business.businessSetting?.feature2Title) {
+      features.push({
+        icon: iconMap[business.businessSetting.feature2Icon as keyof typeof iconMap] || TruckIcon,
+        title: language === 'sw' 
+          ? (business.businessSetting.feature2TitleSwahili || business.businessSetting.feature2Title)
+          : business.businessSetting.feature2Title,
+        description: language === 'sw'
+          ? (business.businessSetting.feature2DescriptionSwahili || business.businessSetting.feature2Description)
+          : business.businessSetting.feature2Description
+      })
+    }
+    
+    // Feature 3
+    if (business.businessSetting?.feature3Title) {
+      features.push({
+        icon: iconMap[business.businessSetting.feature3Icon as keyof typeof iconMap] || CreditCardIcon,
+        title: language === 'sw' 
+          ? (business.businessSetting.feature3TitleSwahili || business.businessSetting.feature3Title)
+          : business.businessSetting.feature3Title,
+        description: language === 'sw'
+          ? (business.businessSetting.feature3DescriptionSwahili || business.businessSetting.feature3Description)
+          : business.businessSetting.feature3Description
+      })
+    }
+    
+    // Feature 4
+    if (business.businessSetting?.feature4Title) {
+      features.push({
+        icon: iconMap[business.businessSetting.feature4Icon as keyof typeof iconMap] || ShieldCheckIcon,
+        title: language === 'sw' 
+          ? (business.businessSetting.feature4TitleSwahili || business.businessSetting.feature4Title)
+          : business.businessSetting.feature4Title,
+        description: language === 'sw'
+          ? (business.businessSetting.feature4DescriptionSwahili || business.businessSetting.feature4Description)
+          : business.businessSetting.feature4Description
+      })
+    }
+    
+    // If no custom features, use defaults
+    if (features.length === 0) {
+      return [
+        {
+          icon: CheckCircleIcon,
+          title: t.qualityProducts,
+          description: t.qualityDesc
+        },
+        {
+          icon: TruckIcon,
+          title: t.fastDelivery,
+          description: t.deliveryDesc
+        },
+        {
+          icon: CreditCardIcon,
+          title: t.securePayments,
+          description: t.paymentsDesc
+        },
+        {
+          icon: ShieldCheckIcon,
+          title: t.trustedService,
+          description: t.serviceDesc
+        }
+      ]
+    }
+    
+    return features
+  }
+
+  const features = getFeatures()
 
   return (
     <div className="bg-white py-16">

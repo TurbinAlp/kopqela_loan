@@ -10,7 +10,8 @@ import {
   PaintBrushIcon,
   CogIcon,
   PhotoIcon,
-  TrashIcon
+  TrashIcon,
+  StarIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import { useNotifications } from '../../../contexts/NotificationContext'
@@ -64,6 +65,28 @@ interface BusinessSettings {
   enableTaxCalculation: boolean
   enableMultiCurrency: boolean
   enableMultiLocation: boolean
+  
+  // Why Choose Us Features
+  feature1Title: string
+  feature1TitleSwahili: string
+  feature1Description: string
+  feature1DescriptionSwahili: string
+  feature1Icon: string
+  feature2Title: string
+  feature2TitleSwahili: string
+  feature2Description: string
+  feature2DescriptionSwahili: string
+  feature2Icon: string
+  feature3Title: string
+  feature3TitleSwahili: string
+  feature3Description: string
+  feature3DescriptionSwahili: string
+  feature3Icon: string
+  feature4Title: string
+  feature4TitleSwahili: string
+  feature4Description: string
+  feature4DescriptionSwahili: string
+  feature4Icon: string
 }
 
 export default function EditBusinessPage() {
@@ -106,7 +129,28 @@ export default function EditBusinessPage() {
     enableLoyaltyProgram: false,
     enableTaxCalculation: true,
     enableMultiCurrency: false,
-    enableMultiLocation: false
+    enableMultiLocation: false,
+    // Why Choose Us Features
+    feature1Title: 'Quality Products',
+    feature1TitleSwahili: 'Bidhaa Bora',
+    feature1Description: 'We source only the best products for our customers',
+    feature1DescriptionSwahili: 'Tunachagua bidhaa bora tu kwa wateja wetu',
+    feature1Icon: 'CheckCircleIcon',
+    feature2Title: 'Fast Delivery',
+    feature2TitleSwahili: 'Uwasilishaji wa Haraka',
+    feature2Description: 'Quick and reliable delivery to your doorstep',
+    feature2DescriptionSwahili: 'Uwasilishaji wa haraka na wa kuaminika',
+    feature2Icon: 'TruckIcon',
+    feature3Title: 'Secure Payments',
+    feature3TitleSwahili: 'Malipo Salama',
+    feature3Description: 'Multiple payment options for your convenience',
+    feature3DescriptionSwahili: 'Njia nyingi za malipo kwa urahisi wako',
+    feature3Icon: 'CreditCardIcon',
+    feature4Title: 'Trusted Service',
+    feature4TitleSwahili: 'Huduma ya Kuaminika',
+    feature4Description: 'Years of experience serving our community',
+    feature4DescriptionSwahili: 'Miaka ya uzoefu wa kutumikia jamii yetu',
+    feature4Icon: 'ShieldCheckIcon'
   })
 
   const translations = {
@@ -117,6 +161,7 @@ export default function EditBusinessPage() {
       businessDetails: 'Business Details',
       brandingSettings: 'Branding & Visual',
       operationalSettings: 'Operational Settings',
+      storeFeatures: 'Store Features',
       financialSettings: 'Financial Settings',
       saveChanges: 'Save Changes',
       saving: 'Saving...',
@@ -178,7 +223,18 @@ export default function EditBusinessPage() {
       uploadLogo: 'Upload Logo',
       changeLogo: 'Change Logo',
       uploading: 'Uploading...',
-      dragDropText: 'PNG, JPG, JPEG up to 5MB'
+      dragDropText: 'PNG, JPG, JPEG up to 5MB',
+      
+      // Store Features
+      whyChooseUsTitle: 'Why Choose Us Features',
+      whyChooseUsDesc: 'Customize the features that make your business unique',
+      feature: 'Feature',
+      titleEn: 'Title (English)',
+      titleSw: 'Title (Swahili)',
+      descriptionEn: 'Description (English)',
+      descriptionSw: 'Description (Swahili)',
+      icon: 'Icon',
+      selectIcon: 'Select Icon'
     },
     sw: {
       pageTitle: 'Hariri Biashara',
@@ -187,6 +243,7 @@ export default function EditBusinessPage() {
       businessDetails: 'Maelezo ya Biashara',
       brandingSettings: 'Chapa na Muonekano',
       operationalSettings: 'Mipangilio ya Uendeshaji',
+      storeFeatures: 'Vipengele vya Duka',
       financialSettings: 'Mipangilio ya Kifedha',
       saveChanges: 'Hifadhi Mabadiliko',
       saving: 'Inahifadhi...',
@@ -248,7 +305,18 @@ export default function EditBusinessPage() {
       uploadLogo: 'Pakia Logo',
       changeLogo: 'Badilisha Logo',
       uploading: 'Inapakia...',
-      dragDropText: 'PNG, JPG, JPEG hadi MB 5'
+      dragDropText: 'PNG, JPG, JPEG hadi MB 5',
+      
+      // Store Features
+      whyChooseUsTitle: 'Vipengele vya "Kwa Nini Utuchague"',
+      whyChooseUsDesc: 'Badilisha vipengele vinavyofanya biashara yako kuwa ya kipekee',
+      feature: 'Kipengele',
+      titleEn: 'Kichwa (Kiingereza)',
+      titleSw: 'Kichwa (Kiswahili)',
+      descriptionEn: 'Maelezo (Kiingereza)',
+      descriptionSw: 'Maelezo (Kiswahili)',
+      icon: 'Ikoni',
+      selectIcon: 'Chagua Ikoni'
     }
   }
 
@@ -259,6 +327,7 @@ export default function EditBusinessPage() {
     { id: 'details', label: t.businessDetails, icon: MapPinIcon },
     { id: 'branding', label: t.brandingSettings, icon: PaintBrushIcon },
     { id: 'operational', label: t.operationalSettings, icon: CogIcon },
+    { id: 'features', label: t.storeFeatures, icon: StarIcon },
     { id: 'financial', label: t.financialSettings, icon: CurrencyDollarIcon }
   ]
 
@@ -304,7 +373,28 @@ export default function EditBusinessPage() {
           enableLoyaltyProgram: business.enableLoyaltyProgram ?? false,
           enableTaxCalculation: business.enableTaxCalculation ?? true,
           enableMultiCurrency: business.enableMultiCurrency ?? false,
-          enableMultiLocation: business.enableMultiLocation ?? false
+          enableMultiLocation: business.enableMultiLocation ?? false,
+          // Why Choose Us Features
+          feature1Title: business.feature1Title || 'Quality Products',
+          feature1TitleSwahili: business.feature1TitleSwahili || 'Bidhaa Bora',
+          feature1Description: business.feature1Description || 'We source only the best products for our customers',
+          feature1DescriptionSwahili: business.feature1DescriptionSwahili || 'Tunachagua bidhaa bora tu kwa wateja wetu',
+          feature1Icon: business.feature1Icon || 'CheckCircleIcon',
+          feature2Title: business.feature2Title || 'Fast Delivery',
+          feature2TitleSwahili: business.feature2TitleSwahili || 'Uwasilishaji wa Haraka',
+          feature2Description: business.feature2Description || 'Quick and reliable delivery to your doorstep',
+          feature2DescriptionSwahili: business.feature2DescriptionSwahili || 'Uwasilishaji wa haraka na wa kuaminika',
+          feature2Icon: business.feature2Icon || 'TruckIcon',
+          feature3Title: business.feature3Title || 'Secure Payments',
+          feature3TitleSwahili: business.feature3TitleSwahili || 'Malipo Salama',
+          feature3Description: business.feature3Description || 'Multiple payment options for your convenience',
+          feature3DescriptionSwahili: business.feature3DescriptionSwahili || 'Njia nyingi za malipo kwa urahisi wako',
+          feature3Icon: business.feature3Icon || 'CreditCardIcon',
+          feature4Title: business.feature4Title || 'Trusted Service',
+          feature4TitleSwahili: business.feature4TitleSwahili || 'Huduma ya Kuaminika',
+          feature4Description: business.feature4Description || 'Years of experience serving our community',
+          feature4DescriptionSwahili: business.feature4DescriptionSwahili || 'Miaka ya uzoefu wa kutumikia jamii yetu',
+          feature4Icon: business.feature4Icon || 'ShieldCheckIcon'
         })
       }
     } catch (error) {
@@ -827,6 +917,296 @@ export default function EditBusinessPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
                 placeholder="Thank you for your business!"
               />
+            </div>
+          </div>
+        )}
+
+        {/* Store Features Tab */}
+        {activeTab === 'features' && (
+          <div className="space-y-8">
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">{t.whyChooseUsTitle}</h3>
+              <p className="text-sm text-gray-600">{t.whyChooseUsDesc}</p>
+            </div>
+            
+            {/* Feature 1 */}
+            <div className="border border-gray-200 rounded-lg p-6">
+              <h4 className="text-md font-medium text-gray-900 mb-4">{t.feature} 1</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.titleEn}
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.feature1Title}
+                    onChange={(e) => handleInputChange('feature1Title', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.titleSw}
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.feature1TitleSwahili}
+                    onChange={(e) => handleInputChange('feature1TitleSwahili', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.descriptionEn}
+                  </label>
+                  <textarea
+                    value={settings.feature1Description}
+                    onChange={(e) => handleInputChange('feature1Description', e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.descriptionSw}
+                  </label>
+                  <textarea
+                    value={settings.feature1DescriptionSwahili}
+                    onChange={(e) => handleInputChange('feature1DescriptionSwahili', e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.icon}
+                  </label>
+                  <select
+                    value={settings.feature1Icon}
+                    onChange={(e) => handleInputChange('feature1Icon', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                  >
+                    <option value="CheckCircleIcon">✓ Check Circle</option>
+                    <option value="TruckIcon">🚚 Truck</option>
+                    <option value="CreditCardIcon">💳 Credit Card</option>
+                    <option value="ShieldCheckIcon">🛡️ Shield Check</option>
+                    <option value="StarIcon">⭐ Star</option>
+                    <option value="HeartIcon">❤️ Heart</option>
+                    <option value="LightBulbIcon">💡 Light Bulb</option>
+                    <option value="GiftIcon">🎁 Gift</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Feature 2 */}
+            <div className="border border-gray-200 rounded-lg p-6">
+              <h4 className="text-md font-medium text-gray-900 mb-4">{t.feature} 2</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.titleEn}
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.feature2Title}
+                    onChange={(e) => handleInputChange('feature2Title', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.titleSw}
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.feature2TitleSwahili}
+                    onChange={(e) => handleInputChange('feature2TitleSwahili', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.descriptionEn}
+                  </label>
+                  <textarea
+                    value={settings.feature2Description}
+                    onChange={(e) => handleInputChange('feature2Description', e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.descriptionSw}
+                  </label>
+                  <textarea
+                    value={settings.feature2DescriptionSwahili}
+                    onChange={(e) => handleInputChange('feature2DescriptionSwahili', e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.icon}
+                  </label>
+                  <select
+                    value={settings.feature2Icon}
+                    onChange={(e) => handleInputChange('feature2Icon', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                  >
+                    <option value="CheckCircleIcon">✓ Check Circle</option>
+                    <option value="TruckIcon">🚚 Truck</option>
+                    <option value="CreditCardIcon">💳 Credit Card</option>
+                    <option value="ShieldCheckIcon">🛡️ Shield Check</option>
+                    <option value="StarIcon">⭐ Star</option>
+                    <option value="HeartIcon">❤️ Heart</option>
+                    <option value="LightBulbIcon">💡 Light Bulb</option>
+                    <option value="GiftIcon">🎁 Gift</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Feature 3 */}
+            <div className="border border-gray-200 rounded-lg p-6">
+              <h4 className="text-md font-medium text-gray-900 mb-4">{t.feature} 3</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.titleEn}
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.feature3Title}
+                    onChange={(e) => handleInputChange('feature3Title', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.titleSw}
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.feature3TitleSwahili}
+                    onChange={(e) => handleInputChange('feature3TitleSwahili', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.descriptionEn}
+                  </label>
+                  <textarea
+                    value={settings.feature3Description}
+                    onChange={(e) => handleInputChange('feature3Description', e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.descriptionSw}
+                  </label>
+                  <textarea
+                    value={settings.feature3DescriptionSwahili}
+                    onChange={(e) => handleInputChange('feature3DescriptionSwahili', e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.icon}
+                  </label>
+                  <select
+                    value={settings.feature3Icon}
+                    onChange={(e) => handleInputChange('feature3Icon', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                  >
+                    <option value="CheckCircleIcon">✓ Check Circle</option>
+                    <option value="TruckIcon">🚚 Truck</option>
+                    <option value="CreditCardIcon">💳 Credit Card</option>
+                    <option value="ShieldCheckIcon">🛡️ Shield Check</option>
+                    <option value="StarIcon">⭐ Star</option>
+                    <option value="HeartIcon">❤️ Heart</option>
+                    <option value="LightBulbIcon">💡 Light Bulb</option>
+                    <option value="GiftIcon">🎁 Gift</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Feature 4 */}
+            <div className="border border-gray-200 rounded-lg p-6">
+              <h4 className="text-md font-medium text-gray-900 mb-4">{t.feature} 4</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.titleEn}
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.feature4Title}
+                    onChange={(e) => handleInputChange('feature4Title', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.titleSw}
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.feature4TitleSwahili}
+                    onChange={(e) => handleInputChange('feature4TitleSwahili', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.descriptionEn}
+                  </label>
+                  <textarea
+                    value={settings.feature4Description}
+                    onChange={(e) => handleInputChange('feature4Description', e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.descriptionSw}
+                  </label>
+                  <textarea
+                    value={settings.feature4DescriptionSwahili}
+                    onChange={(e) => handleInputChange('feature4DescriptionSwahili', e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.icon}
+                  </label>
+                  <select
+                    value={settings.feature4Icon}
+                    onChange={(e) => handleInputChange('feature4Icon', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                  >
+                    <option value="CheckCircleIcon">✓ Check Circle</option>
+                    <option value="TruckIcon">🚚 Truck</option>
+                    <option value="CreditCardIcon">💳 Credit Card</option>
+                    <option value="ShieldCheckIcon">🛡️ Shield Check</option>
+                    <option value="StarIcon">⭐ Star</option>
+                    <option value="HeartIcon">❤️ Heart</option>
+                    <option value="LightBulbIcon">💡 Light Bulb</option>
+                    <option value="GiftIcon">🎁 Gift</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
         )}

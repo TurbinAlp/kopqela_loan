@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         isVerified: false
       },
       include: {
-        business: {
+        ownedBusinesses: {
           select: {
             id: true,
             name: true,
@@ -81,8 +81,7 @@ export async function POST(request: NextRequest) {
           lastName: true,
           email: true,
           role: true,
-          businessId: true,
-          business: {
+          ownedBusinesses: {
             select: {
               id: true,
               name: true,
@@ -93,9 +92,10 @@ export async function POST(request: NextRequest) {
       })
       
       // Update business status to active (if it's a business owner)
-      if (user.role === 'ADMIN' && user.businessId) {
+      const ownedBusiness = user.ownedBusinesses?.[0]
+      if (user.role === 'ADMIN' && ownedBusiness) {
         await tx.business.update({
-          where: { id: user.businessId },
+          where: { id: ownedBusiness.id },
           data: { status: 'ACTIVE' }
         })
       }
@@ -104,21 +104,22 @@ export async function POST(request: NextRequest) {
     })
     
     // Generate JWT token
+    const ownedBusiness = updatedUser.ownedBusinesses?.[0]
     const token = generateToken({
       id: updatedUser.id,
       email: updatedUser.email,
-      businessId: updatedUser.businessId,
+      businessId: ownedBusiness?.id || null,
       role: updatedUser.role,
-      businessSlug: updatedUser.business?.slug
+      businessSlug: ownedBusiness?.slug
     })
     
     // Send welcome email
-    if (user.role === 'ADMIN' && updatedUser.business) {
+    if (user.role === 'ADMIN' && ownedBusiness) {
       const welcomeEmailSent = await sendWelcomeEmail({
         name: `${updatedUser.firstName} ${updatedUser.lastName}`,
         email: updatedUser.email,
-        businessName: updatedUser.business.name,
-        businessSlug: updatedUser.business.slug,
+        businessName: ownedBusiness.name,
+        businessSlug: ownedBusiness.slug,
         loginUrl: `${process.env.NEXT_PUBLIC_APP_URL}/login`
       })
       
@@ -137,8 +138,8 @@ export async function POST(request: NextRequest) {
           lastName: updatedUser.lastName,
           email: updatedUser.email,
           role: updatedUser.role,
-          businessId: updatedUser.businessId,
-          businessSlug: updatedUser.business?.slug
+          businessId: ownedBusiness?.id || null,
+          businessSlug: ownedBusiness?.slug
         },
         message: 'Email verified successfully!'
       }

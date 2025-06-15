@@ -32,30 +32,32 @@ async function main() {
     update: {},
     create: {
       name: 'Kopqela Demo Store',
-      description: 'Demo business for testing',
       businessType: 'retail',
       slug: 'kopqela-demo',
-      address: 'Dar es Salaam, Tanzania',
-      phone: '+255123456789',
-      email: 'demo@kopqela.com',
       ownerId: user.id,
-      currency: 'TZS',
-      timezone: 'Africa/Dar_es_Salaam',
-      language: 'sw',
-      isActive: true,
       status: 'ACTIVE'
     }
   })
 
   console.log('✅ Business created:', business.name)
 
-  // Update user to link with business
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { businessId: business.id }
+  // Create business settings with detailed information
+  await prisma.businessSetting.upsert({
+    where: { businessId: business.id },
+    update: {},
+    create: {
+      businessId: business.id,
+      description: 'Demo business for testing',
+      address: 'Dar es Salaam, Tanzania',
+      phone: '+255123456789',
+      email: 'demo@kopqela.com',
+      currency: 'TZS',
+      timezone: 'Africa/Dar_es_Salaam',
+      language: 'sw'
+    }
   })
 
-  console.log('✅ User linked to business')
+  console.log('✅ Business settings created')
 
   // Create sample categories
   const categories = [

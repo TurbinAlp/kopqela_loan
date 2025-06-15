@@ -117,6 +117,27 @@ export async function GET(request: NextRequest) {
           enableTaxCalculation: business.businessSetting?.enableTaxCalculation,
           enableMultiCurrency: business.businessSetting?.enableMultiCurrency,
           enableMultiLocation: business.businessSetting?.enableMultiLocation,
+          // Why Choose Us Features
+          feature1Title: business.businessSetting?.feature1Title,
+          feature1TitleSwahili: business.businessSetting?.feature1TitleSwahili,
+          feature1Description: business.businessSetting?.feature1Description,
+          feature1DescriptionSwahili: business.businessSetting?.feature1DescriptionSwahili,
+          feature1Icon: business.businessSetting?.feature1Icon,
+          feature2Title: business.businessSetting?.feature2Title,
+          feature2TitleSwahili: business.businessSetting?.feature2TitleSwahili,
+          feature2Description: business.businessSetting?.feature2Description,
+          feature2DescriptionSwahili: business.businessSetting?.feature2DescriptionSwahili,
+          feature2Icon: business.businessSetting?.feature2Icon,
+          feature3Title: business.businessSetting?.feature3Title,
+          feature3TitleSwahili: business.businessSetting?.feature3TitleSwahili,
+          feature3Description: business.businessSetting?.feature3Description,
+          feature3DescriptionSwahili: business.businessSetting?.feature3DescriptionSwahili,
+          feature3Icon: business.businessSetting?.feature3Icon,
+          feature4Title: business.businessSetting?.feature4Title,
+          feature4TitleSwahili: business.businessSetting?.feature4TitleSwahili,
+          feature4Description: business.businessSetting?.feature4Description,
+          feature4DescriptionSwahili: business.businessSetting?.feature4DescriptionSwahili,
+          feature4Icon: business.businessSetting?.feature4Icon,
           owner: business.owner ? {
             id: business.owner.id,
             name: `${business.owner.firstName} ${business.owner.lastName}`,
@@ -212,7 +233,28 @@ export async function PUT(request: NextRequest) {
       enableLoyaltyProgram,
       enableTaxCalculation,
       enableMultiCurrency,
-      enableMultiLocation
+      enableMultiLocation,
+      // Why Choose Us Features
+      feature1Title,
+      feature1TitleSwahili,
+      feature1Description,
+      feature1DescriptionSwahili,
+      feature1Icon,
+      feature2Title,
+      feature2TitleSwahili,
+      feature2Description,
+      feature2DescriptionSwahili,
+      feature2Icon,
+      feature3Title,
+      feature3TitleSwahili,
+      feature3Description,
+      feature3DescriptionSwahili,
+      feature3Icon,
+      feature4Title,
+      feature4TitleSwahili,
+      feature4Description,
+      feature4DescriptionSwahili,
+      feature4Icon
     } = updateData
 
     // Update business basic info
@@ -252,6 +294,27 @@ export async function PUT(request: NextRequest) {
       enableTaxCalculation?: boolean
       enableMultiCurrency?: boolean
       enableMultiLocation?: boolean
+      // Why Choose Us Features
+      feature1Title?: string | null
+      feature1TitleSwahili?: string | null
+      feature1Description?: string | null
+      feature1DescriptionSwahili?: string | null
+      feature1Icon?: string | null
+      feature2Title?: string | null
+      feature2TitleSwahili?: string | null
+      feature2Description?: string | null
+      feature2DescriptionSwahili?: string | null
+      feature2Icon?: string | null
+      feature3Title?: string | null
+      feature3TitleSwahili?: string | null
+      feature3Description?: string | null
+      feature3DescriptionSwahili?: string | null
+      feature3Icon?: string | null
+      feature4Title?: string | null
+      feature4TitleSwahili?: string | null
+      feature4Description?: string | null
+      feature4DescriptionSwahili?: string | null
+      feature4Icon?: string | null
     } = {}
     if (description !== undefined) settingsUpdate.description = description
     if (address !== undefined) settingsUpdate.address = address
@@ -283,6 +346,27 @@ export async function PUT(request: NextRequest) {
     if (enableTaxCalculation !== undefined) settingsUpdate.enableTaxCalculation = enableTaxCalculation
     if (enableMultiCurrency !== undefined) settingsUpdate.enableMultiCurrency = enableMultiCurrency
     if (enableMultiLocation !== undefined) settingsUpdate.enableMultiLocation = enableMultiLocation
+    // Why Choose Us Features
+    if (feature1Title !== undefined) settingsUpdate.feature1Title = feature1Title
+    if (feature1TitleSwahili !== undefined) settingsUpdate.feature1TitleSwahili = feature1TitleSwahili
+    if (feature1Description !== undefined) settingsUpdate.feature1Description = feature1Description
+    if (feature1DescriptionSwahili !== undefined) settingsUpdate.feature1DescriptionSwahili = feature1DescriptionSwahili
+    if (feature1Icon !== undefined) settingsUpdate.feature1Icon = feature1Icon
+    if (feature2Title !== undefined) settingsUpdate.feature2Title = feature2Title
+    if (feature2TitleSwahili !== undefined) settingsUpdate.feature2TitleSwahili = feature2TitleSwahili
+    if (feature2Description !== undefined) settingsUpdate.feature2Description = feature2Description
+    if (feature2DescriptionSwahili !== undefined) settingsUpdate.feature2DescriptionSwahili = feature2DescriptionSwahili
+    if (feature2Icon !== undefined) settingsUpdate.feature2Icon = feature2Icon
+    if (feature3Title !== undefined) settingsUpdate.feature3Title = feature3Title
+    if (feature3TitleSwahili !== undefined) settingsUpdate.feature3TitleSwahili = feature3TitleSwahili
+    if (feature3Description !== undefined) settingsUpdate.feature3Description = feature3Description
+    if (feature3DescriptionSwahili !== undefined) settingsUpdate.feature3DescriptionSwahili = feature3DescriptionSwahili
+    if (feature3Icon !== undefined) settingsUpdate.feature3Icon = feature3Icon
+    if (feature4Title !== undefined) settingsUpdate.feature4Title = feature4Title
+    if (feature4TitleSwahili !== undefined) settingsUpdate.feature4TitleSwahili = feature4TitleSwahili
+    if (feature4Description !== undefined) settingsUpdate.feature4Description = feature4Description
+    if (feature4DescriptionSwahili !== undefined) settingsUpdate.feature4DescriptionSwahili = feature4DescriptionSwahili
+    if (feature4Icon !== undefined) settingsUpdate.feature4Icon = feature4Icon
 
     // Update business and settings in transaction
     const updatedBusiness = await prisma.$transaction(async (tx) => {

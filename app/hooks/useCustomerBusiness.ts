@@ -21,6 +21,27 @@ interface Business {
     secondaryColor?: string
     enableCreditSales?: boolean
     taxRate?: number
+    // Why Choose Us Features
+    feature1Title?: string
+    feature1TitleSwahili?: string
+    feature1Description?: string
+    feature1DescriptionSwahili?: string
+    feature1Icon?: string
+    feature2Title?: string
+    feature2TitleSwahili?: string
+    feature2Description?: string
+    feature2DescriptionSwahili?: string
+    feature2Icon?: string
+    feature3Title?: string
+    feature3TitleSwahili?: string
+    feature3Description?: string
+    feature3DescriptionSwahili?: string
+    feature3Icon?: string
+    feature4Title?: string
+    feature4TitleSwahili?: string
+    feature4Description?: string
+    feature4DescriptionSwahili?: string
+    feature4Icon?: string
   }
   _count?: {
     products: number
