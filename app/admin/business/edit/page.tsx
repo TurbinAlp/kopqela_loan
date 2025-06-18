@@ -87,6 +87,14 @@ interface BusinessSettings {
   feature4Description: string
   feature4DescriptionSwahili: string
   feature4Icon: string
+  
+  // Business Operations
+  businessHours: Array<{day: string, open: string, close: string, isOpen: boolean}>
+  paymentMethods: string[]
+  deliveryAreas: string[]
+  deliveryFee: number
+  freeDeliveryMinimum: number
+  estimatedDeliveryTime: string
 }
 
 export default function EditBusinessPage() {
@@ -131,26 +139,33 @@ export default function EditBusinessPage() {
     enableMultiCurrency: false,
     enableMultiLocation: false,
     // Why Choose Us Features
-    feature1Title: 'Quality Products',
-    feature1TitleSwahili: 'Bidhaa Bora',
-    feature1Description: 'We source only the best products for our customers',
-    feature1DescriptionSwahili: 'Tunachagua bidhaa bora tu kwa wateja wetu',
+    feature1Title: '',
+    feature1TitleSwahili: '',
+    feature1Description: '',
+    feature1DescriptionSwahili: '',
     feature1Icon: 'CheckCircleIcon',
-    feature2Title: 'Fast Delivery',
-    feature2TitleSwahili: 'Uwasilishaji wa Haraka',
-    feature2Description: 'Quick and reliable delivery to your doorstep',
-    feature2DescriptionSwahili: 'Uwasilishaji wa haraka na wa kuaminika',
+    feature2Title: '',
+    feature2TitleSwahili: '',
+    feature2Description: '',
+    feature2DescriptionSwahili: '',
     feature2Icon: 'TruckIcon',
-    feature3Title: 'Secure Payments',
-    feature3TitleSwahili: 'Malipo Salama',
-    feature3Description: 'Multiple payment options for your convenience',
-    feature3DescriptionSwahili: 'Njia nyingi za malipo kwa urahisi wako',
+    feature3Title: '',
+    feature3TitleSwahili: '',
+    feature3Description: '',
+    feature3DescriptionSwahili: '',
     feature3Icon: 'CreditCardIcon',
-    feature4Title: 'Trusted Service',
-    feature4TitleSwahili: 'Huduma ya Kuaminika',
-    feature4Description: 'Years of experience serving our community',
-    feature4DescriptionSwahili: 'Miaka ya uzoefu wa kutumikia jamii yetu',
-    feature4Icon: 'ShieldCheckIcon'
+    feature4Title: '',
+    feature4TitleSwahili: '',
+    feature4Description: '',
+    feature4DescriptionSwahili: '',
+    feature4Icon: 'ShieldCheckIcon',
+    // Business Operations
+    businessHours: [],
+    paymentMethods: ['Cash', 'Mobile Money', 'Bank Transfer'],
+    deliveryAreas: ['Dar es Salaam', 'Mwanza', 'Arusha'],
+    deliveryFee: 3000,
+    freeDeliveryMinimum: 50000,
+    estimatedDeliveryTime: '1-3 business days'
   })
 
   const translations = {
@@ -234,7 +249,22 @@ export default function EditBusinessPage() {
       descriptionEn: 'Description (English)',
       descriptionSw: 'Description (Swahili)',
       icon: 'Icon',
-      selectIcon: 'Select Icon'
+      selectIcon: 'Select Icon',
+      
+      // Business Operations
+      businessHours: 'Business Hours',
+      day: 'Day',
+      openTime: 'Open Time',
+      closeTime: 'Close Time',
+      isOpen: 'Open',
+      paymentMethods: 'Payment Methods',
+      addPaymentMethod: 'Add Payment Method',
+      deliverySettings: 'Delivery Settings',
+      deliveryAreas: 'Delivery Areas',
+      addArea: 'Add Area',
+      deliveryFee: 'Delivery Fee (TZS)',
+      freeDeliveryMinimum: 'Free Delivery Minimum (TZS)',
+      estimatedTime: 'Estimated Delivery Time'
     },
     sw: {
       pageTitle: 'Hariri Biashara',
@@ -316,7 +346,22 @@ export default function EditBusinessPage() {
       descriptionEn: 'Maelezo (Kiingereza)',
       descriptionSw: 'Maelezo (Kiswahili)',
       icon: 'Ikoni',
-      selectIcon: 'Chagua Ikoni'
+      selectIcon: 'Chagua Ikoni',
+      
+      // Business Operations
+      businessHours: 'Masaa ya Biashara',
+      day: 'Siku',
+      openTime: 'Muda wa Kufungua',
+      closeTime: 'Muda wa Kufunga',
+      isOpen: 'Inafunguka',
+      paymentMethods: 'Njia za Malipo',
+      addPaymentMethod: 'Ongeza Njia ya Malipo',
+      deliverySettings: 'Mipangilio ya Uwasilishaji',
+      deliveryAreas: 'Maeneo ya Uwasilishaji',
+      addArea: 'Ongeza Eneo',
+      deliveryFee: 'Ada ya Uwasilishaji (TZS)',
+      freeDeliveryMinimum: 'Ukomo wa Uwasilishaji Bure (TZS)',
+      estimatedTime: 'Muda wa Uwasilishaji'
     }
   }
 
@@ -342,32 +387,32 @@ export default function EditBusinessPage() {
       if (data.success && data.data) {
         const business = data.data.business
         setSettings({
-          name: business.name || '',
-          businessType: business.businessType || '',
-          description: business.description || '',
-          email: business.email || '',
-          phone: business.phone || '',
-          website: business.website || '',
-          registrationNumber: business.registrationNumber || '',
-          address: business.address || '',
-          city: business.city || '',
-          region: business.region || '',
-          country: business.country || 'Tanzania',
-          postalCode: business.postalCode || '',
-          logoUrl: business.logoUrl || '',
-          primaryColor: business.primaryColor || '#059669',
-          secondaryColor: business.secondaryColor || '#10b981',
-          timezone: business.timezone || 'Africa/Dar_es_Salaam',
-          language: business.language || 'en',
-          defaultPaymentMethod: business.defaultPaymentMethod || 'CASH',
-          invoicePrefix: business.invoicePrefix || 'INV',
-          orderPrefix: business.orderPrefix || 'ORD',
-          receiptFooterMessage: business.receiptFooterMessage || '',
-          currency: business.currency || 'TZS',
-          taxRate: business.taxRate || 18.0,
-          wholesaleMargin: business.wholesaleMargin || 30.0,
-          retailMargin: business.retailMargin || 50.0,
-          financialYearStart: business.financialYearStart || '01-01',
+          name: business.name,
+          businessType: business.businessType,
+          description: business.description,
+          email: business.email,
+          phone: business.phone,
+          website: business.website,
+          registrationNumber: business.registrationNumber,
+          address: business.address,
+          city: business.city,
+          region: business.region,
+          country: business.country,
+          postalCode: business.postalCode,
+          logoUrl: business.logoUrl,
+          primaryColor: business.primaryColor,
+          secondaryColor: business.secondaryColor,
+          timezone: business.timezone,
+          language: business.language,
+          defaultPaymentMethod: business.defaultPaymentMethod,
+          invoicePrefix: business.invoicePrefix,
+          orderPrefix: business.orderPrefix,
+          receiptFooterMessage: business.receiptFooterMessage,
+          currency: business.currency,
+          taxRate: business.taxRate,
+          wholesaleMargin: business.wholesaleMargin,
+          retailMargin: business.retailMargin,
+          financialYearStart: business.financialYearStart,
           enableInventoryTracking: business.enableInventoryTracking ?? true,
           enableCreditSales: business.enableCreditSales ?? false,
           enableLoyaltyProgram: business.enableLoyaltyProgram ?? false,
@@ -375,26 +420,33 @@ export default function EditBusinessPage() {
           enableMultiCurrency: business.enableMultiCurrency ?? false,
           enableMultiLocation: business.enableMultiLocation ?? false,
           // Why Choose Us Features
-          feature1Title: business.feature1Title || 'Quality Products',
-          feature1TitleSwahili: business.feature1TitleSwahili || 'Bidhaa Bora',
-          feature1Description: business.feature1Description || 'We source only the best products for our customers',
-          feature1DescriptionSwahili: business.feature1DescriptionSwahili || 'Tunachagua bidhaa bora tu kwa wateja wetu',
-          feature1Icon: business.feature1Icon || 'CheckCircleIcon',
-          feature2Title: business.feature2Title || 'Fast Delivery',
-          feature2TitleSwahili: business.feature2TitleSwahili || 'Uwasilishaji wa Haraka',
-          feature2Description: business.feature2Description || 'Quick and reliable delivery to your doorstep',
-          feature2DescriptionSwahili: business.feature2DescriptionSwahili || 'Uwasilishaji wa haraka na wa kuaminika',
-          feature2Icon: business.feature2Icon || 'TruckIcon',
-          feature3Title: business.feature3Title || 'Secure Payments',
-          feature3TitleSwahili: business.feature3TitleSwahili || 'Malipo Salama',
-          feature3Description: business.feature3Description || 'Multiple payment options for your convenience',
-          feature3DescriptionSwahili: business.feature3DescriptionSwahili || 'Njia nyingi za malipo kwa urahisi wako',
-          feature3Icon: business.feature3Icon || 'CreditCardIcon',
-          feature4Title: business.feature4Title || 'Trusted Service',
-          feature4TitleSwahili: business.feature4TitleSwahili || 'Huduma ya Kuaminika',
-          feature4Description: business.feature4Description || 'Years of experience serving our community',
-          feature4DescriptionSwahili: business.feature4DescriptionSwahili || 'Miaka ya uzoefu wa kutumikia jamii yetu',
-          feature4Icon: business.feature4Icon || 'ShieldCheckIcon'
+          feature1Title: business.feature1Title,
+          feature1TitleSwahili: business.feature1TitleSwahili,
+          feature1Description: business.feature1Description,
+          feature1DescriptionSwahili: business.feature1DescriptionSwahili,
+          feature1Icon: business.feature1Icon,
+          feature2Title: business.feature2Title,
+          feature2TitleSwahili: business.feature2TitleSwahili,
+          feature2Description: business.feature2Description ,
+          feature2DescriptionSwahili: business.feature2DescriptionSwahili ,
+          feature2Icon: business.feature2Icon,
+          feature3Title: business.feature3Title ,
+          feature3TitleSwahili: business.feature3TitleSwahili,
+          feature3Description: business.feature3Description,
+          feature3DescriptionSwahili: business.feature3DescriptionSwahili,
+          feature3Icon: business.feature3Icon,
+          feature4Title: business.feature4Title,
+          feature4TitleSwahili: business.feature4TitleSwahili,
+          feature4Description: business.feature4Description,
+          feature4DescriptionSwahili: business.feature4DescriptionSwahili,
+          feature4Icon: business.feature4Icon,
+          // Business Operations
+          businessHours: business.businessHours,
+          paymentMethods: business.paymentMethods ,
+          deliveryAreas: business.deliveryAreas,
+          deliveryFee: business.deliveryFee ,
+          freeDeliveryMinimum: business.freeDeliveryMinimum ,
+          estimatedDeliveryTime: business.estimatedDeliveryTime
         })
       }
     } catch (error) {
@@ -917,6 +969,190 @@ export default function EditBusinessPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
                 placeholder="Thank you for your business!"
               />
+            </div>
+
+            {/* Business Hours Section */}
+            <div className="border-t border-gray-200 pt-6">
+              <h4 className="text-lg font-medium text-gray-900 mb-4">{t.businessHours}</h4>
+              <div className="space-y-3">
+                {settings.businessHours.map((hour, index) => (
+                  <div key={hour.day} className="grid grid-cols-5 gap-4 items-center">
+                    <div className="font-medium text-gray-700">{hour.day}</div>
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={hour.isOpen}
+                        onChange={(e) => {
+                          const newHours = [...settings.businessHours]
+                          newHours[index].isOpen = e.target.checked
+                          setSettings(prev => ({ ...prev, businessHours: newHours }))
+                        }}
+                        className="mr-2"
+                      />
+                      <span className="text-sm">{t.isOpen}</span>
+                    </div>
+                    <input
+                      type="time"
+                      value={hour.open}
+                      onChange={(e) => {
+                        const newHours = [...settings.businessHours]
+                        newHours[index].open = e.target.value
+                        setSettings(prev => ({ ...prev, businessHours: newHours }))
+                      }}
+                      disabled={!hour.isOpen}
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900 disabled:bg-gray-100"
+                    />
+                    <input
+                      type="time"
+                      value={hour.close}
+                      onChange={(e) => {
+                        const newHours = [...settings.businessHours]
+                        newHours[index].close = e.target.value
+                        setSettings(prev => ({ ...prev, businessHours: newHours }))
+                      }}
+                      disabled={!hour.isOpen}
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900 disabled:bg-gray-100"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Payment Methods Section */}
+            <div className="border-t border-gray-200 pt-6">
+              <h4 className="text-lg font-medium text-gray-900 mb-4">{t.paymentMethods}</h4>
+              <div className="space-y-3">
+                {settings.paymentMethods.map((method, index) => (
+                  <div key={index} className="flex items-center space-x-3">
+                    <input
+                      type="text"
+                      value={method}
+                      onChange={(e) => {
+                        const newMethods = [...settings.paymentMethods]
+                        newMethods[index] = e.target.value
+                        setSettings(prev => ({ ...prev, paymentMethods: newMethods }))
+                      }}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                      placeholder="Payment method"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newMethods = settings.paymentMethods.filter((_, i) => i !== index)
+                        setSettings(prev => ({ ...prev, paymentMethods: newMethods }))
+                      }}
+                      className="px-3 py-2 text-red-600 hover:text-red-800 font-medium"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSettings(prev => ({ 
+                      ...prev, 
+                      paymentMethods: [...prev.paymentMethods, ''] 
+                    }))
+                  }}
+                  className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 font-medium"
+                >
+                  {t.addPaymentMethod}
+                </button>
+              </div>
+            </div>
+
+            {/* Delivery Settings Section */}
+            <div className="border-t border-gray-200 pt-6">
+              <h4 className="text-lg font-medium text-gray-900 mb-4">{t.deliverySettings}</h4>
+              
+              {/* Delivery Areas */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-3">{t.deliveryAreas}</label>
+                <div className="space-y-3">
+                  {settings.deliveryAreas.map((area, index) => (
+                    <div key={index} className="flex items-center space-x-3">
+                      <input
+                        type="text"
+                        value={area}
+                        onChange={(e) => {
+                          const newAreas = [...settings.deliveryAreas]
+                          newAreas[index] = e.target.value
+                          setSettings(prev => ({ ...prev, deliveryAreas: newAreas }))
+                        }}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                        placeholder="Delivery area"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newAreas = settings.deliveryAreas.filter((_, i) => i !== index)
+                          setSettings(prev => ({ ...prev, deliveryAreas: newAreas }))
+                        }}
+                        className="px-3 py-2 text-red-600 hover:text-red-800 font-medium"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSettings(prev => ({ 
+                        ...prev, 
+                        deliveryAreas: [...prev.deliveryAreas, ''] 
+                      }))
+                    }}
+                    className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 font-medium"
+                  >
+                    {t.addArea}
+                  </button>
+                </div>
+              </div>
+
+              {/* Delivery Pricing */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.deliveryFee}
+                  </label>
+                  <input
+                    type="number"
+                    value={settings.deliveryFee}
+                    onChange={(e) => handleInputChange('deliveryFee', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                    placeholder="3000"
+                    min="0"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.freeDeliveryMinimum}
+                  </label>
+                  <input
+                    type="number"
+                    value={settings.freeDeliveryMinimum}
+                    onChange={(e) => handleInputChange('freeDeliveryMinimum', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                    placeholder="50000"
+                    min="0"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.estimatedTime}
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.estimatedDeliveryTime}
+                    onChange={(e) => handleInputChange('estimatedDeliveryTime', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                    placeholder="1-3 business days"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         )}

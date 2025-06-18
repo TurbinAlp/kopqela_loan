@@ -1076,8 +1076,8 @@ export default function AddEditProductPage() {
                             src={uploadedImage.url}
                             alt={`Product ${index + 1}`}
                             className="w-full h-full object-cover"
-                            fill
-                            sizes="(max-width: 768px) 100vw, 33vw"
+                            width={200}
+                            height={200}
                           />
                           {/* Overlay */}
                           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200">

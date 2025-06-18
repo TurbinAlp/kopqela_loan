@@ -313,7 +313,7 @@ export async function POST(
 
     const {
       name, nameSwahili, description, categoryId, sku, barcode,
-      price, wholesalePrice, costPrice, unit, imageUrl,
+      price, wholesalePrice, costPrice, unit,
       specifications, seoTitle, seoDescription, seoKeywords, variations,
       quantity, reorderPoint, maxStock, location
     } = validationResult.data
@@ -360,7 +360,6 @@ export async function POST(
           wholesalePrice,
           costPrice,
           unit,
-          imageUrl,
           // Store additional data as JSON
           ...(specifications && { specifications }),
           ...(seoTitle && { seoTitle }),
@@ -408,7 +407,6 @@ export async function POST(
         wholesalePrice: product.wholesalePrice,
         costPrice: product.costPrice,
         unit: product.unit,
-        imageUrl: product.imageUrl,
         isActive: product.isActive,
         category: product.category,
         createdAt: product.createdAt,

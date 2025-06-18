@@ -254,7 +254,14 @@ export async function PUT(request: NextRequest) {
       feature4TitleSwahili,
       feature4Description,
       feature4DescriptionSwahili,
-      feature4Icon
+      feature4Icon,
+      // Business Operations
+      businessHours,
+      paymentMethods,
+      deliveryAreas,
+      deliveryFee,
+      freeDeliveryMinimum,
+      estimatedDeliveryTime
     } = updateData
 
     // Update business basic info
@@ -315,6 +322,13 @@ export async function PUT(request: NextRequest) {
       feature4Description?: string | null
       feature4DescriptionSwahili?: string | null
       feature4Icon?: string | null
+      // Business Operations
+      businessHours?: object
+      paymentMethods?: object
+      deliveryAreas?: object
+      deliveryFee?: number
+      freeDeliveryMinimum?: number
+      estimatedDeliveryTime?: string | null
     } = {}
     if (description !== undefined) settingsUpdate.description = description
     if (address !== undefined) settingsUpdate.address = address
@@ -367,6 +381,13 @@ export async function PUT(request: NextRequest) {
     if (feature4Description !== undefined) settingsUpdate.feature4Description = feature4Description
     if (feature4DescriptionSwahili !== undefined) settingsUpdate.feature4DescriptionSwahili = feature4DescriptionSwahili
     if (feature4Icon !== undefined) settingsUpdate.feature4Icon = feature4Icon
+    // Business Operations  
+    if (businessHours !== undefined) settingsUpdate.businessHours = businessHours
+    if (paymentMethods !== undefined) settingsUpdate.paymentMethods = paymentMethods
+    if (deliveryAreas !== undefined) settingsUpdate.deliveryAreas = deliveryAreas
+    if (deliveryFee !== undefined) settingsUpdate.deliveryFee = deliveryFee
+    if (freeDeliveryMinimum !== undefined) settingsUpdate.freeDeliveryMinimum = freeDeliveryMinimum
+    if (estimatedDeliveryTime !== undefined) settingsUpdate.estimatedDeliveryTime = estimatedDeliveryTime
 
     // Update business and settings in transaction
     const updatedBusiness = await prisma.$transaction(async (tx) => {

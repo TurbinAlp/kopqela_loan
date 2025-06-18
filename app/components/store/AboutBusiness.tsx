@@ -11,7 +11,11 @@ import {
   StarIcon,
   HeartIcon,
   LightBulbIcon,
-  GiftIcon
+  GiftIcon,
+  MapPinIcon,
+  PhoneIcon,
+  ClockIcon,
+  BuildingOfficeIcon
 } from '@heroicons/react/24/outline'
 
 export default function AboutBusiness() {
@@ -26,26 +30,46 @@ export default function AboutBusiness() {
     en: {
       aboutUs: 'About Us',
       whyChooseUs: 'Why Choose Us',
-      qualityProducts: 'Quality Products',
-      qualityDesc: 'We source only the best products for our customers',
-      fastDelivery: 'Fast Delivery',
-      deliveryDesc: 'Quick and reliable delivery to your doorstep',
-      securePayments: 'Secure Payments',
-      paymentsDesc: 'Multiple payment options for your convenience',
-      trustedService: 'Trusted Service',
-      serviceDesc: 'Years of experience serving our community'
+      businessInfo: 'Business Information',
+      location: 'Our Location',
+      businessType: 'Business Type',
+      established: 'Established Business',
+      qualityService: 'Quality Service Provider',
+      contactUs: 'Contact Us',
+      // Default features
+      qualityProducts: '',
+      qualityDesc: '',
+      fastDelivery: '',
+      deliveryDesc: '',
+      securePayments: '',
+      paymentsDesc: '',
+      trustedService: '',
+      serviceDesc: '',
+      businessHours: '',
+      paymentMethods: '',
+      delivery: ''
     },
     sw: {
       aboutUs: 'Kuhusu Sisi',
       whyChooseUs: 'Kwa Nini Utuchague',
-      qualityProducts: 'Bidhaa Bora',
-      qualityDesc: 'Tunachagua bidhaa bora tu kwa wateja wetu',
-      fastDelivery: 'Uwasilishaji wa Haraka',
-      deliveryDesc: 'Uwasilishaji wa haraka na wa kuaminika',
-      securePayments: 'Malipo Salama',
-      paymentsDesc: 'Njia nyingi za malipo kwa urahisi wako',
-      trustedService: 'Huduma ya Kuaminika',
-      serviceDesc: 'Miaka ya uzoefu wa kutumikia jamii yetu'
+      businessInfo: 'Taarifa za Biashara',
+      location: 'Mahali Tulipo',
+      businessType: 'Aina ya Biashara',
+      established: 'Biashara Iliyoanzishwa',
+      qualityService: 'Mtoa Huduma Bora',
+      contactUs: 'Wasiliana Nasi',
+      // Default features
+      qualityProducts: '',
+      qualityDesc: '',
+      fastDelivery: '',
+      deliveryDesc: '',
+      securePayments: '',
+      paymentsDesc: '',
+      trustedService: '',
+      serviceDesc: '',
+      businessHours: '',
+      paymentMethods: '',
+      delivery: ''
     }
   }
 
@@ -150,61 +174,191 @@ export default function AboutBusiness() {
 
   const features = getFeatures()
 
+  // Business description - prioritize custom description, then use default based on business type
+  const getBusinessDescription = () => {
+    if (business.businessSetting?.description) {
+      return business.businessSetting.description
+    }
+    
+    // Default descriptions based on business type
+    const defaultDescriptions = {
+      en: {
+        'Electronics': `Welcome to ${business.name}, your trusted electronics store. We specialize in providing high-quality electronic products and accessories to meet all your technology needs.`,
+        'Fashion & Clothing': `Welcome to ${business.name}, your premier fashion destination. We offer the latest trends and timeless styles for every occasion and personal taste.`,
+        'Food & Beverages': `Welcome to ${business.name}, where quality meets taste. We provide fresh, delicious food and beverages to satisfy your culinary desires.`,
+        'Healthcare': `Welcome to ${business.name}, your healthcare partner. We are committed to providing quality healthcare products and services for your wellbeing.`,
+        'default': `Welcome to ${business.name}. We are a trusted business committed to providing excellent products and services to our valued customers.`
+      },
+      sw: {
+        'Electronics': `Karibu ${business.name}, duka lako la kuaminika la elektroniki. Tunahusika na kutoa bidhaa za elektroniki za hali ya juu na vifaa vya ziada kukidhi mahitaji yako yote ya teknolojia.`,
+        'Fashion & Clothing': `Karibu ${business.name}, makao yako makuu ya mitindo. Tunatoa mitindo ya hivi karibuni na mitindo ya kila wakati kwa kila tukio na ladha ya kibinafsi.`,
+        'Food & Beverages': `Karibu ${business.name}, ambapo ubora unakutana na ladha. Tunatoa chakula na vinywaji vya ubora wa juu kukidhi mahitaji yako ya kiutamaduni.`,
+        'Healthcare': `Karibu ${business.name}, mshirika wako wa afya. Tumejitolea kutoa bidhaa na huduma za afya za ubora kwa ustawi wako.`,
+        'default': `Karibu ${business.name}. Sisi ni biashara ya kuaminika iliyojitolea kutoa bidhaa na huduma bora kwa wateja wetu wa thamani.`
+      }
+    }
+    
+    const descriptions = defaultDescriptions[language as 'en' | 'sw'] || defaultDescriptions.en
+    return descriptions[business.businessType as keyof typeof descriptions] || descriptions.default
+  }
+
+  // Get business hours data from database
+  const businessHours = business.businessSetting?.businessHours || []
+
+  // Get payment methods from database
+  const paymentMethods = business.businessSetting?.paymentMethods || ['']
+
+  // Get delivery info from database
+  const deliveryAreas = business.businessSetting?.deliveryAreas || ['']
+  const deliveryFee = business.businessSetting?.deliveryFee || 0
+  const freeDeliveryMinimum = business.businessSetting?.freeDeliveryMinimum || 0
+  const estimatedDeliveryTime = business.businessSetting?.estimatedDeliveryTime || ''
+
+  // Today's business hours
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long' })
+  const todayHours = businessHours.find(h => h.day === today)
+  const isOpenToday = todayHours?.isOpen && todayHours.open && todayHours.close
+
   return (
-    <div className="bg-white py-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* About Content */}
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+        {/* About Content */}
+        <div className="space-y-8">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">{t.aboutUs}</h2>
-            <p className="text-lg text-gray-600 mb-8">
-              {business.businessSetting?.description || 'Welcome to our store'}
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">{t.aboutUs}</h2>
+            <p className="text-lg text-gray-600 leading-relaxed mb-8">
+              {getBusinessDescription()}
             </p>
+          </div>
+          
+          {/* Business Details */}
+          <div className="bg-gray-50 rounded-2xl p-8">
+            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+              <BuildingOfficeIcon className="w-6 h-6 mr-3 text-teal-600" />
+              {t.businessInfo}
+            </h3>
             
             <div className="space-y-4">
-              <div className="flex items-center space-x-3">
+              <div className="flex items-start space-x-4">
                 <div 
-                  className="w-3 h-3 rounded-full"
+                  className="w-4 h-4 rounded-full mt-1 flex-shrink-0"
                   style={{ backgroundColor: business.businessSetting?.primaryColor || '#059669' }}
                 />
-                <span className="text-gray-700">Established business in {business.businessSetting?.address || 'Tanzania'}</span>
+                <div>
+                  <span className="font-medium text-gray-900">{t.businessType}:</span>
+                  <span className="text-gray-700 ml-2">{business.businessType}</span>
+                </div>
               </div>
-              <div className="flex items-center space-x-3">
-                <div 
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: business.businessSetting?.primaryColor || '#059669' }}
-                />
-                <span className="text-gray-700">Quality service provider</span>
+              
+              {business.businessSetting?.address && (
+                <div className="flex items-start space-x-4">
+                  <MapPinIcon className="w-4 h-4 mt-1 text-gray-500 flex-shrink-0" />
+                  <div>
+                    <span className="font-medium text-gray-900">{t.location}:</span>
+                    <span className="text-gray-700 ml-2">{business.businessSetting.address}</span>
+                    {business.businessSetting?.city && (
+                      <span className="text-gray-700">, {business.businessSetting.city}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {business.businessSetting?.phone && (
+                <div className="flex items-center space-x-4">
+                  <PhoneIcon className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                  <div>
+                    <span className="font-medium text-gray-900">{t.contactUs}:</span>
+                    <a 
+                      href={`tel:${business.businessSetting.phone}`}
+                      className="text-teal-600 hover:text-teal-700 ml-2 font-medium"
+                    >
+                      {business.businessSetting.phone}
+                    </a>
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex items-start space-x-4">
+                <ClockIcon className="w-4 h-4 mt-1 text-gray-500 flex-shrink-0" />
+                <div className="flex-1">
+                  <span className="font-medium text-gray-900">{t.businessHours}:</span>
+                  <div className="text-gray-700 ml-2 space-y-1">
+                    {businessHours.slice(0, 3).map((hours) => (
+                      <div key={hours.day} className="text-sm">
+                        <span className="font-medium">{hours.day.slice(0, 3)}:</span> {
+                          hours.isOpen 
+                            ? `${hours.open} - ${hours.close}`
+                            : 'Closed'
+                        }
+                      </div>
+                    ))}
+                    {businessHours.length > 3 && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        {isOpenToday ? '✅ Open today' : '❌ Closed today'}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center space-x-3">
-                <div 
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: business.businessSetting?.primaryColor || '#059669' }}
-                />
-                <span className="text-gray-700">Specialized in {business.businessType}</span>
+
+              {/* Payment Methods */}
+              <div className="flex items-start space-x-4">
+                <CreditCardIcon className="w-4 h-4 mt-1 text-gray-500 flex-shrink-0" />
+                <div className="flex-1">
+                  <span className="font-medium text-gray-900">{t.paymentMethods}:</span>
+                  <div className="text-gray-700 ml-2">
+                    {paymentMethods.join(', ')}
+                  </div>
+                </div>
+              </div>
+
+              {/* Delivery Information */}
+              <div className="flex items-start space-x-4">
+                <TruckIcon className="w-4 h-4 mt-1 text-gray-500 flex-shrink-0" />
+                <div className="flex-1">
+                  <span className="font-medium text-gray-900">{t.delivery}:</span>
+                  <div className="text-gray-700 ml-2 space-y-1">
+                    <div className="text-sm">
+                      Areas: {deliveryAreas.slice(0, 3).join(', ')}
+                      {deliveryAreas.length > 3 && ` +${deliveryAreas.length - 3} more`}
+                    </div>
+                    <div className="text-sm">
+                      Fee: TZS {deliveryFee.toLocaleString()} 
+                      {freeDeliveryMinimum && (
+                        <span className="text-green-600"> (Free over TZS {freeDeliveryMinimum.toLocaleString()})</span>
+                      )}
+                    </div>
+                    <div className="text-sm">Time: {estimatedDeliveryTime}</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Features Grid */}
+        {/* Why Choose Us Features */}
+        <div className="space-y-8">
           <div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-8">{t.whyChooseUs}</h3>
+            <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-8">{t.whyChooseUs}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {features.map((feature) => {
                 const Icon = feature.icon
                 return (
-                  <div key={feature.title} className="text-center p-4">
+                  <div 
+                    key={feature.title} 
+                    className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 group"
+                  >
                     <div 
-                      className="w-12 h-12 rounded-lg mx-auto mb-4 flex items-center justify-center"
-                      style={{ backgroundColor: `${business.businessSetting?.primaryColor || '#059669'}20` }}
+                      className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center group-hover:scale-110 transition-transform"
+                      style={{ backgroundColor: `${business.businessSetting?.primaryColor || '#059669'}15` }}
                     >
                       <Icon 
-                        className="w-6 h-6"
+                        className="w-8 h-8"
                         style={{ color: business.businessSetting?.primaryColor || '#059669' }}
                       />
                     </div>
-                    <h4 className="font-semibold text-gray-900 mb-2">{feature.title}</h4>
-                    <p className="text-sm text-gray-600">{feature.description}</p>
+                    <h4 className="font-bold text-gray-900 mb-3 text-center">{feature.title}</h4>
+                    <p className="text-sm text-gray-600 text-center leading-relaxed">{feature.description}</p>
                   </div>
                 )
               })}

@@ -12,7 +12,13 @@ interface Product {
   wholesalePrice?: number
   costPrice?: number
   unit?: string
-
+  imageUrl?: string
+  images?: Array<{
+    id: number
+    url: string
+    isPrimary: boolean
+    sortOrder: number
+  }>
   isActive: boolean
   category?: {
     id: number

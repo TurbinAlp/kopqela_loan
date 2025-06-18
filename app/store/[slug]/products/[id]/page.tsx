@@ -1,298 +1,297 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import Image from 'next/image'
+import { useParams, useRouter } from 'next/navigation'
 import { useCustomerBusiness } from '../../../../hooks/useCustomerBusiness'
 import { useLanguage } from '../../../../contexts/LanguageContext'
+import { useProduct } from '../../../../hooks/useProducts'
+import { useCart } from '../../../../hooks/useCart'
 import {
-  HeartIcon,
-  ShareIcon,
   ChevronLeftIcon,
-  MagnifyingGlassIcon,
+  ShoppingCartIcon,
   CheckIcon,
   XMarkIcon,
-  ShoppingCartIcon
+  HeartIcon,
+  ShareIcon
 } from '@heroicons/react/24/outline'
-import { HeartIcon as HeartIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid'
-
-interface Product {
-  id: number
-  name: string
-  nameSwahili: string
-  description: string
-  descriptionSwahili: string
-  fullDescription: string
-  fullDescriptionSwahili: string
-  category: string
-  price: number
-  originalPrice?: number
-  images: string[]
-  rating: number
-  reviewCount: number
-  inStock: boolean
-  stockCount: number
-  isWholesale: boolean
-  isRetail: boolean
-  tags: string[]
-  specifications: { [key: string]: string }
-  specificationsSwahili: { [key: string]: string }
-}
-
-interface Review {
-  id: number
-  customerName: string
-  rating: number
-  comment: string
-  commentSwahili: string
-  date: string
-  verified: boolean
-}
+import { HeartIcon as HeartIconSolid, ChevronLeftIcon as ChevronLeftSolid, ChevronRightIcon } from '@heroicons/react/24/solid'
 
 export default function ProductDetailsPage() {
   const { language } = useLanguage()
   const params = useParams()
+  const router = useRouter()
   const productId = parseInt(params?.id as string)
   const slug = params?.slug as string
-  const { business } = useCustomerBusiness(slug)
+  const { business, isLoading: businessLoading } = useCustomerBusiness(slug)
+  const { product, loading: productLoading, error } = useProduct(slug, productId)
+  const { addToCart: addToCartHook } = useCart(slug)
   
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [isFavorited, setIsFavorited] = useState(false)
-  const [activeTab, setActiveTab] = useState('description')
+  const [isAddingToCart, setIsAddingToCart] = useState(false)
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [showImageZoom, setShowImageZoom] = useState(false)
+  const [touchStart, setTouchStart] = useState(0)
+  const [touchEnd, setTouchEnd] = useState(0)
+  const [isTransitioning, setIsTransitioning] = useState(false)
+  const [showCartSuccess, setShowCartSuccess] = useState(false)
 
   const translations = {
     en: {
       backToCatalog: 'Back to Products',
       productNotFound: 'Product Not Found',
-      productNotFoundDesc: 'The product you are looking for does not exist or has been removed.',
-      inStock: 'In Stock',
-      outOfStock: 'Out of Stock',
+      loading: 'Loading...',
+      error: 'Something went wrong',
+      price: 'Price',
+      wholesalePrice: 'Wholesale Price',
       quantity: 'Quantity',
-      addToFavorites: 'Add to Favorites',
-      removeFromFavorites: 'Remove from Favorites',
-      shareProduct: 'Share Product',
-      requestPurchase: 'Request Purchase',
       addToCart: 'Add to Cart',
-      wholesaleOnly: 'Wholesale Only',
-      retailOnly: 'Retail Only',
-      bothTypes: 'Wholesale & Retail',
-      youSave: 'You Save',
+      buyNow: 'Buy Now',
+      outOfStock: 'Out of Stock',
+      inStock: 'In Stock',
       description: 'Description',
-      specifications: 'Specifications',
-      reviews: 'Reviews',
-      relatedProducts: 'Related Products',
-      customerReviews: 'Customer Reviews',
-      writeReview: 'Write a Review',
-      verified: 'Verified Purchase',
-      unverified: 'Unverified',
-      noReviews: 'No Reviews Yet',
-      noReviewsDesc: 'Be the first to review this product',
-      maxQuantity: 'Maximum quantity available',
-      zoomImage: 'Click to zoom image',
-      closeZoom: 'Close zoom view'
+      shareProduct: 'Share',
+      addToWishlist: 'Add to Wishlist',
+      removeFromWishlist: 'Remove from Wishlist',
+      category: 'Category',
+      sku: 'SKU',
+      barcode: 'Barcode',
+      availability: 'Availability',
+      unit: 'Unit',
+      stockLevel: 'Stock Level',
+      lowStock: 'Low Stock',
+      saveAmount: 'Save',
+      location: 'Location',
+      viewImage: 'View Image',
+      closeImage: 'Close Image',
+      previousImage: 'Previous Image',
+      nextImage: 'Next Image',
+      addedToCart: 'Added to Cart!',
+      viewCart: 'View Cart',
+      continueShopping: 'Continue Shopping',
+      goToCart: 'Go to Cart'
     },
     sw: {
-      backToCatalog: 'Rudi Bidhaa',
-      productNotFound: 'Bidhaa Haijapatikana',
-      productNotFoundDesc: 'Bidhaa unayotafuta haipo au imeondolewa.',
-      inStock: 'Ipo Stock',
-      outOfStock: 'Imekwisha',
-      quantity: 'Idadi',
-      addToFavorites: 'Ongeza Vipendwa',
-      removeFromFavorites: 'Ondoa Vipendwa',
-      shareProduct: 'Shiriki Bidhaa',
-      requestPurchase: 'Omba Ununuzi',
-      addToCart: 'Ongeza Kirooni',
-      wholesaleOnly: 'Jumla Tu',
-      retailOnly: 'Reja Reja Tu',
-      bothTypes: 'Jumla na Reja Reja',
-      youSave: 'Unaokoa',
+      backToCatalog: 'Rudi kwenye Bidhaa',
+      productNotFound: 'Bidhaa Haikupatikana',
+      loading: 'Inapakia...',
+      error: 'Kuna hitilafu imetokea',
+      price: 'Bei',
+      wholesalePrice: 'Bei ya Jumla',
+      quantity: 'Kiasi',
+      addToCart: 'Ongeza kwenye Kikapu',
+      buyNow: 'Nunua Sasa',
+      outOfStock: 'Haitapatikani',
+      inStock: 'Inapatikana',
       description: 'Maelezo',
-      specifications: 'Vipimo',
-      reviews: 'Maoni',
-      relatedProducts: 'Bidhaa Zinazofanana',
-      customerReviews: 'Maoni ya Wateja',
-      writeReview: 'Andika Maoni',
-      verified: 'Ununuzi Umehakikiwa',
-      unverified: 'Haujahakikiwa',
-      noReviews: 'Hakuna Maoni Bado',
-      noReviewsDesc: 'Kuwa wa kwanza kutoa maoni',
-      maxQuantity: 'Idadi ya juu zaidi inayopatikana',
-      zoomImage: 'Bofya kukuza picha',
-      closeZoom: 'Funga ukuzaji'
+      shareProduct: 'Shiriki',
+      addToWishlist: 'Ongeza kwenye Orodha ya Matakwa',
+      removeFromWishlist: 'Ondoa kwenye Orodha ya Matakwa',
+      category: 'Kategoria',
+      sku: 'Nambari ya Bidhaa',
+      barcode: 'Kodi ya Msimbo',
+      availability: 'Upatikanaji',
+      unit: 'Kipimo',
+      stockLevel: 'Kiwango cha Hifadhi',
+      lowStock: 'Hifadhi Ndogo',
+      saveAmount: 'Okoa',
+      location: 'Mahali',
+      viewImage: 'Angalia Picha',
+      closeImage: 'Funga Picha',
+      previousImage: 'Picha ya Awali',
+      nextImage: 'Picha ya Baadaye',
+      addedToCart: 'Imeongezwa kwenye Kikapu!',
+      viewCart: 'Angalia Kikapu',
+      continueShopping: 'Endelea Kununua',
+      goToCart: 'Enda Kikieni'
     }
   }
 
   const t = translations[language]
 
-  // Generate sample product data
-  const product: Product | null = useMemo(() => {
-    if (!business || !productId) return null
-    
-    if (business.businessType === 'Electronics') {
-      const electronicsProducts = [
-        {
-          id: 1, name: 'iPhone 15 Pro', nameSwahili: 'iPhone 15 Pro',
-          description: 'Latest iPhone with advanced camera', descriptionSwahili: 'iPhone mpya na kamera bora',
-          fullDescription: 'The iPhone 15 Pro features a titanium design, advanced A17 Pro chip, and professional camera system with 5x optical zoom. Perfect for photography, gaming, and professional work.',
-          fullDescriptionSwahili: 'iPhone 15 Pro ina muundo wa titanium, chip ya A17 Pro ya kisasa, na mfumo wa kamera ya kitaalamu wenye kukuza mara 5. Nzuri kwa kupiga picha, mchezo, na kazi za kitaalamu.',
-          category: 'Smartphones', price: 1200000, originalPrice: 1350000,
-          images: ['/images/products/iphone1.jpg', '/images/products/iphone2.jpg', '/images/products/iphone3.jpg'],
-          rating: 4.8, reviewCount: 124, inStock: true, stockCount: 15, isWholesale: false, isRetail: true,
-          tags: ['premium', 'new', 'apple'],
-          specifications: {
-            'Screen Size': '6.1 inches',
-            'Storage': '128GB',
-            'Camera': '48MP Triple Camera',
-            'Battery': '4422 mAh',
-            'OS': 'iOS 17',
-            'Color': 'Natural Titanium'
-          },
-          specificationsSwahili: {
-            'Ukubwa wa Skrini': 'Inchi 6.1',
-            'Hifadhi': '128GB',
-            'Kamera': 'Kamera Tatu za 48MP',
-            'Betri': '4422 mAh',
-            'Mfumo': 'iOS 17',
-            'Rangi': 'Titanium Asili'
-          }
-        },
-        {
-          id: 2, name: 'Samsung Galaxy S24', nameSwahili: 'Samsung Galaxy S24',
-          description: 'Powerful Android smartphone', descriptionSwahili: 'Simu ya Android yenye nguvu',
-          fullDescription: 'Samsung Galaxy S24 with AI-powered features, advanced camera system, and long-lasting battery. Experience the future of smartphones.',
-          fullDescriptionSwahili: 'Samsung Galaxy S24 yenye vipengele vya AI, mfumo wa kamera wa kisasa, na betri ya kudumu. Pata uzoefu wa simu za siku zijazo.',
-          category: 'Smartphones', price: 950000,
-          images: ['/images/products/samsung1.jpg', '/images/products/samsung2.jpg'],
-          rating: 4.6, reviewCount: 89, inStock: true, stockCount: 8, isWholesale: true, isRetail: true,
-          tags: ['android', 'samsung'],
-          specifications: {
-            'Screen Size': '6.2 inches',
-            'Storage': '256GB',
-            'Camera': '50MP Triple Camera',
-            'Battery': '4000 mAh',
-            'OS': 'Android 14',
-            'Color': 'Phantom Black'
-          },
-          specificationsSwahili: {
-            'Ukubwa wa Skrini': 'Inchi 6.2',
-            'Hifadhi': '256GB',
-            'Kamera': 'Kamera Tatu za 50MP',
-            'Betri': '4000 mAh',
-            'Mfumo': 'Android 14',
-            'Rangi': 'Nyeusi ya Phantom'
-          }
-        }
-      ]
-      return electronicsProducts.find(p => p.id === productId) || null
-    } else if (business.businessType === 'Fashion & Clothing') {
-      const fashionProducts = [
-        {
-          id: 1, name: 'Elegant Dress', nameSwahili: 'Nguo ya Kifahari',
-          description: 'Beautiful dress for special occasions', descriptionSwahili: 'Nguo nzuri kwa matukio maalum',
-          fullDescription: 'An elegant dress perfect for weddings, parties, and special events. Made from high-quality fabric with attention to detail.',
-          fullDescriptionSwahili: 'Nguo ya kifahari nzuri kwa harusi, sherehe, na matukio maalum. Imetengenezwa kwa kitambaa cha ubora wa juu na makini.',
-          category: "Women's Wear", price: 65000, originalPrice: 75000,
-          images: ['/images/products/dress1.jpg', '/images/products/dress2.jpg'],
-          rating: 4.6, reviewCount: 34, inStock: true, stockCount: 12, isWholesale: false, isRetail: true,
-          tags: ['elegant', 'party'],
-          specifications: {
-            'Material': '100% Cotton',
-            'Size': 'M, L, XL Available',
-            'Color': 'Navy Blue',
-            'Care': 'Machine Washable',
-            'Origin': 'Made in Tanzania'
-          },
-          specificationsSwahili: {
-            'Nyenzo': 'Pamba 100%',
-            'Saizi': 'M, L, XL Zinapatikana',
-            'Rangi': 'Bluu ya Bahari',
-            'Utunzaji': 'Inaweza Fuliwa kwa Mashine',
-            'Asili': 'Imetengenezwa Tanzania'
-          }
-        }
-      ]
-      return fashionProducts.find(p => p.id === productId) || null
-    } else {
-      const generalProducts = [
-        {
-          id: 1, name: 'Rice 5kg', nameSwahili: 'Mchele Kilo 5',
-          description: 'Premium quality rice', descriptionSwahili: 'Mchele wa ubora wa juu',
-          fullDescription: 'High-quality rice perfect for daily meals. Carefully selected and processed to ensure freshness and taste.',
-          fullDescriptionSwahili: 'Mchele wa ubora wa juu unaolingana na chakula cha kila siku. Umechaguliwa na kusindikwa kwa makini ili kuhakikisha utazama na ladha.',
-          category: 'Groceries', price: 12000,
-          images: ['/images/products/rice1.jpg', '/images/products/rice2.jpg'],
-          rating: 4.3, reviewCount: 145, inStock: true, stockCount: 50, isWholesale: true, isRetail: true,
-          tags: ['staple', 'quality'],
-          specifications: {
-            'Weight': '5 Kilograms',
-            'Type': 'Long Grain Rice',
-            'Origin': 'Mbeya, Tanzania',
-            'Quality': 'Premium Grade',
-            'Expiry': '12 Months from packaging'
-          },
-          specificationsSwahili: {
-            'Uzito': 'Kilo 5',
-            'Aina': 'Mchele wa Punje Ndefu',
-            'Asili': 'Mbeya, Tanzania',
-            'Ubora': 'Daraja la Juu',
-            'Mwisho': 'Miezi 12 kutoka kupakiwa'
-          }
-        }
-      ]
-      return generalProducts.find(p => p.id === productId) || null
-    }
-  }, [business, productId])
+  // Loading state
+  if (businessLoading || productLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">{t.loading}</p>
+        </div>
+      </div>
+    )
+  }
 
-  // Generate sample reviews
-  const reviews: Review[] = useMemo(() => {
-    if (!product) return []
-    
-    return [
-      {
-        id: 1,
-        customerName: 'John Mwalimu',
-        rating: 5,
-        comment: 'Excellent product! Very happy with the quality and service.',
-        commentSwahili: 'Bidhaa bora sana! Nimefurahi na ubora na huduma.',
-        date: '2024-01-15',
-        verified: true
-      },
-      {
-        id: 2,
-        customerName: 'Mary Kijana',
-        rating: 4,
-        comment: 'Good value for money. Fast delivery too.',
-        commentSwahili: 'Bei nzuri kwa ubora. Utoaji wa haraka pia.',
-        date: '2024-01-10',
-        verified: true
-      },
-      {
-        id: 3,
-        customerName: 'Peter Simba',
-        rating: 5,
-        comment: 'Highly recommend this product. Will buy again.',
-        commentSwahili: 'Napendekeza sana bidhaa hii. Nitanunua tena.',
-        date: '2024-01-05',
-        verified: false
-      }
-    ]
-  }, [product])
+  // Error state
+  if (error || !business) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <XMarkIcon className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">{t.error}</h2>
+          <Link 
+            href={`/store/${slug}/products`}
+            className="text-blue-600 hover:text-blue-700 font-medium"
+          >
+            {t.backToCatalog}
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
-  // Generate related products
-  const relatedProducts = useMemo(() => {
-    if (!business || !product) return []
+  // Product not found
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">📦</div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">{t.productNotFound}</h2>
+          <Link 
+            href={`/store/${slug}/products`}
+            className="text-blue-600 hover:text-blue-700 font-medium"
+          >
+            {t.backToCatalog}
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  const primaryColor = business?.businessSetting?.primaryColor || '#2563eb'
+  const productName = (language === 'sw' && product.nameSwahili) ? product.nameSwahili : product.name
+  const productDescription = product.description || ''
+  
+  // Handle product images
+  const productImages = product.images && product.images.length > 0 
+    ? product.images.sort((a, b) => a.sortOrder - b.sortOrder)
+    : (product.imageUrl ? [{ id: 0, url: product.imageUrl, isPrimary: true, sortOrder: 0 }] : [])
+  
+  const currentImage = productImages[selectedImageIndex]
+  
+  // Calculate inventory status
+  const inventory = product.inventory
+  const stockQuantity = inventory?.quantity || 0
+  const isInStock = stockQuantity > 0
+  const isLowStock = inventory?.reorderPoint && stockQuantity <= inventory.reorderPoint
+
+  // Cart management functions
+  const addToCart = () => {
+    if (!product || !business) return 0
     
-    if (business.businessType === 'Electronics') {
-      return [
-        { id: 3, name: 'AirPods Pro', nameSwahili: 'AirPods Pro', price: 280000, rating: 4.7, category: 'Audio' },
-        { id: 4, name: 'MacBook Air', nameSwahili: 'MacBook Air', price: 1800000, rating: 4.9, category: 'Laptops' }
-      ].filter(p => p.id !== productId)
+    const cartItem = {
+      productId: product.id,
+      name: product.name,
+      nameSwahili: product.nameSwahili || product.name,
+      quantity: quantity,
+      price: product.wholesalePrice && product.wholesalePrice < product.price 
+        ? product.wholesalePrice 
+        : product.price,
+      image: productImages.length > 0 ? productImages[0].url : undefined,
+      category: product.category?.name,
+      unit: product.unit
     }
-    return []
-  }, [business, product, productId])
+
+    return addToCartHook(cartItem)
+  }
+
+  const handleAddToCart = async () => {
+    setIsAddingToCart(true)
+    
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 800))
+    
+    // Add to cart
+    addToCart()
+    
+    // Force cart update event for real-time badge update
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cartUpdated'))
+    }
+    
+    setIsAddingToCart(false)
+    setShowCartSuccess(true)
+    
+    // Hide success message after 3 seconds
+    setTimeout(() => {
+      setShowCartSuccess(false)
+    }, 3000)
+  }
+
+  const handleBuyNow = () => {
+    if (!product || !business) return
+    
+    // Add to cart first
+    addToCart()
+    
+    // Force cart update event
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cartUpdated'))
+    }
+    
+    // Redirect to cart page first
+    router.push(`/store/${slug}/cart`)
+  }
+
+  // Image navigation functions with animation
+  const goToPreviousImage = () => {
+    if (productImages.length > 1 && !isTransitioning) {
+      setIsTransitioning(true)
+      setTimeout(() => {
+        setSelectedImageIndex((prev) => 
+          prev === 0 ? productImages.length - 1 : prev - 1
+        )
+        setIsTransitioning(false)
+      }, 150)
+    }
+  }
+
+  const goToNextImage = () => {
+    if (productImages.length > 1 && !isTransitioning) {
+      setIsTransitioning(true)
+      setTimeout(() => {
+        setSelectedImageIndex((prev) => 
+          prev === productImages.length - 1 ? 0 : prev + 1
+        )
+        setIsTransitioning(false)
+      }, 150)
+    }
+  }
+
+  // Touch/swipe handlers for mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(0) // Reset touch end
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return
+    
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > 50
+    const isRightSwipe = distance < -50
+
+    if (isLeftSwipe && productImages.length > 1) {
+      goToNextImage()
+    }
+    if (isRightSwipe && productImages.length > 1) {
+      goToPreviousImage()
+    }
+  }
+
+  // Keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowLeft') {
+      goToPreviousImage()
+    } else if (e.key === 'ArrowRight') {
+      goToNextImage()
+    }
+  }
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('sw-TZ', {
@@ -302,416 +301,407 @@ export default function ProductDetailsPage() {
     }).format(price)
   }
 
-  const handleQuantityChange = (newQuantity: number) => {
-    if (newQuantity >= 1 && newQuantity <= (product?.stockCount || 1)) {
-      setQuantity(newQuantity)
+  const calculateSavings = () => {
+    if (product.wholesalePrice && product.price > product.wholesalePrice) {
+      const savings = product.price - product.wholesalePrice
+      const percentage = Math.round((savings / product.price) * 100)
+      return { amount: savings, percentage }
     }
+    return null
   }
 
-  const handleShare = () => {
-    if (navigator.share && business && product) {
-      navigator.share({
-        title: language === 'sw' ? product.nameSwahili : product.name,
-        text: language === 'sw' ? product.descriptionSwahili : product.description,
-        url: window.location.href,
-      }).catch(() => {
-        // Fallback to clipboard
-        navigator.clipboard.writeText(window.location.href)
-      })
-    } else {
-      // Fallback to clipboard
-      navigator.clipboard.writeText(window.location.href)
-    }
-  }
-
-  if (!business) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Loading...</h2>
-          <p className="text-gray-600">Please wait while we load the store information.</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!product) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <XMarkIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">{t.productNotFound}</h2>
-          <p className="text-gray-600 mb-6">{t.productNotFoundDesc}</p>
-          <Link
-            href={`/store/${business.slug}/products`}
-            className="inline-flex items-center px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition-colors"
-          >
-            <ChevronLeftIcon className="w-4 h-4 mr-2" />
-            {t.backToCatalog}
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  const productName = language === 'sw' ? product.nameSwahili : product.name
-  const productDescription = language === 'sw' ? product.fullDescriptionSwahili : product.fullDescription
-  const productSpecs = language === 'sw' ? product.specificationsSwahili : product.specifications
+  const savings = calculateSavings()
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Breadcrumb */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <nav className="flex items-center space-x-2 text-sm">
+    <div className="min-h-screen bg-white">
+      {/* Cart Success Notification */}
+      {showCartSuccess && (
+        <div className="fixed top-20 right-4 z-50 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg transition-all duration-300 transform animate-pulse">
+          <div className="flex items-center space-x-2">
+            <CheckIcon className="h-5 w-5" />
+            <span className="font-medium">{t.addedToCart}</span>
+          </div>
+          <div className="mt-2 flex space-x-2">
             <Link
-              href={`/store/${business.slug}`}
-              className="text-gray-500 hover:text-gray-700"
+              href={`/store/${slug}/cart`}
+              className="text-xs bg-green-600 hover:bg-green-700 px-2 py-1 rounded transition-colors"
             >
-              {business.name}
+              {t.goToCart}
             </Link>
-            <span className="text-gray-400">/</span>
-            <Link
-              href={`/store/${business.slug}/products`}
-              className="text-gray-500 hover:text-gray-700"
+            <button
+              onClick={() => setShowCartSuccess(false)}
+              className="text-xs bg-green-400 hover:bg-green-500 px-2 py-1 rounded transition-colors"
             >
-              Products
-            </Link>
-            <span className="text-gray-400">/</span>
-            <span className="text-gray-900 font-medium">{productName}</span>
-          </nav>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="lg:grid lg:grid-cols-2 lg:gap-x-8 lg:items-start">
-          {/* Image Gallery */}
-          <div className="flex flex-col-reverse">
-            {/* Image thumbnails */}
-            <div className="hidden mt-6 w-full max-w-2xl mx-auto sm:block lg:max-w-none">
-              <div className="grid grid-cols-4 gap-6">
-                {product.images.map((_, index) => (
-                  <button
-                    key={index}
-                    className={`relative h-24 bg-white rounded-md flex items-center justify-center text-sm font-medium text-gray-900 cursor-pointer hover:bg-gray-50 ${
-                      index === selectedImageIndex ? 'ring-2 ring-teal-500' : ''
-                    }`}
-                    onClick={() => setSelectedImageIndex(index)}
-                  >
-                    <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 rounded-md flex items-center justify-center">
-                      <span className="text-gray-500 text-xs">Image {index + 1}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Main image */}
-            <div className="w-full aspect-w-1 aspect-h-1">
-              <div 
-                className="w-full h-96 bg-gradient-to-br from-gray-200 to-gray-400 rounded-lg flex items-center justify-center cursor-zoom-in"
-                onClick={() => setShowImageZoom(true)}
-              >
-                <div className="text-center">
-                  <MagnifyingGlassIcon className="w-8 h-8 text-gray-500 mx-auto mb-2" />
-                  <span className="text-gray-600 text-sm">{t.zoomImage}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Product info */}
-          <div className="mt-10 px-4 sm:px-0 sm:mt-16 lg:mt-0">
-            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">{productName}</h1>
-
-            <div className="mt-3">
-              <div className="flex items-center space-x-3">
-                <p className="text-3xl text-gray-900" style={{ color: business.primaryColor }}>
-                  {formatPrice(product.price)}
-                </p>
-                {product.originalPrice && (
-                  <>
-                    <p className="text-xl text-gray-500 line-through">
-                      {formatPrice(product.originalPrice)}
-                    </p>
-                    <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded">
-                      {t.youSave} {formatPrice(product.originalPrice - product.price)}
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Reviews */}
-            <div className="mt-3">
-              <div className="flex items-center">
-                <div className="flex items-center">
-                  {[0, 1, 2, 3, 4].map((rating) => (
-                    <StarIconSolid
-                      key={rating}
-                      className={`${
-                        product.rating > rating ? 'text-yellow-400' : 'text-gray-300'
-                      } h-5 w-5 flex-shrink-0`}
-                    />
-                  ))}
-                </div>
-                <p className="ml-3 text-sm text-gray-700">
-                  {product.reviewCount} {t.reviews}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-6">
-              <div className="text-base text-gray-700">{productDescription}</div>
-            </div>
-
-            {/* Product type badges */}
-            <div className="mt-6 flex items-center space-x-2">
-              {product.isWholesale && product.isRetail && (
-                <span className="bg-green-100 text-green-800 text-sm font-medium px-3 py-1 rounded-full">
-                  {t.bothTypes}
-                </span>
-              )}
-              {product.isWholesale && !product.isRetail && (
-                <span className="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
-                  {t.wholesaleOnly}
-                </span>
-              )}
-              {!product.isWholesale && product.isRetail && (
-                <span className="bg-purple-100 text-purple-800 text-sm font-medium px-3 py-1 rounded-full">
-                  {t.retailOnly}
-                </span>
-              )}
-            </div>
-
-            {/* Stock status */}
-            <div className="mt-6">
-              <div className="flex items-center">
-                <CheckIcon className={`h-5 w-5 ${product.inStock ? 'text-green-500' : 'text-red-500'}`} />
-                <p className={`ml-2 text-sm font-medium ${product.inStock ? 'text-green-600' : 'text-red-600'}`}>
-                  {product.inStock ? `${t.inStock} (${product.stockCount} available)` : t.outOfStock}
-                </p>
-              </div>
-            </div>
-
-            {/* Quantity and Add to Cart */}
-            {product.inStock && (
-              <div className="mt-10 flex flex-col sm:flex-row sm:items-end space-y-4 sm:space-y-0 sm:space-x-4">
-                <div>
-                  <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">
-                    {t.quantity}
-                  </label>
-                  <div className="mt-1 flex items-center">
-                    <button
-                      onClick={() => handleQuantityChange(quantity - 1)}
-                      disabled={quantity <= 1}
-                      className="p-2 border border-gray-300 rounded-l-md bg-gray-50 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 font-normal"
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      id="quantity"
-                      min="1"
-                      max={product.stockCount}
-                      value={quantity}
-                      onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 1)}
-                      className="w-16 text-center border-t border-b border-gray-300 py-2 text-gray-600 font-normal"
-                    />
-                    <button
-                      onClick={() => handleQuantityChange(quantity + 1)}
-                      disabled={quantity >= product.stockCount}
-                      className="p-2 border border-gray-300 rounded-r-md bg-gray-50 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 font-normal"
-                    >
-                      +
-                    </button>
-                  </div>
-                  <p className="mt-1 text-xs text-gray-500">
-                    {t.maxQuantity}: {product.stockCount}
-                  </p>
-                </div>
-
-                <div className="flex-1">
-                  <Link
-                    href={`/store/${business.slug}/order?productId=${product.id}&quantity=${quantity}`}
-                    className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
-                    style={{ backgroundColor: business.primaryColor }}
-                  >
-                    <ShoppingCartIcon className="w-5 h-5 mr-2" />
-                    {t.requestPurchase}
-                  </Link>
-                </div>
-              </div>
-            )}
-
-            {/* Action buttons */}
-            <div className="mt-6 flex items-center space-x-4">
-              <button
-                onClick={() => setIsFavorited(!isFavorited)}
-                className="flex items-center text-gray-500 hover:text-gray-700"
-              >
-                {isFavorited ? (
-                  <HeartIconSolid className="w-5 h-5 text-red-500 mr-2" />
-                ) : (
-                  <HeartIcon className="w-5 h-5 mr-2" />
-                )}
-                {isFavorited ? t.removeFromFavorites : t.addToFavorites}
-              </button>
-
-              <button
-                onClick={handleShare}
-                className="flex items-center text-gray-500 hover:text-gray-700"
-              >
-                <ShareIcon className="w-5 h-5 mr-2" />
-                {t.shareProduct}
-              </button>
-            </div>
+              {t.continueShopping}
+            </button>
           </div>
         </div>
-
-        {/* Product Details Tabs */}
-        <div className="mt-16 lg:mt-24">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
-              {['description', 'specifications', 'reviews'].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`${
-                    activeTab === tab
-                      ? 'border-teal-500 text-teal-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm capitalize`}
-                >
-                  {t[tab as keyof typeof t]}
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          <div className="mt-8">
-            {activeTab === 'description' && (
-              <div className="prose prose-sm text-gray-500">
-                <p>{productDescription}</p>
-              </div>
-            )}
-
-            {activeTab === 'specifications' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Object.entries(productSpecs).map(([key, value]) => (
-                  <div key={key} className="border-b border-gray-200 pb-2">
-                    <dt className="font-medium text-gray-900">{key}</dt>
-                    <dd className="mt-1 text-gray-600">{value}</dd>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {activeTab === 'reviews' && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium text-gray-900">{t.customerReviews}</h3>
-                  <button className="text-sm text-teal-600 hover:text-teal-700 font-medium">
-                    {t.writeReview}
-                  </button>
-                </div>
-
-                {reviews.length === 0 ? (
-                  <div className="text-center py-6">
-                    <p className="text-gray-500">{t.noReviews}</p>
-                    <p className="text-sm text-gray-400">{t.noReviewsDesc}</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {reviews.map((review) => (
-                      <div key={review.id} className="border-b border-gray-200 pb-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <h4 className="font-medium text-gray-900">{review.customerName}</h4>
-                            <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
-                              review.verified ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
-                            }`}>
-                              {review.verified ? t.verified : t.unverified}
-                            </span>
-                          </div>
-                          <time className="text-sm text-gray-500">{review.date}</time>
-                        </div>
-                        <div className="mt-1 flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <StarIconSolid
-                              key={i}
-                              className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400' : 'text-gray-300'}`}
-                            />
-                          ))}
-                        </div>
-                        <p className="mt-2 text-gray-700">
-                          {language === 'sw' ? review.commentSwahili : review.comment}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Related Products */}
-        {relatedProducts.length > 0 && (
-          <div className="mt-16 lg:mt-24">
-            <h2 className="text-2xl font-extrabold text-gray-900 mb-6">{t.relatedProducts}</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {relatedProducts.map((relatedProduct) => (
-                <Link
-                  key={relatedProduct.id}
-                  href={`/store/${business.slug}/products/${relatedProduct.id}`}
-                  className="group relative bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-lg transition-shadow"
-                >
-                  <div className="w-full h-48 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                    <span className="text-gray-500 text-sm">Product Image</span>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="text-sm font-medium text-gray-900 group-hover:text-gray-700">
-                      {language === 'sw' ? relatedProduct.nameSwahili : relatedProduct.name}
-                    </h3>
-                    <div className="mt-1 flex items-center">
-                      <div className="flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                          <StarIconSolid
-                            key={i}
-                            className={`w-3 h-3 ${i < Math.floor(relatedProduct.rating) ? 'text-yellow-400' : 'text-gray-300'}`}
-                          />
-                        ))}
-                      </div>
-                      <span className="ml-1 text-xs text-gray-500">({relatedProduct.rating})</span>
-                    </div>
-                    <p className="mt-1 text-lg font-medium text-gray-900" style={{ color: business.primaryColor }}>
-                      {formatPrice(relatedProduct.price)}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Image Zoom Modal */}
-      {showImageZoom && (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center p-4">
+      {showImageZoom && currentImage && (
+        <div 
+          className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4 transition-opacity duration-300"
+          onClick={() => setShowImageZoom(false)}
+        >
           <div className="relative max-w-4xl max-h-full">
             <button
               onClick={() => setShowImageZoom(false)}
-              className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
+              className="absolute top-4 right-4 text-white hover:text-gray-300 z-10 transition-colors duration-200"
             >
-              <XMarkIcon className="w-8 h-8" />
+              <XMarkIcon className="h-8 w-8" />
             </button>
-            <div className="w-full h-96 bg-gradient-to-br from-gray-300 to-gray-500 rounded-lg flex items-center justify-center">
-              <span className="text-white text-lg">{t.closeZoom}</span>
+            
+            {/* Navigation arrows in zoom modal */}
+            {productImages.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    goToPreviousImage()
+                  }}
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 z-10 transition-all duration-200 hover:scale-110"
+                >
+                  <ChevronLeftSolid className="h-12 w-12" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    goToNextImage()
+                  }}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-300 z-10 transition-all duration-200 hover:scale-110"
+                >
+                  <ChevronRightIcon className="h-12 w-12" />
+                </button>
+              </>
+            )}
+            
+            <div className={`transition-all duration-300 ${isTransitioning ? 'opacity-50 scale-95' : 'opacity-100 scale-100'}`}>
+              <Image
+                src={currentImage.url}
+                alt={productName}
+                width={800}
+                height={800}
+                className="max-w-full max-h-full object-contain"
+                onClick={(e) => e.stopPropagation()}
+              />
             </div>
           </div>
         </div>
       )}
+
+      {/* Header with back navigation */}
+      <div className="sticky top-0 z-40 bg-white border-b border-gray-200 px-4 py-3">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
+          <Link 
+            href={`/store/${slug}/products`}
+            className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <ChevronLeftIcon className="h-5 w-5 mr-1" />
+            <span className="font-medium">{t.backToCatalog}</span>
+          </Link>
+          
+          <div className="flex items-center space-x-3">
+            <button 
+              onClick={() => setIsFavorited(!isFavorited)}
+              className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              {isFavorited ? (
+                <HeartIconSolid className="h-6 w-6 text-red-500" />
+              ) : (
+                <HeartIcon className="h-6 w-6 text-gray-600" />
+              )}
+            </button>
+            <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+              <ShareIcon className="h-6 w-6 text-gray-600" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="lg:grid lg:grid-cols-2 lg:gap-12">
+          {/* Product Images Gallery */}
+          <div className="mb-8 lg:mb-0">
+            {/* Main Image with Navigation */}
+            <div 
+              className="relative aspect-square bg-gray-100 rounded-2xl overflow-hidden shadow-sm mb-4"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onKeyDown={handleKeyDown}
+              tabIndex={0}
+            >
+              {currentImage ? (
+                <div className="relative w-full h-full">
+                  <div className={`w-full h-full transition-all duration-500 ease-in-out ${
+                    isTransitioning 
+                      ? 'opacity-0 transform scale-105' 
+                      : 'opacity-100 transform scale-100'
+                  }`}>
+                    <Image 
+                      src={currentImage.url} 
+                      alt={productName}
+                      width={600}
+                      height={600}
+                      className="w-full h-full object-cover cursor-pointer transition-transform duration-300 hover:scale-105"
+                      priority
+                      onClick={() => setShowImageZoom(true)}
+                    />
+                  </div>
+                  
+                  {/* Navigation Arrows for Desktop */}
+                  {productImages.length > 1 && (
+                    <>
+                      <button
+                        onClick={goToPreviousImage}
+                        disabled={isTransitioning}
+                        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 hover:bg-opacity-75 text-white p-2 rounded-full transition-all duration-200 hidden md:flex items-center justify-center hover:scale-110 disabled:opacity-50 disabled:scale-100"
+                        aria-label={t.previousImage}
+                      >
+                        <ChevronLeftSolid className="h-6 w-6" />
+                      </button>
+                      <button
+                        onClick={goToNextImage}
+                        disabled={isTransitioning}
+                        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 hover:bg-opacity-75 text-white p-2 rounded-full transition-all duration-200 hidden md:flex items-center justify-center hover:scale-110 disabled:opacity-50 disabled:scale-100"
+                        aria-label={t.nextImage}
+                      >
+                        <ChevronRightIcon className="h-6 w-6" />
+                      </button>
+                    </>
+                  )}
+
+                  {/* Image Counter and Swipe Hint */}
+                  {productImages.length > 1 && (
+                    <div className={`absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-60 text-white px-3 py-1 rounded-full text-sm flex items-center space-x-2 transition-all duration-300 ${
+                      isTransitioning ? 'opacity-50' : 'opacity-100'
+                    }`}>
+                      <span className="transition-all duration-300">{selectedImageIndex + 1} / {productImages.length}</span>
+                      <span className="hidden md:inline">•</span>
+                      <span className="text-xs text-gray-300 md:hidden">Swipe to navigate</span>
+                      <span className="text-xs text-gray-300 hidden md:inline">Use arrows or click thumbnails</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <div className="text-center text-gray-400">
+                    <div className="text-6xl mb-2">📦</div>
+                    <p>No image available</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Thumbnail Images */}
+            {productImages.length > 1 && (
+              <div className="flex space-x-3 overflow-x-auto pb-2">
+                {productImages.map((image, index) => (
+                  <button
+                    key={image.id}
+                    onClick={() => {
+                      if (!isTransitioning) {
+                        setIsTransitioning(true)
+                        setTimeout(() => {
+                          setSelectedImageIndex(index)
+                          setIsTransitioning(false)
+                        }, 150)
+                      }
+                    }}
+                    disabled={isTransitioning}
+                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-300 hover:scale-105 disabled:scale-100 ${
+                      selectedImageIndex === index 
+                        ? 'border-blue-500 shadow-lg' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <Image
+                      src={image.url}
+                      alt={`${productName} ${index + 1}`}
+                      width={80}
+                      height={80}
+                      className="w-full h-full object-cover transition-transform duration-200"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Product Details */}
+          <div className="lg:pt-4">
+            {/* Product Name and Category */}
+            <div className="mb-6">
+              {product.category && (
+                <p className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">
+                  {product.category.name}
+                </p>
+              )}
+              <h1 className="text-3xl font-bold text-gray-900 leading-tight mb-4">
+                {productName}
+              </h1>
+              
+              {/* Stock Status */}
+              <div className="flex items-center mb-4">
+                {isInStock ? (
+                  <div className="flex items-center">
+                    <CheckIcon className="h-5 w-5 text-green-500 mr-2" />
+                    <span className="text-green-600 font-medium">
+                      {isLowStock ? t.lowStock : t.inStock}
+                    </span>
+                    <span className="text-gray-500 ml-2">
+                      ({stockQuantity} {t.stockLevel.toLowerCase()})
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center">
+                    <XMarkIcon className="h-5 w-5 text-red-500 mr-2" />
+                    <span className="text-red-600 font-medium">{t.outOfStock}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Price */}
+            <div className="mb-8">
+              <div className="flex items-baseline flex-wrap gap-2">
+                {/* Show wholesale price if available and different from regular price */}
+                {product.wholesalePrice && product.wholesalePrice < product.price ? (
+                  <>
+                    <span className="text-lg text-gray-500 line-through">
+                      {formatPrice(product.price)}
+                    </span>
+                    <span className="text-3xl font-bold text-red-600">
+                      {formatPrice(product.wholesalePrice)}
+                    </span>
+                    {savings && (
+                      <span className="bg-red-100 text-red-800 text-sm font-medium px-2 py-1 rounded-full">
+                        {t.saveAmount} {savings.percentage}%
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-3xl font-bold text-gray-900">
+                    {formatPrice(product.price)}
+                  </span>
+                )}
+                
+                {product.unit && (
+                  <span className="text-gray-500 text-lg">per {product.unit}</span>
+                )}
+              </div>
+            </div>
+
+            {/* Quantity and Add to Cart */}
+            <div className="mb-8">
+              <div className="flex items-center space-x-4 mb-6">
+                <div className="flex items-center">
+                  <label className="text-sm font-medium text-gray-700 mr-3">
+                    {t.quantity}:
+                  </label>
+                  <div className="flex items-center border border-gray-300 rounded-lg">
+                    <button 
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      className="p-2 hover:bg-gray-100 transition-colors disabled:opacity-50 text-gray-600"
+                      disabled={!isInStock}
+                    >
+                      -
+                    </button>
+                    <span className="px-4 py-2 min-w-[3rem] text-center text-gray-700">
+                      {quantity}
+                    </span>
+                    <button 
+                      onClick={() => setQuantity(Math.min(stockQuantity, quantity + 1))}
+                      className="p-2 hover:bg-gray-100 transition-colors disabled:opacity-50 text-gray-600"
+                      disabled={!isInStock || quantity >= stockQuantity}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={handleAddToCart}
+                  disabled={!isInStock || isAddingToCart}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold py-4 px-6 rounded-xl transition-colors flex items-center justify-center"
+                  style={{ backgroundColor: isInStock ? primaryColor : undefined }}
+                >
+                  {isAddingToCart ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  ) : (
+                    <>
+                      <ShoppingCartIcon className="h-5 w-5 mr-2" />
+                      {isInStock ? t.addToCart : t.outOfStock}
+                    </>
+                  )}
+                </button>
+                
+                {isInStock && (
+                  <button
+                    onClick={handleBuyNow}
+                    className="flex-1 bg-gray-900 hover:bg-gray-800 text-white font-semibold py-4 px-6 rounded-xl transition-colors"
+                  >
+                    {t.buyNow}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Product Description */}
+            {productDescription && (
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  {t.description}
+                </h3>
+                <p className="text-gray-600 leading-relaxed">
+                  {productDescription}
+                </p>
+              </div>
+            )}
+
+            {/* Product Details */}
+            <div className="space-y-4">
+              {product.sku && (
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-gray-600">{t.sku}:</span>
+                  <span className="font-medium text-gray-900">{product.sku}</span>
+                </div>
+              )}
+              
+              {product.barcode && (
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-gray-600">{t.barcode}:</span>
+                  <span className="font-medium text-gray-900">{product.barcode}</span>
+                </div>
+              )}
+              
+              {product.category && (
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-gray-600">{t.category}:</span>
+                  <span className="font-medium text-gray-900">{product.category.name}</span>
+                </div>
+              )}
+              
+              {product.unit && (
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-gray-600">{t.unit}:</span>
+                  <span className="font-medium text-gray-900">{product.unit}</span>
+                </div>
+              )}
+
+              {inventory?.location && (
+                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-gray-600">{t.location}:</span>
+                  <span className="font-medium text-gray-900">{inventory.location}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

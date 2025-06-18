@@ -192,7 +192,7 @@ export default function ProductCatalogPage() {
                     placeholder={t.searchPlaceholder}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700"
                   />
                 </div>
               </div>
@@ -205,7 +205,7 @@ export default function ProductCatalogPage() {
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700"
                 >
                   <option value="all">{t.allCategories}</option>
                   {categories.map((category) => (
@@ -229,11 +229,11 @@ export default function ProductCatalogPage() {
                     step="1000"
                       value={priceRange[1]}
                     onChange={(e) => setPriceRange([0, parseInt(e.target.value)])}
-                    className="w-full"
+                    className="w-full text-gray-700"
                     />
                   <div className="flex justify-between text-sm text-gray-600">
-                    <span>{formatPrice(0)}</span>
-                    <span>{formatPrice(priceRange[1])}</span>
+                    <span className="text-gray-700">{formatPrice(0)}</span>
+                    <span className="text-gray-700">{formatPrice(priceRange[1])}</span>
                   </div>
                 </div>
               </div>
@@ -262,7 +262,7 @@ export default function ProductCatalogPage() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-700"
                 >
                   <option value="created">{t.newest}</option>
                   <option value="name">{t.popular}</option>
@@ -319,11 +319,22 @@ export default function ProductCatalogPage() {
                   >
                     <div className="aspect-w-4 aspect-h-3 bg-gray-200">
                       <Image
-                        src="/placeholder-product.jpg"
+                        src={
+                          // Use primary image if available
+                          product.images?.find(img => img.isPrimary)?.url ||
+                          // Otherwise use first image
+                          product.images?.[0]?.url ||
+                          // Fallback to legacy imageUrl field if exists
+                          product.imageUrl ||
+                          // Final fallback to placeholder
+                          "/images/placeholder-product.svg"
+                        }
                         alt={product.name}
+                        width={200}
+                        height={200}
                         className="w-full h-48 object-cover"
                         onError={(e) => {
-                          e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%236b7280' font-family='Arial, sans-serif' font-size='14'%3ENo Image%3C/text%3E%3C/svg%3E"
+                          e.currentTarget.src = "/images/placeholder-product.svg"
                         }}
                       />
                     </div>

@@ -6,7 +6,8 @@ import CustomerHero from '../../components/store/CustomerHero'
 import FeaturedProducts from '../../components/store/FeaturedProducts'
 import CategoriesGrid from '../../components/store/CategoriesGrid'
 import AboutBusiness from '../../components/store/AboutBusiness'
-import QuickActions from '../../components/store/QuickActions'
+import ClientOnlyToolbar from '../../components/ClientOnlyToolbar'
+
 
 export default function CustomerHomepage() {
   const params = useParams()
@@ -33,21 +34,25 @@ export default function CustomerHomepage() {
   }
 
   return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
+    <div className="min-h-screen bg-white">
+      {/* Hero Section - Primary CTA */}
       <CustomerHero />
 
-      {/* Quick Actions */}
-      <QuickActions />
+      {/* Categories Grid - Product Discovery */}
+      <section className="py-16 bg-white">
+        <CategoriesGrid />
+      </section>
 
-      {/* Featured Products */}
-      <FeaturedProducts />
+      {/* Featured Products - Social Proof */}
+      <section className="py-16 bg-gray-50">
+        <FeaturedProducts />
+      </section>
 
-      {/* Categories Grid */}
-      <CategoriesGrid />
-
-      {/* About Business */}
-      <AboutBusiness />
+      {/* About Business - Trust Building */}
+      <section className="py-16 bg-white">
+        <AboutBusiness />
+      </section>
+      <ClientOnlyToolbar />
     </div>
   )
 } 

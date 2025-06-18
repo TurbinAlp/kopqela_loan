@@ -42,6 +42,13 @@ interface Business {
     feature4Description?: string
     feature4DescriptionSwahili?: string
     feature4Icon?: string
+    // Business Operations
+    businessHours?: Array<{day: string, open: string, close: string, isOpen: boolean}>
+    paymentMethods?: string[]
+    deliveryAreas?: string[]
+    deliveryFee?: number
+    freeDeliveryMinimum?: number
+    estimatedDeliveryTime?: string
   }
   _count?: {
     products: number

@@ -1068,13 +1068,15 @@ export default function EditProductPage() {
                             : 'border-gray-200 hover:border-gray-300'
                         }`}
                       >
-                        <Image
-                          src={image.url}
-                          alt={`Product ${index + 1}`}
-                          className="w-full h-full object-cover"
-                          fill
-                          sizes="(max-width: 768px) 100vw, 33vw"
-                        />
+                        <div className="aspect-w-4 aspect-h-3 bg-gray-200">
+                          <Image
+                            src={image.url}
+                            alt={`Product ${index + 1}`}
+                            width={200}
+                            height={200}
+                            className="w-full h-48 object-cover"
+                          />
+                        </div>
                         
                         {/* Overlay */}
                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200">

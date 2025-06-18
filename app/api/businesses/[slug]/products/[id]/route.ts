@@ -121,10 +121,11 @@ export async function GET(
         costPrice: product.costPrice,
         unit: product.unit,
         imageUrl: (() => {
-          // Get primary image from product images, fallback to legacy imageUrl
+          // Get primary image from product images
           const primaryImage = product.images?.find(img => img.isPrimary);
-          return primaryImage?.url || product.imageUrl || null;
+          return primaryImage?.url || product.images?.[0]?.url || null;
         })(),
+        images: product.images || [],
         isActive: product.isActive,
         category: product.category,
         inventory: product.inventory[0] || null,
@@ -338,11 +339,7 @@ export async function PUT(
         wholesalePrice: product.wholesalePrice,
         costPrice: product.costPrice,
         unit: product.unit,
-        imageUrl: (() => {
-          // For public API, return legacy imageUrl for now
-          // In future, can update to return primary image URL
-          return product.imageUrl;
-        })(),
+        imageUrl: null, // Legacy field - images are now in separate ProductImage table
         isActive: product.isActive,
         category: product.category,
         createdAt: product.createdAt,

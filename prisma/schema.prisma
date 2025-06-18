@@ -194,6 +194,13 @@ model BusinessSetting {
   feature4Description       String?  @map("feature4_description") @db.VarChar(255)
   feature4DescriptionSwahili String? @map("feature4_description_swahili") @db.VarChar(255)
   feature4Icon              String?  @map("feature4_icon") @db.VarChar(50)
+  // Business Hours & Operations
+  businessHours             Json?    @map("business_hours") // JSON array of {day, open, close, isOpen}
+  paymentMethods            Json?    @map("payment_methods") // JSON array of payment methods
+  deliveryAreas             Json?    @map("delivery_areas") // JSON array of delivery areas
+  deliveryFee               Decimal? @map("delivery_fee") @db.Decimal(10, 2)
+  freeDeliveryMinimum       Decimal? @map("free_delivery_minimum") @db.Decimal(10, 2)
+  estimatedDeliveryTime     String?  @map("estimated_delivery_time") @db.VarChar(100)
   // Timestamps
   createdAt                 DateTime @default(now()) @map("created_at")
   updatedAt                 DateTime @updatedAt @map("updated_at")

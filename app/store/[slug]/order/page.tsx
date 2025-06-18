@@ -11,19 +11,22 @@ import {
   CreditCardIcon,
   BanknotesIcon,
   ClockIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
 } from '@heroicons/react/24/outline'
 import { CheckIcon as CheckIconSolid } from '@heroicons/react/24/solid'
 
 interface OrderItem {
   productId: number
-  productName: string
-  productNameSwahili: string
+  name: string
+  nameSwahili: string
   quantity: number
   price: number
   subtotal: number
-  inStock: boolean
-  stockCount: number
+  image?: string
+  category?: string
+  unit?: string
+  inStock?: boolean
+  stockCount?: number
 }
 
 interface PaymentMethod {
@@ -430,8 +433,8 @@ export default function OrderRequestPage() {
               if (business.businessType === 'Electronics') {
         sampleProduct = {
           productId: 1,
-          productName: 'iPhone 15 Pro',
-          productNameSwahili: 'iPhone 15 Pro',
+          name: 'iPhone 15 Pro',
+          nameSwahili: 'iPhone 15 Pro',
           quantity: parseInt(urlQuantity),
           price: 1200000,
           inStock: true,
@@ -440,8 +443,8 @@ export default function OrderRequestPage() {
       } else if (business.businessType === 'Fashion & Clothing') {
         sampleProduct = {
           productId: 1,
-          productName: 'Elegant Dress',
-          productNameSwahili: 'Nguo ya Kifahari',
+          name: 'Elegant Dress',
+          nameSwahili: 'Nguo ya Kifahari',
           quantity: parseInt(urlQuantity),
           price: 65000,
           inStock: true,
@@ -450,8 +453,8 @@ export default function OrderRequestPage() {
       } else {
         sampleProduct = {
           productId: 1,
-          productName: 'Rice 5kg',
-          productNameSwahili: 'Mchele Kilo 5',
+          name: 'Rice 5kg',
+          nameSwahili: 'Mchele Kilo 5',
           quantity: parseInt(urlQuantity),
           price: 12000,
           inStock: true,
@@ -841,10 +844,10 @@ export default function OrderRequestPage() {
                     <div key={item.productId} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                       <div className="flex-1">
                         <h3 className="font-medium text-gray-900">
-                          {language === 'sw' ? item.productNameSwahili : item.productName}
+                          {language === 'sw' ? item.nameSwahili : item.name}
                         </h3>
                         <p className={`text-sm ${item.inStock ? 'text-green-600' : 'text-red-600'}`}>
-                          {item.inStock ? `${t.inStock} (${item.stockCount})` : t.outOfStock}
+                          {item.inStock ? `${t.inStock} (${item.stockCount || 0})` : t.outOfStock}
                         </p>
                       </div>
                       
@@ -860,9 +863,9 @@ export default function OrderRequestPage() {
                             {item.quantity}
                           </span>
                           <button
-                            onClick={() => updateQuantity(item.productId, Math.min(item.stockCount, item.quantity + 1))}
+                            onClick={() => updateQuantity(item.productId, Math.min(item.stockCount || 999, item.quantity + 1))}
                             className="p-1 border border-gray-300 rounded-r-md hover:bg-gray-50 text-gray-600 font-normal disabled:text-gray-400"
-                            disabled={item.quantity >= item.stockCount}
+                            disabled={item.quantity >= (item.stockCount || 999)}
                           >
                             +
                           </button>
@@ -1625,7 +1628,7 @@ export default function OrderRequestPage() {
                 <div className="space-y-2">
                   {orderItems.map((item) => (
                     <div key={item.productId} className="flex justify-between">
-                      <span className='text-gray-700'>{language === 'sw' ? item.productNameSwahili : item.productName} × {item.quantity}</span>
+                      <span className='text-gray-700'>{language === 'sw' ? item.nameSwahili : item.name} × {item.quantity}</span>
                       <span className='text-gray-700'>{formatPrice(item.subtotal)}</span>
                     </div>
                   ))}
