@@ -49,6 +49,8 @@ interface Business {
     deliveryFee?: number
     freeDeliveryMinimum?: number
     estimatedDeliveryTime?: string
+    // Display Settings
+    showAboutSection?: boolean
   }
   _count?: {
     products: number

@@ -95,6 +95,8 @@ interface BusinessSettings {
   deliveryFee: number
   freeDeliveryMinimum: number
   estimatedDeliveryTime: string
+  // Display Settings
+  showAboutSection: boolean
 }
 
 export default function EditBusinessPage() {
@@ -159,13 +161,23 @@ export default function EditBusinessPage() {
     feature4Description: '',
     feature4DescriptionSwahili: '',
     feature4Icon: 'ShieldCheckIcon',
-    // Business Operations
-    businessHours: [],
+          // Business Operations
+      businessHours: [
+        { day: 'Monday', open: '09:00', close: '18:00', isOpen: true },
+        { day: 'Tuesday', open: '09:00', close: '18:00', isOpen: true },
+        { day: 'Wednesday', open: '09:00', close: '18:00', isOpen: true },
+        { day: 'Thursday', open: '09:00', close: '18:00', isOpen: true },
+        { day: 'Friday', open: '09:00', close: '18:00', isOpen: true },
+        { day: 'Saturday', open: '09:00', close: '17:00', isOpen: true },
+        { day: 'Sunday', open: '10:00', close: '16:00', isOpen: false }
+      ],
     paymentMethods: ['Cash', 'Mobile Money', 'Bank Transfer'],
     deliveryAreas: ['Dar es Salaam', 'Mwanza', 'Arusha'],
-    deliveryFee: 3000,
-    freeDeliveryMinimum: 50000,
-    estimatedDeliveryTime: '1-3 business days'
+          deliveryFee: 3000,
+      freeDeliveryMinimum: 50000,
+      estimatedDeliveryTime: '1-3 business days',
+      // Display Settings
+      showAboutSection: false
   })
 
   const translations = {
@@ -264,7 +276,10 @@ export default function EditBusinessPage() {
       addArea: 'Add Area',
       deliveryFee: 'Delivery Fee (TZS)',
       freeDeliveryMinimum: 'Free Delivery Minimum (TZS)',
-      estimatedTime: 'Estimated Delivery Time'
+      estimatedTime: 'Estimated Delivery Time',
+      // Display Settings
+      displaySettings: 'Display Settings',
+      showAboutSection: 'Show About Section'
     },
     sw: {
       pageTitle: 'Hariri Biashara',
@@ -361,7 +376,10 @@ export default function EditBusinessPage() {
       addArea: 'Ongeza Eneo',
       deliveryFee: 'Ada ya Uwasilishaji (TZS)',
       freeDeliveryMinimum: 'Ukomo wa Uwasilishaji Bure (TZS)',
-      estimatedTime: 'Muda wa Uwasilishaji'
+      estimatedTime: 'Muda wa Uwasilishaji',
+      // Display Settings
+      displaySettings: 'Mipangilio ya Onyesho',
+      showAboutSection: 'Onyesha Sehemu ya Kuhusu'
     }
   }
 
@@ -444,9 +462,11 @@ export default function EditBusinessPage() {
           businessHours: business.businessHours,
           paymentMethods: business.paymentMethods ,
           deliveryAreas: business.deliveryAreas,
-          deliveryFee: business.deliveryFee ,
-          freeDeliveryMinimum: business.freeDeliveryMinimum ,
-          estimatedDeliveryTime: business.estimatedDeliveryTime
+                     deliveryFee: business.deliveryFee ,
+           freeDeliveryMinimum: business.freeDeliveryMinimum ,
+           estimatedDeliveryTime: business.estimatedDeliveryTime,
+           // Display Settings
+           showAboutSection: business.showAboutSection ?? false
         })
       }
     } catch (error) {
@@ -975,7 +995,7 @@ export default function EditBusinessPage() {
             <div className="border-t border-gray-200 pt-6">
               <h4 className="text-lg font-medium text-gray-900 mb-4">{t.businessHours}</h4>
               <div className="space-y-3">
-                {settings.businessHours.map((hour, index) => (
+                {(settings.businessHours || []).map((hour, index) => (
                   <div key={hour.day} className="grid grid-cols-5 gap-4 items-center">
                     <div className="font-medium text-gray-700">{hour.day}</div>
                     <div className="flex items-center">
@@ -1022,7 +1042,7 @@ export default function EditBusinessPage() {
             <div className="border-t border-gray-200 pt-6">
               <h4 className="text-lg font-medium text-gray-900 mb-4">{t.paymentMethods}</h4>
               <div className="space-y-3">
-                {settings.paymentMethods.map((method, index) => (
+                {(settings.paymentMethods || []).map((method, index) => (
                   <div key={index} className="flex items-center space-x-3">
                     <input
                       type="text"
@@ -1052,7 +1072,7 @@ export default function EditBusinessPage() {
                   onClick={() => {
                     setSettings(prev => ({ 
                       ...prev, 
-                      paymentMethods: [...prev.paymentMethods, ''] 
+                      paymentMethods: [...(prev.paymentMethods || []), ''] 
                     }))
                   }}
                   className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 font-medium"
@@ -1070,7 +1090,7 @@ export default function EditBusinessPage() {
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-3">{t.deliveryAreas}</label>
                 <div className="space-y-3">
-                  {settings.deliveryAreas.map((area, index) => (
+                  {(settings.deliveryAreas || []).map((area, index) => (
                     <div key={index} className="flex items-center space-x-3">
                       <input
                         type="text"
@@ -1100,7 +1120,7 @@ export default function EditBusinessPage() {
                     onClick={() => {
                       setSettings(prev => ({ 
                         ...prev, 
-                        deliveryAreas: [...prev.deliveryAreas, ''] 
+                        deliveryAreas: [...(prev.deliveryAreas || []), ''] 
                       }))
                     }}
                     className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 font-medium"
@@ -1152,6 +1172,31 @@ export default function EditBusinessPage() {
                     placeholder="1-3 business days"
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Display Settings Section */}
+            <div className="border-t border-gray-200 pt-6">
+              <h4 className="text-lg font-medium text-gray-900 mb-4">{t.displaySettings}</h4>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="showAboutSection"
+                    checked={settings.showAboutSection}
+                    onChange={(e) => handleInputChange('showAboutSection', e.target.checked)}
+                    className="w-4 h-4 text-teal-600 bg-gray-100 border-gray-300 rounded focus:ring-teal-500"
+                  />
+                  <label htmlFor="showAboutSection" className="text-sm font-medium text-gray-700">
+                    {t.showAboutSection}
+                  </label>
+                </div>
+                <p className="text-sm text-gray-500 ml-7">
+                  {language === 'sw' 
+                    ? 'Kama imeunganishwa, sehemu ya "Kuhusu Sisi" itaonekana kwenye ukurasa wa duka la wateja'
+                    : 'When enabled, the "About Us" section will be displayed on the customer store page'
+                  }
+                </p>
               </div>
             </div>
           </div>

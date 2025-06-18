@@ -49,9 +49,11 @@ export default function CustomerHomepage() {
       </section>
 
       {/* About Business - Trust Building */}
-      <section className="py-16 bg-white">
-        <AboutBusiness />
-      </section>
+      {business?.businessSetting?.showAboutSection !== false && (
+        <section className="py-16 bg-white">
+          <AboutBusiness />
+        </section>
+      )}
       <ClientOnlyToolbar />
     </div>
   )

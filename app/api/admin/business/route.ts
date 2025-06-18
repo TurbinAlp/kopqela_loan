@@ -261,7 +261,9 @@ export async function PUT(request: NextRequest) {
       deliveryAreas,
       deliveryFee,
       freeDeliveryMinimum,
-      estimatedDeliveryTime
+      estimatedDeliveryTime,
+      // Display Settings
+      showAboutSection
     } = updateData
 
     // Update business basic info
@@ -329,6 +331,8 @@ export async function PUT(request: NextRequest) {
       deliveryFee?: number
       freeDeliveryMinimum?: number
       estimatedDeliveryTime?: string | null
+      // Display Settings
+      showAboutSection?: boolean
     } = {}
     if (description !== undefined) settingsUpdate.description = description
     if (address !== undefined) settingsUpdate.address = address
@@ -388,6 +392,8 @@ export async function PUT(request: NextRequest) {
     if (deliveryFee !== undefined) settingsUpdate.deliveryFee = deliveryFee
     if (freeDeliveryMinimum !== undefined) settingsUpdate.freeDeliveryMinimum = freeDeliveryMinimum
     if (estimatedDeliveryTime !== undefined) settingsUpdate.estimatedDeliveryTime = estimatedDeliveryTime
+    // Display Settings
+    if (showAboutSection !== undefined) settingsUpdate.showAboutSection = showAboutSection
 
     // Update business and settings in transaction
     const updatedBusiness = await prisma.$transaction(async (tx) => {

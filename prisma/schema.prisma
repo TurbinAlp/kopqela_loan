@@ -201,6 +201,8 @@ model BusinessSetting {
   deliveryFee               Decimal? @map("delivery_fee") @db.Decimal(10, 2)
   freeDeliveryMinimum       Decimal? @map("free_delivery_minimum") @db.Decimal(10, 2)
   estimatedDeliveryTime     String?  @map("estimated_delivery_time") @db.VarChar(100)
+  // Display Settings
+  showAboutSection          Boolean? @default(false) @map("show_about_section")
   // Timestamps
   createdAt                 DateTime @default(now()) @map("created_at")
   updatedAt                 DateTime @updatedAt @map("updated_at")
