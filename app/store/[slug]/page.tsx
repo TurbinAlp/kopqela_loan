@@ -6,7 +6,7 @@ import CustomerHero from '../../components/store/CustomerHero'
 import FeaturedProducts from '../../components/store/FeaturedProducts'
 import CategoriesGrid from '../../components/store/CategoriesGrid'
 import AboutBusiness from '../../components/store/AboutBusiness'
-import ClientOnlyToolbar from '../../components/ClientOnlyToolbar'
+
 
 
 export default function CustomerHomepage() {
@@ -54,7 +54,7 @@ export default function CustomerHomepage() {
           <AboutBusiness />
         </section>
       )}
-      <ClientOnlyToolbar />
+      
     </div>
   )
 } 
