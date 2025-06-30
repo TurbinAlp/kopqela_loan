@@ -104,6 +104,13 @@ export default function OrderRequestPage() {
     paymentTerms: '30', // days
     agreesToTerms: false
   })
+  const [selectedCreditPlan, setSelectedCreditPlan] = useState('6') // Default to 6 months
+  const [verificationData, setVerificationData] = useState({
+    fullName: '',
+    phone: '',
+    idNumber: '',
+    monthlyIncome: ''
+  })
 
   const translations = {
     en: {
@@ -631,8 +638,7 @@ export default function OrderRequestPage() {
         return isDeliverySelected && isInfoComplete
       case 4:
         if (selectedPaymentMethod === 'credit') {
-          // Step 4 for credit: Only validate customer type selection
-          return customerType !== ''
+          return selectedCreditPlan !== '' // Hakikisha plan imechaguliwa
         } else if (selectedPaymentMethod === 'partial') {
           // Partial payment validation
           return partialPayment.amountToPay > 0 && 
@@ -646,10 +652,10 @@ export default function OrderRequestPage() {
         if (selectedPaymentMethod === 'credit') {
           // Step 5 for credit: Validate employment/business information
           if (customerType === 'individual') {
-            return creditApplication.employerName && 
-                   creditApplication.jobTitle && 
-                   creditApplication.monthlyIncome && 
-                   creditApplication.employmentDuration
+            return verificationData.fullName && 
+                   verificationData.phone && 
+                   verificationData.idNumber && 
+                   verificationData.monthlyIncome
           } else {
             return creditApplication.businessName && 
                    creditApplication.businessType && 
@@ -665,11 +671,8 @@ export default function OrderRequestPage() {
         }
       case 6:
         if (selectedPaymentMethod === 'credit') {
-          // Step 6 for credit: Validate guarantor information and consent
-          return creditApplication.guarantorName && 
-                 creditApplication.guarantorPhone && 
-                 creditApplication.guarantorRelationship &&
-                 creditApplication.guarantorConsent
+          // Step 6 for credit: Only validate terms agreement (guarantor removed)
+          return agreesToTerms
         } else {
           // Final review for other payment methods
           return agreesToTerms
@@ -1116,26 +1119,28 @@ export default function OrderRequestPage() {
             </div>
           )}
 
-          {/* Step 4: Credit Application - Improved Multi-Step Process */}
+          {/* Step 4: Credit Purchase Terms - CORRECTED */}
           {currentStep === 4 && selectedPaymentMethod === 'credit' && (
             <div className="space-y-8">
               <div className="text-center">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-2">{t.creditDetails}</h2>
+                <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+                  {language === 'sw' ? 'Masharti ya Ununuzi kwa Mkopo' : 'Credit Purchase Terms'}
+                </h2>
                 <p className="text-gray-600 max-w-2xl mx-auto">
                   {language === 'sw' 
-                    ? 'Tutakusaidia kujaza ombi la mkopo kwa hatua rahisi. Hakuna haraka - chunguza kila hatua kwa utulivu.' 
-                    : 'We\'ll help you complete your credit application in easy steps. Take your time - review each step carefully.'}
+                    ? 'Chagua mipango ya malipo ambayo inakufaa. Utapokea bidhaa sasa na kulipa kwa awamu.' 
+                    : 'Choose a payment plan that works for you. You\'ll receive your products now and pay in installments.'}
                 </p>
               </div>
 
-              {/* Credit Application Progress */}
+              {/* Credit Purchase Progress */}
               <div className="bg-white border border-gray-200 rounded-lg p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-medium text-gray-900">
-                    {language === 'sw' ? 'Maelezo ya Mkopo' : 'Credit Application Progress'}
+                    {language === 'sw' ? 'Hatua za Ununuzi kwa Mkopo' : 'Credit Purchase Process'}
                   </h3>
                   <span className="text-sm text-gray-500">
-                    {language === 'sw' ? 'Hatua 1 ya 3' : 'Step 1 of 3'}
+                    {language === 'sw' ? 'Hatua 1 ya 4' : 'Step 1 of 4'}
                   </span>
                 </div>
                 
@@ -1145,135 +1150,229 @@ export default function OrderRequestPage() {
                     className="h-2 rounded-full transition-all duration-300"
                     style={{ 
                       backgroundColor: '#14b8a6', 
-                      width: '33.33%' 
+                      width: '25%' 
                     }}
                   ></div>
                 </div>
 
-                {/* What we're doing section */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                  <div className="flex items-start">
-                    <InformationCircleIcon className="h-5 w-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
-                    <div>
-                      <h4 className="font-medium text-blue-900 mb-1">
-                        {language === 'sw' ? 'Tunafanya Nini?' : 'What Are We Doing?'}
-                      </h4>
-                      <p className="text-sm text-blue-700">
-                        {language === 'sw' 
-                          ? 'Tutanunua bidhaa hizi kwa mkopo na wewe utalipa kwa awamu. Hakuna fedha zitakazohamishiwa kwako - utapokea bidhaa moja kwa moja.' 
-                    : 'You will purchase these products on credit and pay in installments. No cash will be transferred to you - you will receive the products directly.'}
-                </p>
-                    </div>
+                {/* Process Steps */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center text-sm">
+                  <div className="flex flex-col items-center">
+                    <div className="w-8 h-8 bg-teal-500 text-white rounded-full flex items-center justify-center mb-2 font-semibold">1</div>
+                    <span className="text-teal-600 font-medium">
+                      {language === 'sw' ? 'Chagua Mpango' : 'Choose Plan'}
+                    </span>
                   </div>
+                  <div className="flex flex-col items-center">
+                    <div className="w-8 h-8 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center mb-2 font-semibold">2</div>
+                    <span className="text-gray-500">
+                      {language === 'sw' ? 'Thibitisha' : 'Verify'}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <div className="w-8 h-8 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center mb-2 font-semibold">3</div>
+                    <span className="text-gray-500">
+                      {language === 'sw' ? 'Kubali Masharti' : 'Accept Terms'}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <div className="w-8 h-8 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center mb-2 font-semibold">4</div>
+                    <span className="text-gray-500">
+                      {language === 'sw' ? 'Maliza' : 'Complete'}
+                    </span>
+                  </div>
+                </div>
               </div>
-              
-                {/* Customer Type Selection - Step 1 */}
-              <div>
-                  <h4 className="text-md font-medium text-gray-900 mb-4">{t.customerType}</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              {/* Order Summary */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h4 className="font-medium text-blue-900 mb-4">
+                  {language === 'sw' ? 'Muhtasari wa Oda' : 'Order Summary'}
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-blue-700">
+                      {language === 'sw' ? 'Jumla ya Bidhaa:' : 'Product Total:'}
+                    </span>
+                    <span className="font-medium text-blue-900">
+                      TSh {calculateTotal().toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-blue-700">
+                      {language === 'sw' ? 'Gharama ya Usafirishaji:' : 'Delivery Fee:'}
+                    </span>
+                    <span className="font-medium text-blue-900">
+                      TSh {getDeliveryFee().toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="border-t border-blue-200 pt-2 flex justify-between">
+                    <span className="text-blue-700 font-medium">
+                      {language === 'sw' ? 'Jumla ya Malipo:' : 'Total Amount:'}
+                    </span>
+                    <span className="font-bold text-blue-900">
+                      TSh {getGrandTotal().toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Plans */}
+              <div className="space-y-4">
+                <h4 className="text-lg font-medium text-gray-900">
+                  {language === 'sw' ? 'Chagua Mpango wa Malipo' : 'Choose Payment Plan'}
+                </h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* 3 Month Plan */}
                   <div 
-                      className={`p-6 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
-                      customerType === 'individual' 
-                          ? 'border-teal-500 bg-teal-50 shadow-md' 
-                          : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                    className={`border-2 rounded-lg p-6 cursor-pointer transition-colors ${
+                      selectedCreditPlan === '3' 
+                        ? 'border-teal-500 bg-teal-50' 
+                        : 'border-gray-200 hover:border-teal-500'
                     }`}
-                    onClick={() => setCustomerType('individual')}
+                    onClick={() => setSelectedCreditPlan('3')}
                   >
-                      <div className="flex items-start">
-                        <div className={`w-4 h-4 rounded-full border-2 mt-1 mr-3 ${
-                          customerType === 'individual' 
-                            ? 'border-teal-500 bg-teal-500' 
-                            : 'border-gray-300'
-                        }`}>
-                          {customerType === 'individual' && (
-                            <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
-                          )}
+                    <div className="text-center">
+                      <h5 className="font-semibold text-gray-900 mb-2">
+                        {language === 'sw' ? 'Miezi 3' : '3 Months'}
+                      </h5>
+                      <div className="text-2xl font-bold text-teal-600 mb-2">
+                        TSh {Math.ceil(getGrandTotal() / 3).toLocaleString()}
+                      </div>
+                      <p className="text-sm text-gray-500 mb-4">
+                        {language === 'sw' ? 'kwa mwezi' : 'per month'}
+                      </p>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className='text-gray-900'>{language === 'sw' ? 'Riba:' : 'Interest:'}</span>
+                          <span className='text-gray-900'>5%</span>
                         </div>
-                      <div>
-                          <h5 className="font-medium text-gray-900 mb-1">{t.individualCustomer}</h5>
-                        <p className="text-sm text-gray-600">
-                           {language === 'sw' ? 'Ununuzi wa kibinafsi kwa mkopo' : 'Personal credit purchase'}
-                          </p>
-                          <div className="mt-3 space-y-1">
-                            <p className="text-xs text-gray-500 flex items-center">
-                              <CheckIconSolid className="w-3 h-3 text-green-500 mr-1" />
-                              {language === 'sw' ? 'Muda wa haraka wa uthibitisho' : 'Fast verification process'}
-                            </p>
-                            <p className="text-xs text-gray-500 flex items-center">
-                              <CheckIconSolid className="w-3 h-3 text-green-500 mr-1" />
-                              {language === 'sw' ? 'Vikomo vya mkopo vinayofaa' : 'Flexible credit limits'}
-                            </p>
-                          </div>
+                        <div className="flex justify-between">
+                          <span className='text-gray-900'>{language === 'sw' ? 'Jumla:' : 'Total:'}</span>
+                          <span className='text-gray-900'>TSh {Math.ceil(getGrandTotal() * 1.05).toLocaleString()}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  
+
+                  {/* 6 Month Plan - Popular */}
                   <div 
-                      className={`p-6 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
-                      customerType === 'business' 
-                          ? 'border-teal-500 bg-teal-50 shadow-md' 
-                          : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                    className={`border-2 rounded-lg p-6 relative cursor-pointer transition-colors ${
+                      selectedCreditPlan === '6' 
+                        ? 'border-teal-500 bg-teal-50' 
+                        : 'border-gray-200 hover:border-teal-500'
                     }`}
-                    onClick={() => setCustomerType('business')}
+                    onClick={() => setSelectedCreditPlan('6')}
                   >
-                      <div className="flex items-start">
-                        <div className={`w-4 h-4 rounded-full border-2 mt-1 mr-3 ${
-                          customerType === 'business' 
-                            ? 'border-teal-500 bg-teal-500' 
-                            : 'border-gray-300'
-                        }`}>
-                          {customerType === 'business' && (
-                            <div className="w-2 h-2 bg-white rounded-full m-0.5"></div>
-                          )}
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                      <span className="bg-teal-500 text-white px-3 py-1 rounded-full text-xs font-medium">
+                        {language === 'sw' ? 'Maarufu' : 'Popular'}
+                      </span>
+                    </div>
+                    <div className="text-center">
+                      <h5 className="font-semibold text-gray-900 mb-2">
+                        {language === 'sw' ? 'Miezi 6' : '6 Months'}
+                      </h5>
+                      <div className="text-2xl font-bold text-teal-600 mb-2">
+                        TSh {Math.ceil(getGrandTotal() / 6).toLocaleString()}
+                      </div>
+                      <p className="text-sm text-gray-500 mb-4">
+                        {language === 'sw' ? 'kwa mwezi' : 'per month'}
+                      </p>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className='text-gray-900'>{language === 'sw' ? 'Riba:' : 'Interest:'}</span>
+                          <span className='text-gray-900'>8%</span>
                         </div>
-                      <div>
-                          <h5 className="font-medium text-gray-900 mb-1">{t.businessCustomer}</h5>
-                        <p className="text-sm text-gray-600">
-                           {language === 'sw' ? 'Ununuzi wa biashara kwa mkopo' : 'Business credit purchase'}
-                          </p>
-                          <div className="mt-3 space-y-1">
-                            <p className="text-xs text-gray-500 flex items-center">
-                              <CheckIconSolid className="w-3 h-3 text-green-500 mr-1" />
-                              {language === 'sw' ? 'Vikomo vya mkopo vya juu' : 'Higher credit limits'}
-                            </p>
-                            <p className="text-xs text-gray-500 flex items-center">
-                              <CheckIconSolid className="w-3 h-3 text-green-500 mr-1" />
-                              {language === 'sw' ? 'Masharti maalum ya biashara' : 'Special business terms'}
-                            </p>
-                          </div>
+                        <div className="flex justify-between">
+                          <span className='text-gray-900'>{language === 'sw' ? 'Jumla:' : 'Total:'}</span>
+                          <span className='text-gray-900'>TSh {Math.ceil(getGrandTotal() * 1.08).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 12 Month Plan */}
+                  <div 
+                    className={`border-2 rounded-lg p-6 cursor-pointer transition-colors ${
+                      selectedCreditPlan === '12' 
+                        ? 'border-teal-500 bg-teal-50' 
+                        : 'border-gray-200 hover:border-teal-500'
+                    }`}
+                    onClick={() => setSelectedCreditPlan('12')}
+                  >
+                    <div className="text-center">
+                      <h5 className="font-semibold text-gray-900 mb-2">
+                        {language === 'sw' ? 'Miezi 12' : '12 Months'}
+                      </h5>
+                      <div className="text-2xl font-bold text-teal-600 mb-2">
+                        TSh {Math.ceil(getGrandTotal() / 12).toLocaleString()}
+                      </div>
+                      <p className="text-sm text-gray-500 mb-4">
+                        {language === 'sw' ? 'kwa mwezi' : 'per month'}
+                      </p>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className='text-gray-900'>{language === 'sw' ? 'Riba:' : 'Interest:'}</span>
+                          <span className='text-gray-900'>12%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className='text-gray-900'>{language === 'sw' ? 'Jumla:' : 'Total:'}</span>
+                          <span className='text-gray-900'>TSh {Math.ceil(getGrandTotal() * 1.12).toLocaleString()}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-                {/* Next step preview */}
-                {customerType && (
-                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-600">
-                      <strong>{language === 'sw' ? 'Hatua inayofuata:' : 'Next step:'}</strong>{' '}
-                      {customerType === 'individual' 
-                        ? (language === 'sw' ? 'Taarifa za kazi na mapato' : 'Employment and income information')
-                        : (language === 'sw' ? 'Taarifa za biashara na mapato' : 'Business and revenue information')
-                      }
-                    </p>
+              {/* Benefits of Credit Purchase */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                <h4 className="font-medium text-green-900 mb-3">
+                  {language === 'sw' ? 'Faida za Ununuzi kwa Mkopo' : 'Benefits of Credit Purchase'}
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-start">
+                    <CheckIconSolid className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
+                    <span className="text-green-700">
+                      {language === 'sw' ? 'Pokea bidhaa mara moja' : 'Get products immediately'}
+                    </span>
                   </div>
-                )}
+                  <div className="flex items-start">
+                    <CheckIconSolid className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
+                    <span className="text-green-700">
+                      {language === 'sw' ? 'Malipo ya kipindi kifupi' : 'Flexible payment schedule'}
+                    </span>
+                  </div>
+                  <div className="flex items-start">
+                    <CheckIconSolid className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
+                    <span className="text-green-700">
+                      {language === 'sw' ? 'Hakuna ada za ziada' : 'No hidden fees'}
+                    </span>
+                  </div>
+                  <div className="flex items-start">
+                    <CheckIconSolid className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
+                    <span className="text-green-700">
+                      {language === 'sw' ? 'Uthibitisho wa haraka' : 'Quick verification process'}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
-          {/* Step 5: Employment/Business Information (Credit Only) */}
+          {/* Step 5: Customer Verification - CORRECTED */}
           {currentStep === 5 && selectedPaymentMethod === 'credit' && (
             <div className="space-y-8">
               <div className="text-center">
                 <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-                  {customerType === 'individual' ? t.employmentInfo : t.businessInfo}
+                  {language === 'sw' ? 'Uthibitisho wa Mteja' : 'Customer Verification'}
                 </h2>
                 <p className="text-gray-600 max-w-2xl mx-auto">
                   {language === 'sw' 
-                    ? 'Taarifa hizi zitatusaidia kutathmini uwezo wako wa kulipa mkopo.' 
-                    : 'This information helps us assess your ability to repay the credit.'}
+                    ? 'Tutahitaji kuthibitisha utambulisho wako kwa usalama wa mkopo.' 
+                    : 'We need to verify your identity for credit security purposes.'}
                 </p>
               </div>
 
@@ -1281,10 +1380,10 @@ export default function OrderRequestPage() {
               <div className="bg-white border border-gray-200 rounded-lg p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-medium text-gray-900">
-                    {language === 'sw' ? 'Maelezo ya Mkopo' : 'Credit Application Progress'}
+                    {language === 'sw' ? 'Hatua za Ununuzi kwa Mkopo' : 'Credit Purchase Process'}
                   </h3>
                   <span className="text-sm text-gray-500">
-                    {language === 'sw' ? 'Hatua 2 ya 3' : 'Step 2 of 3'}
+                    {language === 'sw' ? 'Hatua 2 ya 4' : 'Step 2 of 4'}
                   </span>
                 </div>
                 
@@ -1293,193 +1392,127 @@ export default function OrderRequestPage() {
                     className="h-2 rounded-full transition-all duration-300"
                     style={{ 
                       backgroundColor: '#14b8a6', 
-                      width: '66.66%' 
+                      width: '50%' 
                     }}
                   ></div>
-              </div>
-              
-              {/* Individual Employment Information */}
-              {customerType === 'individual' && (
-                  <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t.employerName} *
-                      </label>
-                      <input
-                        type="text"
-                        value={creditApplication.employerName}
-                        onChange={(e) => setCreditApplication({...creditApplication, employerName: e.target.value})}
-                          placeholder={language === 'sw' ? 'Jina la kampuni yako...' : 'Your company name...'}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t.jobTitle} *
-                      </label>
-                      <input
-                        type="text"
-                        value={creditApplication.jobTitle}
-                        onChange={(e) => setCreditApplication({...creditApplication, jobTitle: e.target.value})}
-                          placeholder={language === 'sw' ? 'Cheo chako...' : 'Your job title...'}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t.monthlyIncome} *
-                      </label>
-                      <input
-                        type="number"
-                        value={creditApplication.monthlyIncome}
-                        onChange={(e) => setCreditApplication({...creditApplication, monthlyIncome: e.target.value})}
-                          placeholder="500,000"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
-                        required
-                      />
-                        <p className="text-xs text-gray-500 mt-1">TZS</p>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {t.employmentDuration} *
-                      </label>
-                        <select
-                        value={creditApplication.employmentDuration}
-                        onChange={(e) => setCreditApplication({...creditApplication, employmentDuration: e.target.value})}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
-                        required
-                        >
-                          <option value="">{language === 'sw' ? 'Chagua muda...' : 'Select duration...'}</option>
-                          <option value="6">{language === 'sw' ? 'Miezi 6' : '6 months'}</option>
-                          <option value="12">{language === 'sw' ? 'Mwaka 1' : '1 year'}</option>
-                          <option value="24">{language === 'sw' ? 'Miaka 2' : '2 years'}</option>
-                          <option value="36">{language === 'sw' ? 'Miaka 3+' : '3+ years'}</option>
-                        </select>
-                    </div>
+                </div>
+
+                {/* Process Steps */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center text-sm">
+                  <div className="flex flex-col items-center">
+                    <div className="w-8 h-8 bg-teal-500 text-white rounded-full flex items-center justify-center mb-2 font-semibold">✓</div>
+                    <span className="text-teal-600 font-medium">
+                      {language === 'sw' ? 'Mpango Umechaguliwa' : 'Plan Selected'}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <div className="w-8 h-8 bg-teal-500 text-white rounded-full flex items-center justify-center mb-2 font-semibold">2</div>
+                    <span className="text-teal-600 font-medium">
+                      {language === 'sw' ? 'Thibitisha' : 'Verify'}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <div className="w-8 h-8 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center mb-2 font-semibold">3</div>
+                    <span className="text-gray-500">
+                      {language === 'sw' ? 'Kubali Masharti' : 'Accept Terms'}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <div className="w-8 h-8 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center mb-2 font-semibold">4</div>
+                    <span className="text-gray-500">
+                      {language === 'sw' ? 'Maliza' : 'Complete'}
+                    </span>
                   </div>
                 </div>
-              )}
-              
-              {/* Business Information */}
-               {customerType === 'business' && (
-                  <div className="space-y-6">
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     <div>
-                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                         {t.businessName} *
-                       </label>
-                       <input
-                         type="text"
-                         value={creditApplication.businessName}
-                         onChange={(e) => setCreditApplication({...creditApplication, businessName: e.target.value})}
-                          placeholder={language === 'sw' ? 'Jina la biashara...' : 'Business name...'}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
-                         required
-                       />
-                     </div>
-                     
-                     <div>
-                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                         {t.businessType} *
-                       </label>
-                       <select
-                         value={creditApplication.businessType}
-                         onChange={(e) => setCreditApplication({...creditApplication, businessType: e.target.value})}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
-                         required
-                       >
-                          <option value="">{language === 'sw' ? 'Chagua aina...' : 'Select type...'}</option>
-                         <option value="retail">{language === 'sw' ? 'Biashara ya Rejareja' : 'Retail'}</option>
-                         <option value="wholesale">{language === 'sw' ? 'Biashara ya Jumla' : 'Wholesale'}</option>
-                         <option value="services">{language === 'sw' ? 'Huduma' : 'Services'}</option>
-                          <option value="manufacturing">{language === 'sw' ? 'Utengenezaji' : 'Manufacturing'}</option>
-                         <option value="agriculture">{language === 'sw' ? 'Kilimo' : 'Agriculture'}</option>
-                       </select>
-                     </div>
-                     
-                     <div>
-                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                         {t.monthlyRevenue} *
-                       </label>
-                       <input
-                         type="number"
-                         value={creditApplication.monthlyRevenue}
-                         onChange={(e) => setCreditApplication({...creditApplication, monthlyRevenue: e.target.value})}
-                          placeholder="1,000,000"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
-                         required
-                       />
-                        <p className="text-xs text-gray-500 mt-1">TZS</p>
-                     </div>
-                     
-                     <div>
-                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                         {t.businessAge} *
-                       </label>
-                        <select
-                         value={creditApplication.businessAge}
-                         onChange={(e) => setCreditApplication({...creditApplication, businessAge: e.target.value})}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
-                         required
-                        >
-                          <option value="">{language === 'sw' ? 'Chagua umri...' : 'Select age...'}</option>
-                          <option value="6">{language === 'sw' ? 'Miezi 6' : '6 months'}</option>
-                          <option value="12">{language === 'sw' ? 'Mwaka 1' : '1 year'}</option>
-                          <option value="24">{language === 'sw' ? 'Miaka 2' : '2 years'}</option>
-                          <option value="36">{language === 'sw' ? 'Miaka 3+' : '3+ years'}</option>
-                        </select>
-                      </div>
-                     </div>
-                     
-                    {/* Business Registration (Optional) */}
-                    <div className="border-t pt-4">
-                      <h5 className="font-medium text-gray-900 mb-3">
-                        {language === 'sw' ? 'Usajili wa Biashara (Si Lazima)' : 'Business Registration (Optional)'}
-                      </h5>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {t.businessRegistrationNumber}
-                       </label>
-                          <input
-                            type="text"
-                            value={creditApplication.businessRegistrationNumber}
-                            onChange={(e) => setCreditApplication({...creditApplication, businessRegistrationNumber: e.target.value})}
-                            placeholder={language === 'sw' ? 'Nambari ya usajili...' : 'Registration number...'}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
-                          />
-                        </div>
-                     </div>
-                   </div>
-                 </div>
-               )}
+              </div>
 
-                {/* Next step preview */}
-                <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-600">
-                    <strong>{language === 'sw' ? 'Hatua inayofuata:' : 'Next step:'}</strong>{' '}
-                    {language === 'sw' ? 'Taarifa za mdhamini na masharti ya mkopo' : 'Guarantor information and credit terms'}
-                  </p>
+              {/* Verification Form */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h4 className="text-lg font-medium text-gray-900 mb-6">
+                  {language === 'sw' ? 'Taarifa za Kimsingi' : 'Basic Information'}
+                </h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {language === 'sw' ? 'Jina Kamili' : 'Full Name'} *
+                    </label>
+                    <input
+                      type="text"
+                      value={verificationData.fullName}
+                      onChange={(e) => setVerificationData({...verificationData, fullName: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500
+                      text-gray-700"
+                      placeholder={language === 'sw' ? 'Jina lako kamili' : 'Your full name'}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {language === 'sw' ? 'Nambari ya Simu' : 'Phone Number'} *
+                    </label>
+                    <input
+                      type="tel"
+                      value={verificationData.phone}
+                      onChange={(e) => setVerificationData({...verificationData, phone: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500
+                      text-gray-700"
+                      placeholder="+255 7XX XXX XXX"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {language === 'sw' ? 'Nambari ya Kitambulisho' : 'ID Number'} *
+                    </label>
+                    <input
+                      type="text"
+                      value={verificationData.idNumber}
+                      onChange={(e) => setVerificationData({...verificationData, idNumber: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500
+                      text-gray-700"
+                      placeholder={language === 'sw' ? 'Nambari ya kitambulisho' : 'ID number'}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {language === 'sw' ? 'Mapato ya Kila Mwezi' : 'Monthly Income'} *
+                    </label>
+                    <select 
+                      value={verificationData.monthlyIncome}
+                      onChange={(e) => setVerificationData({...verificationData, monthlyIncome: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
+                    >
+                      <option value="">
+                        {language === 'sw' ? 'Chagua kiwango' : 'Select range'}
+                      </option>
+                      <option value="below-500k">
+                        {language === 'sw' ? 'Chini ya TSh 500,000' : 'Below TSh 500,000'}
+                      </option>
+                      <option value="500k-1m">TSh 500,000 - 1,000,000</option>
+                      <option value="1m-2m">TSh 1,000,000 - 2,000,000</option>
+                      <option value="above-2m">
+                        {language === 'sw' ? 'Zaidi ya TSh 2,000,000' : 'Above TSh 2,000,000'}
+                      </option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Step 6: Guarantor & Credit Terms (Credit Only) */}
+          {/* Step 6: Credit Purchase Completion - CORRECTED */}
           {currentStep === 6 && selectedPaymentMethod === 'credit' && (
             <div className="space-y-8">
               <div className="text-center">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-2">{t.guarantorInfo}</h2>
+                <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+                  {language === 'sw' ? 'Kukamilisha Ununuzi kwa Mkopo' : 'Complete Credit Purchase'}
+                </h2>
                 <p className="text-gray-600 max-w-2xl mx-auto">
                   {language === 'sw' 
-                    ? 'Mdhamini ni mtu anayekubali kuwa na jukumu la mkopo ikitokea shida za malipo.' 
-                    : 'A guarantor is someone who agrees to be responsible for the credit if payment issues arise.'}
+                    ? 'Hakiki maelezo yako na ukubali masharti ya ununuzi kwa mkopo ili kukamilisha.' 
+                    : 'Review your details and accept the credit terms to complete your purchase.'}
                 </p>
               </div>
 
@@ -1487,10 +1520,10 @@ export default function OrderRequestPage() {
               <div className="bg-white border border-gray-200 rounded-lg p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-medium text-gray-900">
-                    {language === 'sw' ? 'Maelezo ya Mkopo' : 'Credit Application Progress'}
+                    {language === 'sw' ? 'Hatua za Ununuzi kwa Mkopo' : 'Credit Purchase Process'}
                   </h3>
                   <span className="text-sm text-gray-500">
-                    {language === 'sw' ? 'Hatua 3 ya 3' : 'Step 3 of 3'}
+                    {language === 'sw' ? 'Hatua 4 ya 4' : 'Step 4 of 4'}
                   </span>
                 </div>
                 
@@ -1504,124 +1537,233 @@ export default function OrderRequestPage() {
                   ></div>
                 </div>
 
-              {/* Guarantor Information */}
-                <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t.guarantorName} *
-                    </label>
-                    <input
-                      type="text"
-                      value={creditApplication.guarantorName}
-                      onChange={(e) => setCreditApplication({...creditApplication, guarantorName: e.target.value})}
-                        placeholder={language === 'sw' ? 'Jina kamili...' : 'Full name...'}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
-                      required
-                    />
+                {/* Process Steps */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center text-sm">
+                  <div className="flex flex-col items-center">
+                    <div className="w-8 h-8 bg-teal-500 text-white rounded-full flex items-center justify-center mb-2 font-semibold">✓</div>
+                    <span className="text-teal-600 font-medium">
+                      {language === 'sw' ? 'Mpango' : 'Plan'}
+                    </span>
                   </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t.guarantorPhone} *
-                    </label>
-                    <input
-                      type="tel"
-                      value={creditApplication.guarantorPhone}
-                      onChange={(e) => setCreditApplication({...creditApplication, guarantorPhone: e.target.value})}
-                        placeholder="+255 123 456 789"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
-                      required
-                    />
+                  <div className="flex flex-col items-center">
+                    <div className="w-8 h-8 bg-teal-500 text-white rounded-full flex items-center justify-center mb-2 font-semibold">✓</div>
+                    <span className="text-teal-600 font-medium">
+                      {language === 'sw' ? 'Uthibitisho' : 'Verification'}
+                    </span>
                   </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t.guarantorRelationship} *
-                    </label>
-                    <select
-                      value={creditApplication.guarantorRelationship}
-                      onChange={(e) => setCreditApplication({...creditApplication, guarantorRelationship: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
-                      required
-                    >
-                        <option value="">{language === 'sw' ? 'Chagua uhusiano...' : 'Select relationship...'}</option>
-                        <option value="spouse">{language === 'sw' ? 'Mwenza/Mke' : 'Spouse/Partner'}</option>
-                        <option value="parent">{language === 'sw' ? 'Mzazi' : 'Parent'}</option>
-                        <option value="sibling">{language === 'sw' ? 'Ndugu' : 'Sibling'}</option>
-                        <option value="friend">{language === 'sw' ? 'Rafiki' : 'Friend'}</option>
-                        <option value="colleague">{language === 'sw' ? 'Mwenzangu Kazini' : 'Colleague'}</option>
-                    </select>
+                  <div className="flex flex-col items-center">
+                    <div className="w-8 h-8 bg-teal-500 text-white rounded-full flex items-center justify-center mb-2 font-semibold">✓</div>
+                    <span className="text-teal-600 font-medium">
+                      {language === 'sw' ? 'Masharti' : 'Terms'}
+                    </span>
                   </div>
+                  <div className="flex flex-col items-center">
+                    <div className="w-8 h-8 bg-teal-500 text-white rounded-full flex items-center justify-center mb-2 font-semibold">4</div>
+                    <span className="text-teal-600 font-medium">
+                      {language === 'sw' ? 'Maliza' : 'Complete'}
+                    </span>
                   </div>
-
-                  {/* Credit Terms Preview */}
-                  <div className="border-t pt-6">
-                    <h4 className="font-medium text-gray-900 mb-4">{t.creditOptions}</h4>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t.creditDuration}
-                  </label>
-                  <select
-                    value={creditApplication.creditDuration}
-                    onChange={(e) => setCreditApplication({...creditApplication, creditDuration: e.target.value})}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
-                          >
-                            <option value="3">{language === 'sw' ? 'Miezi 3' : '3 months'}</option>
-                            <option value="6">{language === 'sw' ? 'Miezi 6' : '6 months'}</option>
-                            <option value="12">{language === 'sw' ? 'Mwaka 1' : '12 months'}</option>
-                  </select>
                 </div>
+              </div>
+
+              {/* Credit Approval Status */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                <div className="flex items-center">
+                  <CheckIconSolid className="w-6 h-6 text-green-500 mr-3" />
+                  <div>
+                    <h4 className="font-medium text-green-900">
+                      {language === 'sw' ? 'Mkopo Umeidhinishwa!' : 'Credit Approved!'}
+                    </h4>
+                    <p className="text-sm text-green-700">
+                      {language === 'sw' 
+                        ? 'Umeidhinishwa kupata mkopo wa bidhaa hizi. Utazipokea mara moja baada ya kukubali masharti.'
+                        : 'You\'ve been approved for credit on these products. You\'ll receive them immediately after accepting terms.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Credit Purchase Summary */}
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h4 className="text-lg font-medium text-gray-900 mb-4">
+                  {language === 'sw' ? 'Muhtasari wa Ununuzi kwa Mkopo' : 'Credit Purchase Summary'}
+                </h4>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t.downPayment}
-                  </label>
-                  <input
-                    type="number"
-                    value={creditApplication.downPayment}
-                    onChange={(e) => setCreditApplication({...creditApplication, downPayment: parseInt(e.target.value) || 0})}
-                            placeholder="0"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
-                    min="0"
-                    max={calculateTotal()}
-                  />
-              </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Payment Plan Details */}
+                  <div className="space-y-4">
+                    <h5 className="font-medium text-gray-900">
+                      {language === 'sw' ? 'Mpango wa Malipo' : 'Payment Plan'}
+                    </h5>
+                    <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">
+                          {language === 'sw' ? 'Muda wa Malipo:' : 'Payment Period:'}
+                        </span>
+                        <span className="font-medium text-gray-900">
+                          {selectedCreditPlan} {language === 'sw' ? 'miezi' : 'months'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">
+                          {language === 'sw' ? 'Malipo ya Kila Mwezi:' : 'Monthly Payment:'}
+                        </span>
+                        <span className="font-medium text-gray-900">
+                          TSh {Math.ceil(getGrandTotal() * (selectedCreditPlan === '3' ? 1.05 : selectedCreditPlan === '6' ? 1.08 : 1.12) / parseInt(selectedCreditPlan)).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">
+                          {language === 'sw' ? 'Riba:' : 'Interest Rate:'}
+                        </span>
+                        <span className="font-medium text-gray-900">
+                          {selectedCreditPlan === '3' ? '5%' : selectedCreditPlan === '6' ? '8%' : '12%'}
+                        </span>
+                      </div>
+                      <div className="border-t pt-2 flex justify-between">
+                        <span className="text-gray-600 font-medium">
+                          {language === 'sw' ? 'Jumla ya Kulipa:' : 'Total to Pay:'}
+                        </span>
+                        <span className="font-bold text-gray-900">
+                          TSh {Math.ceil(getGrandTotal() * (selectedCreditPlan === '3' ? 1.05 : selectedCreditPlan === '6' ? 1.08 : 1.12)).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
 
-                        <div className="flex items-end">
-                          <div className="text-center">
-                            <p className="text-sm text-gray-600">{t.monthlyPayment}</p>
-                            <p className="text-lg font-semibold" style={{ color: '#14b8a6' }}>
-                              {formatPrice(Math.round((calculateTotal() - creditApplication.downPayment) / parseInt(creditApplication.creditDuration)))}
-                            </p>
-                  </div>
-                  </div>
+                  {/* Delivery & Contact */}
+                  <div className="space-y-4">
+                    <h5 className="font-medium text-gray-900">
+                      {language === 'sw' ? 'Utoaji na Mawasiliano' : 'Delivery & Contact'}
+                    </h5>
+                    <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                      <div>
+                        <span className="text-gray-600 text-sm">
+                          {language === 'sw' ? 'Njia ya Utoaji:' : 'Delivery Method:'}
+                        </span>
+                        <p className="font-medium text-gray-900">
+                          {deliveryOptions.find(d => d.id === selectedDeliveryOption)?.[language === 'sw' ? 'nameSwahili' : 'name']}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 text-sm">
+                          {language === 'sw' ? 'Jina:' : 'Name:'}
+                        </span>
+                        <p className="font-medium text-gray-900">{verificationData.fullName}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600 text-sm">
+                          {language === 'sw' ? 'Simu:' : 'Phone:'}
+                        </span>
+                        <p className="font-medium text-gray-900">{verificationData.phone}</p>
+                      </div>
+                      {selectedDeliveryOption === 'delivery' && customerInfo.address && (
+                        <div>
+                          <span className="text-gray-600 text-sm">
+                            {language === 'sw' ? 'Anwani:' : 'Address:'}
+                          </span>
+                          <p className="font-medium text-gray-900">{customerInfo.address}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
 
-                  {/* Guarantor Consent */}
-                  <div className="border rounded-lg p-4 bg-yellow-50 border-yellow-200">
+              {/* Credit Terms Agreement */}
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                <h4 className="font-medium text-yellow-800 mb-4">
+                  {language === 'sw' ? 'Masharti ya Ununuzi kwa Mkopo' : 'Credit Purchase Terms'}
+                </h4>
+                
+                <div className="space-y-3 text-sm text-yellow-700 mb-4">
+                  <div className="flex items-start">
+                    <span className="font-medium mr-2">1.</span>
+                    <span>
+                      {language === 'sw' 
+                        ? 'Utapokea bidhaa mara moja baada ya kukubali masharti haya.'
+                        : 'You will receive products immediately after accepting these terms.'}
+                    </span>
+                  </div>
+                  <div className="flex items-start">
+                    <span className="font-medium mr-2">2.</span>
+                    <span>
+                      {language === 'sw' 
+                        ? `Utalipa TSh ${Math.ceil(getGrandTotal() * (selectedCreditPlan === '3' ? 1.05 : selectedCreditPlan === '6' ? 1.08 : 1.12) / parseInt(selectedCreditPlan)).toLocaleString()} kila mwezi kwa miezi ${selectedCreditPlan}.`
+                        : `You will pay TSh ${Math.ceil(getGrandTotal() * (selectedCreditPlan === '3' ? 1.05 : selectedCreditPlan === '6' ? 1.08 : 1.12) / parseInt(selectedCreditPlan)).toLocaleString()} monthly for ${selectedCreditPlan} months.`}
+                    </span>
+                  </div>
+                  <div className="flex items-start">
+                    <span className="font-medium mr-2">3.</span>
+                    <span>
+                      {language === 'sw' 
+                        ? 'Malipo ya kuchelewa yatalipa faini ya 2% kwa siku.'
+                        : 'Late payments will incur a 2% daily penalty fee.'}
+                    </span>
+                  </div>
+                  <div className="flex items-start">
+                    <span className="font-medium mr-2">4.</span>
+                    <span>
+                      {language === 'sw' 
+                        ? 'Unaweza kulipa mapema bila ada za ziada.'
+                        : 'You can pay early without additional fees.'}
+                    </span>
+                  </div>
+                </div>
+
                 <label className="flex items-start">
                   <input
                     type="checkbox"
-                    checked={creditApplication.guarantorConsent}
-                    onChange={(e) => setCreditApplication({...creditApplication, guarantorConsent: e.target.checked})}
+                    checked={agreesToTerms}
+                    onChange={(e) => setAgreesToTerms(e.target.checked)}
                     className="mr-3 mt-1 text-teal-600 focus:ring-teal-500"
-                        required
-                      />
-                      <span className="text-sm text-gray-700">
-                        <strong>{t.guarantorConsent}</strong>
-                        <br />
-                        <span className="text-xs text-gray-600">
-                          {language === 'sw' 
-                            ? 'Hii ni muhimu kabisa - mdhamini lazima akubali kabla ya kukamilisha ombi.' 
-                            : 'This is essential - the guarantor must agree before completing the application.'}
-                        </span>
-                      </span>
+                    required
+                  />
+                  <span className="text-sm text-yellow-800">
+                    <strong>
+                      {language === 'sw' 
+                        ? 'Nakubali masharti yote ya ununuzi kwa mkopo'
+                        : 'I agree to all credit purchase terms'}
+                    </strong>
+                    <br />
+                    <span className="text-xs">
+                      {language === 'sw' 
+                        ? 'Kwa kubonyeza hapa, unakubali kulipa kwa ratiba iliyoonyeshwa na masharti yote.'
+                        : 'By checking this, you agree to pay according to the schedule shown and all terms.'}
+                    </span>
+                  </span>
                 </label>
+              </div>
+
+              {/* Next Steps Info */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h4 className="font-medium text-blue-900 mb-3">
+                  {language === 'sw' ? 'Hatua Zinazofuata' : 'What Happens Next'}
+                </h4>
+                <div className="space-y-2 text-sm text-blue-700">
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 bg-blue-500 text-white rounded-full flex items-center justify-center mr-3 text-xs">1</div>
+                    <span>
+                      {language === 'sw' 
+                        ? 'Bidhaa zitaandaliwa na kutumwa/kuhifadhiwa'
+                        : 'Products will be prepared and shipped/stored'}
+                    </span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 bg-blue-500 text-white rounded-full flex items-center justify-center mr-3 text-xs">2</div>
+                    <span>
+                      {language === 'sw' 
+                        ? 'Utapokea ujumbe wa uhakikisho wa oda'
+                        : 'You\'ll receive order confirmation message'}
+                    </span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 bg-blue-500 text-white rounded-full flex items-center justify-center mr-3 text-xs">3</div>
+                    <span>
+                      {language === 'sw' 
+                        ? 'Malipo ya kwanza yataanza mwezi ujao'
+                        : 'First payment will start next month'}
+                    </span>
                   </div>
                 </div>
               </div>

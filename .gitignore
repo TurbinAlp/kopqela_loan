@@ -44,4 +44,5 @@ next-env.d.ts
 
 # uploaded files
 /public/uploads/logos/*
+/public/uploads/products/*
 !/public/uploads/logos/.gitkeep
