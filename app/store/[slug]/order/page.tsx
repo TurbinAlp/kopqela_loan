@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useSearchParams, useParams } from 'next/navigation'
 import { useCustomerBusiness } from '../../../hooks/useCustomerBusiness'
 import { useLanguage } from '../../../contexts/LanguageContext'
+import FullPaymentFlow from '../../../components/store/FullPaymentFlow'
 
 import {
   ChevronLeftIcon,
@@ -104,7 +105,7 @@ export default function OrderRequestPage() {
     paymentTerms: '30', // days
     agreesToTerms: false
   })
-  const [selectedCreditPlan, setSelectedCreditPlan] = useState('6') // Default to 6 months
+  const [selectedCreditPlan] = useState('6') // Default to 6 months
   const [verificationData, setVerificationData] = useState({
     fullName: '',
     phone: '',
@@ -1119,247 +1120,22 @@ export default function OrderRequestPage() {
             </div>
           )}
 
-          {/* Step 4: Credit Purchase Terms - CORRECTED */}
-          {currentStep === 4 && selectedPaymentMethod === 'credit' && (
-            <div className="space-y-8">
-              <div className="text-center">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-                  {language === 'sw' ? 'Masharti ya Ununuzi kwa Mkopo' : 'Credit Purchase Terms'}
-                </h2>
-                <p className="text-gray-600 max-w-2xl mx-auto">
-                  {language === 'sw' 
-                    ? 'Chagua mipango ya malipo ambayo inakufaa. Utapokea bidhaa sasa na kulipa kwa awamu.' 
-                    : 'Choose a payment plan that works for you. You\'ll receive your products now and pay in installments.'}
-                </p>
-              </div>
-
-              {/* Credit Purchase Progress */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium text-gray-900">
-                    {language === 'sw' ? 'Hatua za Ununuzi kwa Mkopo' : 'Credit Purchase Process'}
-                  </h3>
-                  <span className="text-sm text-gray-500">
-                    {language === 'sw' ? 'Hatua 1 ya 4' : 'Step 1 of 4'}
-                  </span>
-                </div>
-                
-                {/* Progress bar */}
-                <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
-                  <div 
-                    className="h-2 rounded-full transition-all duration-300"
-                    style={{ 
-                      backgroundColor: '#14b8a6', 
-                      width: '25%' 
-                    }}
-                  ></div>
-                </div>
-
-                {/* Process Steps */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center text-sm">
-                  <div className="flex flex-col items-center">
-                    <div className="w-8 h-8 bg-teal-500 text-white rounded-full flex items-center justify-center mb-2 font-semibold">1</div>
-                    <span className="text-teal-600 font-medium">
-                      {language === 'sw' ? 'Chagua Mpango' : 'Choose Plan'}
-                    </span>
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <div className="w-8 h-8 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center mb-2 font-semibold">2</div>
-                    <span className="text-gray-500">
-                      {language === 'sw' ? 'Thibitisha' : 'Verify'}
-                    </span>
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <div className="w-8 h-8 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center mb-2 font-semibold">3</div>
-                    <span className="text-gray-500">
-                      {language === 'sw' ? 'Kubali Masharti' : 'Accept Terms'}
-                    </span>
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <div className="w-8 h-8 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center mb-2 font-semibold">4</div>
-                    <span className="text-gray-500">
-                      {language === 'sw' ? 'Maliza' : 'Complete'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Order Summary */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                <h4 className="font-medium text-blue-900 mb-4">
-                  {language === 'sw' ? 'Muhtasari wa Oda' : 'Order Summary'}
-                </h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-blue-700">
-                      {language === 'sw' ? 'Jumla ya Bidhaa:' : 'Product Total:'}
-                    </span>
-                    <span className="font-medium text-blue-900">
-                      TSh {calculateTotal().toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-blue-700">
-                      {language === 'sw' ? 'Gharama ya Usafirishaji:' : 'Delivery Fee:'}
-                    </span>
-                    <span className="font-medium text-blue-900">
-                      TSh {getDeliveryFee().toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="border-t border-blue-200 pt-2 flex justify-between">
-                    <span className="text-blue-700 font-medium">
-                      {language === 'sw' ? 'Jumla ya Malipo:' : 'Total Amount:'}
-                    </span>
-                    <span className="font-bold text-blue-900">
-                      TSh {getGrandTotal().toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Payment Plans */}
-              <div className="space-y-4">
-                <h4 className="text-lg font-medium text-gray-900">
-                  {language === 'sw' ? 'Chagua Mpango wa Malipo' : 'Choose Payment Plan'}
-                </h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* 3 Month Plan */}
-                  <div 
-                    className={`border-2 rounded-lg p-6 cursor-pointer transition-colors ${
-                      selectedCreditPlan === '3' 
-                        ? 'border-teal-500 bg-teal-50' 
-                        : 'border-gray-200 hover:border-teal-500'
-                    }`}
-                    onClick={() => setSelectedCreditPlan('3')}
-                  >
-                    <div className="text-center">
-                      <h5 className="font-semibold text-gray-900 mb-2">
-                        {language === 'sw' ? 'Miezi 3' : '3 Months'}
-                      </h5>
-                      <div className="text-2xl font-bold text-teal-600 mb-2">
-                        TSh {Math.ceil(getGrandTotal() / 3).toLocaleString()}
-                      </div>
-                      <p className="text-sm text-gray-500 mb-4">
-                        {language === 'sw' ? 'kwa mwezi' : 'per month'}
-                      </p>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className='text-gray-900'>{language === 'sw' ? 'Riba:' : 'Interest:'}</span>
-                          <span className='text-gray-900'>5%</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className='text-gray-900'>{language === 'sw' ? 'Jumla:' : 'Total:'}</span>
-                          <span className='text-gray-900'>TSh {Math.ceil(getGrandTotal() * 1.05).toLocaleString()}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 6 Month Plan - Popular */}
-                  <div 
-                    className={`border-2 rounded-lg p-6 relative cursor-pointer transition-colors ${
-                      selectedCreditPlan === '6' 
-                        ? 'border-teal-500 bg-teal-50' 
-                        : 'border-gray-200 hover:border-teal-500'
-                    }`}
-                    onClick={() => setSelectedCreditPlan('6')}
-                  >
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <span className="bg-teal-500 text-white px-3 py-1 rounded-full text-xs font-medium">
-                        {language === 'sw' ? 'Maarufu' : 'Popular'}
-                      </span>
-                    </div>
-                    <div className="text-center">
-                      <h5 className="font-semibold text-gray-900 mb-2">
-                        {language === 'sw' ? 'Miezi 6' : '6 Months'}
-                      </h5>
-                      <div className="text-2xl font-bold text-teal-600 mb-2">
-                        TSh {Math.ceil(getGrandTotal() / 6).toLocaleString()}
-                      </div>
-                      <p className="text-sm text-gray-500 mb-4">
-                        {language === 'sw' ? 'kwa mwezi' : 'per month'}
-                      </p>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className='text-gray-900'>{language === 'sw' ? 'Riba:' : 'Interest:'}</span>
-                          <span className='text-gray-900'>8%</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className='text-gray-900'>{language === 'sw' ? 'Jumla:' : 'Total:'}</span>
-                          <span className='text-gray-900'>TSh {Math.ceil(getGrandTotal() * 1.08).toLocaleString()}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 12 Month Plan */}
-                  <div 
-                    className={`border-2 rounded-lg p-6 cursor-pointer transition-colors ${
-                      selectedCreditPlan === '12' 
-                        ? 'border-teal-500 bg-teal-50' 
-                        : 'border-gray-200 hover:border-teal-500'
-                    }`}
-                    onClick={() => setSelectedCreditPlan('12')}
-                  >
-                    <div className="text-center">
-                      <h5 className="font-semibold text-gray-900 mb-2">
-                        {language === 'sw' ? 'Miezi 12' : '12 Months'}
-                      </h5>
-                      <div className="text-2xl font-bold text-teal-600 mb-2">
-                        TSh {Math.ceil(getGrandTotal() / 12).toLocaleString()}
-                      </div>
-                      <p className="text-sm text-gray-500 mb-4">
-                        {language === 'sw' ? 'kwa mwezi' : 'per month'}
-                      </p>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className='text-gray-900'>{language === 'sw' ? 'Riba:' : 'Interest:'}</span>
-                          <span className='text-gray-900'>12%</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className='text-gray-900'>{language === 'sw' ? 'Jumla:' : 'Total:'}</span>
-                          <span className='text-gray-900'>TSh {Math.ceil(getGrandTotal() * 1.12).toLocaleString()}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Benefits of Credit Purchase */}
-              <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                <h4 className="font-medium text-green-900 mb-3">
-                  {language === 'sw' ? 'Faida za Ununuzi kwa Mkopo' : 'Benefits of Credit Purchase'}
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div className="flex items-start">
-                    <CheckIconSolid className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
-                    <span className="text-green-700">
-                      {language === 'sw' ? 'Pokea bidhaa mara moja' : 'Get products immediately'}
-                    </span>
-                  </div>
-                  <div className="flex items-start">
-                    <CheckIconSolid className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
-                    <span className="text-green-700">
-                      {language === 'sw' ? 'Malipo ya kipindi kifupi' : 'Flexible payment schedule'}
-                    </span>
-                  </div>
-                  <div className="flex items-start">
-                    <CheckIconSolid className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
-                    <span className="text-green-700">
-                      {language === 'sw' ? 'Hakuna ada za ziada' : 'No hidden fees'}
-                    </span>
-                  </div>
-                  <div className="flex items-start">
-                    <CheckIconSolid className="w-4 h-4 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
-                    <span className="text-green-700">
-                      {language === 'sw' ? 'Uthibitisho wa haraka' : 'Quick verification process'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+          {/* Step 4: Review Order - REFACTORED */}
+          {currentStep === 4 && selectedPaymentMethod === 'full' && (
+            <FullPaymentFlow
+              orderItems={orderItems}
+              deliveryOptions={deliveryOptions}
+              selectedDeliveryOption={selectedDeliveryOption}
+              customerInfo={customerInfo}
+              agreesToTerms={agreesToTerms}
+              setAgreesToTerms={setAgreesToTerms}
+              language={language}
+              onSubmitOrder={handleSubmitOrder}
+              formatPrice={formatPrice}
+              calculateTotal={calculateTotal}
+              getDeliveryFee={getDeliveryFee}
+              getGrandTotal={getGrandTotal}
+            />
           )}
 
           {/* Step 5: Customer Verification - CORRECTED */}
