@@ -29,8 +29,23 @@ interface VerificationData {
   monthlyIncome: string
 }
 
+interface OrderItem {
+  productId: number
+  name: string
+  nameSwahili: string
+  quantity: number
+  price: number
+  subtotal: number
+  image?: string
+  category?: string
+  unit?: string
+  inStock?: boolean
+  stockCount?: number
+}
+
 interface CreditPurchaseFlowProps {
   currentStep: number
+  orderItems: OrderItem[]
   deliveryOptions: DeliveryOption[]
   selectedDeliveryOption: string
   customerInfo: CustomerInfo
@@ -48,6 +63,7 @@ interface CreditPurchaseFlowProps {
 
 const CreditPurchaseFlow: React.FC<CreditPurchaseFlowProps> = ({
   currentStep,
+  orderItems,
   deliveryOptions,
   selectedDeliveryOption,
   customerInfo,
@@ -227,7 +243,26 @@ const CreditPurchaseFlow: React.FC<CreditPurchaseFlowProps> = ({
         {/* Order Summary */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
           <h4 className="font-medium text-blue-900 mb-4">{t.orderSummary}</h4>
-          <div className="space-y-2 text-sm">
+          
+          {/* Selected Products */}
+          <div className="mb-4">
+            <h5 className="font-medium text-blue-900 mb-3">
+              {language === 'sw' ? 'Bidhaa Zilizochaguliwa' : 'Selected Products'}
+            </h5>
+            <div className="space-y-2">
+              {orderItems.map((item) => (
+                <div key={item.productId} className="flex justify-between text-sm">
+                  <span className="text-blue-700">
+                    {language === 'sw' ? item.nameSwahili : item.name} × {item.quantity}
+                  </span>
+                  <span className="font-medium text-blue-900">TSh {item.subtotal.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Totals */}
+          <div className="border-t border-blue-200 pt-4 space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-blue-700">{t.productTotal}:</span>
               <span className="font-medium text-blue-900">TSh {calculateTotal().toLocaleString()}</span>

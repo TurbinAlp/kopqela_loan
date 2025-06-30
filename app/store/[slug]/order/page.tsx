@@ -1146,6 +1146,7 @@ export default function OrderRequestPage() {
             (currentStep === 6 && selectedPaymentMethod === 'credit')) && (
             <CreditPurchaseFlow
               currentStep={currentStep}
+              orderItems={orderItems}
               deliveryOptions={deliveryOptions}
               selectedDeliveryOption={selectedDeliveryOption}
               customerInfo={customerInfo}
