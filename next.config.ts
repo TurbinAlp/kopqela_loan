@@ -10,7 +10,17 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    domains: ['localhost'],
+    domains: [
+      'localhost',
+      'lh3.googleusercontent.com',
+      'lh4.googleusercontent.com',
+      'lh5.googleusercontent.com',
+      'lh6.googleusercontent.com',
+      'lh7.googleusercontent.com',
+      'lh8.googleusercontent.com',
+      'lh9.googleusercontent.com',
+      'lh10.googleusercontent.com',
+    ],
     remotePatterns: [
       {
         protocol: 'http',
@@ -18,6 +28,11 @@ const nextConfig = {
         port: '3000',
         pathname: '/uploads/**',
       },
+      {
+        protocol: 'https',
+        hostname: '*.googleusercontent.com',
+        pathname: '/**',
+      }
     ],
   },
 }

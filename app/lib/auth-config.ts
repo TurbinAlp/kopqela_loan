@@ -90,10 +90,11 @@ export const authOptions: NextAuthOptions = {
               })
             }
             return true
+          } else {
+            // For new Google users who don't exist in database, 
+            // we still allow sign in but they'll need to complete registration
+            return true
           }
-
-          // For new Google users, redirect to complete registration
-          return true
         } catch (error) {
           console.error('Google sign in error:', error)
           return false
@@ -168,11 +169,28 @@ export const authOptions: NextAuthOptions = {
         }
       }
       return session
+    },
+    async redirect({ url, baseUrl }) {
+      // Handle redirects after authentication
+      // If URL contains a callback URL, use it
+      if (url.includes('callbackUrl=')) {
+        const callbackUrl = new URL(url).searchParams.get('callbackUrl')
+        if (callbackUrl && callbackUrl.startsWith('/')) {
+          return `${baseUrl}${callbackUrl}`
+        }
+      }
+      
+      // If user is trying to access a protected route, redirect there
+      if (url.startsWith('/') && url !== '/login') {
+        return `${baseUrl}${url}`
+      }
+      
+      // Default redirect to dashboard for authenticated users
+      return `${baseUrl}/admin/dashboard`
     }
   },
   pages: {
-    signIn: '/login',
-    error: '/login'
+    signIn: '/login', // Use custom login page
   },
   session: {
     strategy: 'jwt',

@@ -11,7 +11,7 @@ import Spinner from '../components/ui/Spinner'
 
 export default function LoginPage() {
   const { language } = useLanguage()
-  const { showError, showSuccess } = useNotifications()
+  const { showError } = useNotifications()
   const { isLoading: authLoading } = useAuthRedirect()
   const [isVisible, setIsVisible] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -101,9 +101,10 @@ export default function LoginPage() {
         email,
         password,
         callbackUrl: '/admin/dashboard',
-        redirect: false
+        redirect: true // Let NextAuth handle the redirect
       })
 
+      // If redirect is false and there's an error, handle it
       if (result?.error) {
         // Handle different error types
         if (result.error === 'CredentialsSignin') {
@@ -117,14 +118,6 @@ export default function LoginPage() {
             result.error
           )
         }
-      } else if (result?.url) {
-        showSuccess(
-          language === 'en' ? 'Login Successful!' : 'Umeingia Kikamilifu!',
-          language === 'en' ? 'Welcome back!' : 'Karibu tena!'
-        )
-        
-        // Redirect to dashboard
-        window.location.href = result.url
       }
 
     } catch (error) {
@@ -140,24 +133,10 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     try {
-      const result = await signIn('google', {
-        callbackUrl: '/admin/dashboard', // Redirect after successful login
-        redirect: false
+      // Let NextAuth handle the redirect automatically
+      await signIn('google', {
+        callbackUrl: '/admin/dashboard'
       })
-      
-      if (result?.error) {
-        showError(
-          language === 'en' ? 'Google Sign In Failed' : 'Kuingia kwa Google Kumeshindwa',
-          result.error
-        )
-      } else if (result?.url) {
-        showSuccess(
-          language === 'en' ? 'Signed in successfully!' : 'Umeingia kikamilifu!',
-          language === 'en' ? 'Redirecting...' : 'Inakuelekeza...'
-        )
-        // Redirect to the callback URL
-        window.location.href = result.url
-      }
     } catch (error) {
       console.error('Google login error:', error)
       showError(
