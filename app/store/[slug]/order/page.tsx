@@ -553,7 +553,7 @@ export default function OrderRequestPage() {
       description: 'Apply for credit to pay later',
       descriptionSwahili: 'Omba mkopo kulipa baadaye',
       icon: BanknotesIcon,
-      available: business?.businessType !== 'Electronics', // Electronics store might not offer credit
+      available: business?.businessSetting?.enableCreditSales || false,
       processingTime: '3-5 days',
       processingTimeSwahili: 'Siku 3-5'
     }
