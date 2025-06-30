@@ -19,12 +19,13 @@ const categorySchema = z.object({
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const resolvedParams = await params
     // Get business from slug
     const business = await prisma.business.findUnique({
-      where: { slug: params.slug, isActive: true },
+      where: { slug: resolvedParams.slug, isActive: true },
       select: { id: true, name: true }
     })
 
@@ -159,9 +160,10 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const resolvedParams = await params
     // Get auth context
     const authContext = await getAuthContext(request)
     if (!authContext) {
@@ -173,7 +175,7 @@ export async function POST(
 
     // Get business from slug
     const business = await prisma.business.findUnique({
-      where: { slug: params.slug, isActive: true },
+      where: { slug: resolvedParams.slug, isActive: true },
       select: { id: true, name: true }
     })
 

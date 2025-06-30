@@ -19,10 +19,11 @@ const updateCategorySchema = z.object({
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string; id: string } }
+  { params }: { params: Promise<{ slug: string; id: string }> }
 ) {
   try {
-    const categoryId = parseInt(params.id)
+    const resolvedParams = await params
+    const categoryId = parseInt(resolvedParams.id)
     if (isNaN(categoryId)) {
       return NextResponse.json({
         success: false,
@@ -32,7 +33,7 @@ export async function GET(
 
     // Get business from slug
     const business = await prisma.business.findUnique({
-      where: { slug: params.slug, isActive: true },
+      where: { slug: resolvedParams.slug, isActive: true },
       select: { id: true, name: true }
     })
 
@@ -127,10 +128,11 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { slug: string; id: string } }
+  { params }: { params: Promise<{ slug: string; id: string }> }
 ) {
   try {
-    const categoryId = parseInt(params.id)
+    const resolvedParams = await params
+    const categoryId = parseInt(resolvedParams.id)
     if (isNaN(categoryId)) {
       return NextResponse.json({
         success: false,
@@ -149,7 +151,7 @@ export async function PUT(
 
     // Get business from slug
     const business = await prisma.business.findUnique({
-      where: { slug: params.slug, isActive: true },
+      where: { slug: resolvedParams.slug, isActive: true },
       select: { id: true, name: true }
     })
 
@@ -323,10 +325,11 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { slug: string; id: string } }
+  { params }: { params: Promise<{ slug: string; id: string }> }
 ) {
   try {
-    const categoryId = parseInt(params.id)
+    const resolvedParams = await params
+    const categoryId = parseInt(resolvedParams.id)
     if (isNaN(categoryId)) {
       return NextResponse.json({
         success: false,
@@ -345,7 +348,7 @@ export async function DELETE(
 
     // Get business from slug
     const business = await prisma.business.findUnique({
-      where: { slug: params.slug, isActive: true },
+      where: { slug: resolvedParams.slug, isActive: true },
       select: { id: true, name: true }
     })
 

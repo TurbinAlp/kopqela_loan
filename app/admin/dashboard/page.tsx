@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { useSession } from 'next-auth/react'
 import { 
   ArrowUpIcon,
   ArrowDownIcon,
@@ -20,24 +19,12 @@ import {
   PlusIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
-
-// Hook for user authentication and role management
-const useAuth = () => {
-  const { data: session } = useSession()
-  
-  return {
-    user: session?.user,
-    userRole: session?.user?.role?.toLowerCase() || 'customer', // Get role directly from session
-    isAuthenticated: !!session,
-    userName: session?.user?.firstName && session?.user?.lastName 
-      ? `${session.user.firstName} ${session.user.lastName}`
-      : session?.user?.name || session?.user?.email || 'User'
-  }
-}
+import { useRequireAdminAuth } from '../../hooks/useRequireAuth'
+import Spinner from '../../components/ui/Spinner'
 
 export default function BusinessDashboard() {
   const { language } = useLanguage()
-  const { userRole, isAuthenticated, userName } = useAuth()
+  const { isLoading, user } = useRequireAdminAuth()
   const [isVisible, setIsVisible] = useState(false)
   const [dashboardData, setDashboardData] = useState({
     stats: {
@@ -85,17 +72,22 @@ export default function BusinessDashboard() {
     }
   }
 
-  // Show loading or redirect if not authenticated
-  if (!isAuthenticated) {
+  // Show loading while checking authentication
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-teal-600 mx-auto"></div>
+          <Spinner size="lg" />
           <p className="mt-4 text-gray-600">Checking authentication...</p>
         </div>
       </div>
     )
   }
+
+  const userRole = user?.role?.toLowerCase() || 'admin'
+  const userName = user?.firstName && user?.lastName 
+    ? `${user.firstName} ${user.lastName}`
+    : user?.name || user?.email || 'User'
 
   const translations = {
     en: {

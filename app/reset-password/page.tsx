@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   ArrowLeftIcon,
@@ -16,7 +16,7 @@ import { useAuthRedirect } from '../hooks/useAuthRedirect'
 import Spinner from '../components/ui/Spinner'
 import { useSearchParams } from 'next/navigation'
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const { language } = useLanguage()
   const { showError, showSuccess } = useNotifications()
   const { isLoading: authLoading } = useAuthRedirect()
@@ -348,4 +348,16 @@ export default function ResetPasswordPage() {
       </motion.div>
     </div>
   )
-} 
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-red-400 via-red-500 to-red-600 flex items-center justify-center">
+        <div className="text-white text-lg font-medium">Loading...</div>
+      </div>
+    }>
+      <ResetPasswordForm />
+    </Suspense>
+  )
+}

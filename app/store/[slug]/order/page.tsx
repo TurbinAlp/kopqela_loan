@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useSearchParams, useParams } from 'next/navigation'
 import { useCustomerBusiness } from '../../../hooks/useCustomerBusiness'
 import { useLanguage } from '../../../contexts/LanguageContext'
+
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -56,7 +57,7 @@ interface DeliveryOption {
 export default function OrderRequestPage() {
   const params = useParams()
   const slug = params.slug as string
-  const { business } = useCustomerBusiness(slug)
+  const { business, isLoading: businessLoading } = useCustomerBusiness(slug)
   const { language } = useLanguage()
   const searchParams = useSearchParams()
   
@@ -746,12 +747,24 @@ export default function OrderRequestPage() {
     }
   }
 
-  if (!business) {
+  // Show loading while loading business data
+  if (businessLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Loading...</h2>
           <p className="text-gray-600">Please wait while we load the store information.</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!business) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Store Not Found</h2>
+          <p className="text-gray-600">The store you&apos;re looking for doesn&apos;t exist.</p>
         </div>
       </div>
     )

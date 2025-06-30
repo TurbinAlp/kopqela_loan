@@ -126,7 +126,7 @@ export function useProducts(businessSlug: string, filters: ProductFilters = {}) 
     } finally {
       setLoading(false)
     }
-  }, [businessSlug, JSON.stringify(filters)])
+  }, [businessSlug, JSON.stringify(filters)]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (businessSlug) {

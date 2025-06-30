@@ -19,6 +19,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useBusiness } from '../../contexts/BusinessContext'
+import { useRequireAdminAuth } from '../../hooks/useRequireAuth'
 import Link from 'next/link'
 import Image from 'next/image'
 import DeleteConfirmModal from '../../components/ui/DeleteConfirmModal'
@@ -64,6 +65,7 @@ interface Product {
 export default function ProductsPage() {
   const { language } = useLanguage()
   const { showError } = useNotifications()
+  const { isLoading: authLoading } = useRequireAdminAuth()
   const { currentBusiness } = useBusiness()
   const [mounted, setMounted] = useState(false)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
@@ -527,17 +529,17 @@ export default function ProductsPage() {
 
   // Don't render anything until mounted to prevent hydration mismatch
   if (!mounted) {
-    // Show loading spinner
-    if (loading) {
-      return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center">
-            <Spinner size="lg" color="teal" className="mx-auto mb-4" />
-            <p className="text-gray-600">{t.loadingMessage}</p>
-          </div>
+      // Show loading spinner
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Spinner size="lg" color="teal" className="mx-auto mb-4" />
+          <p className="text-gray-600">{t.loadingMessage}</p>
         </div>
-      )
-    }
+      </div>
+    )
+  }
   }
 
   return (

@@ -24,6 +24,8 @@ import {
   ArchiveBoxArrowDownIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { useRequireAdminAuth } from '../../hooks/useRequireAuth'
+import Spinner from '../../components/ui/Spinner'
 import Link from 'next/link'
 import AddCustomerModal from '../../components/AddCustomerModal'
 
@@ -169,6 +171,7 @@ const allCustomers: Customer[] = [
 
 export default function CustomerManagementPage() {
   const { language } = useLanguage()
+  const { isLoading: authLoading } = useRequireAdminAuth()
   const [isVisible, setIsVisible] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('all')
@@ -445,6 +448,18 @@ export default function CustomerManagementPage() {
 
   const handleCustomerAdded = (newCustomer: Customer) => {
     setCustomers(prevCustomers => [...prevCustomers, newCustomer])
+  }
+
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Spinner size="lg" />
+          <p className="mt-4 text-gray-600">Checking authentication...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

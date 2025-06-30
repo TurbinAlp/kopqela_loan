@@ -7,6 +7,7 @@ import { useParams } from 'next/navigation'
 import { useCustomerBusiness } from '../../../hooks/useCustomerBusiness'
 import { useCart } from '../../../hooks/useCart'
 import { useLanguage } from '../../../contexts/LanguageContext'
+
 import {
   ChevronLeftIcon,
   TrashIcon,
@@ -19,6 +20,7 @@ import {
 export default function CartPage() {
   const params = useParams()
   const slug = params.slug as string
+
   const { business, isLoading: businessLoading } = useCustomerBusiness(slug)
   const { 
     cartItems, 

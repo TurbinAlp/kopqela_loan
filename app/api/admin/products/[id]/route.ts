@@ -37,9 +37,10 @@ const updateProductSchema = z.object({
   isDraft: z.boolean().optional()
 });
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const productId = parseInt(params.id);
+    const resolvedParams = await params;
+    const productId = parseInt(resolvedParams.id);
     if (isNaN(productId)) {
       return NextResponse.json({ success: false, message: 'Invalid product ID' }, { status: 400 });
     }
@@ -95,9 +96,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const productId = parseInt(params.id);
+    const resolvedParams = await params;
+    const productId = parseInt(resolvedParams.id);
     if (isNaN(productId)) {
       return NextResponse.json({ success: false, message: 'Invalid product ID' }, { status: 400 });
     }
@@ -288,9 +290,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const productId = parseInt(params.id);
+    const resolvedParams = await params;
+    const productId = parseInt(resolvedParams.id);
     if (isNaN(productId)) {
       return NextResponse.json({ success: false, message: 'Invalid product ID' }, { status: 400 });
     }

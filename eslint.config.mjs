@@ -20,7 +20,9 @@ const eslintConfig = [
       "**/*.prisma",
       "**/wasm.js",
       "**/wasm-*.js",
-      "**/runtime/**"
+      "**/runtime/**",
+      ".next/**/*",
+      "**/.next/**"
     ]
   }
 ];

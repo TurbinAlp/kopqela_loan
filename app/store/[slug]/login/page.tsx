@@ -9,6 +9,7 @@ import { signIn } from 'next-auth/react'
 import { useParams, useRouter } from 'next/navigation'
 import { useCustomerBusiness } from '../../../hooks/useCustomerBusiness'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function CustomerLoginPage() {
   const { language } = useLanguage()
@@ -263,9 +264,9 @@ export default function CustomerLoginPage() {
             <motion.div
               className="w-20 h-20 bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl mx-auto mb-4 flex items-center justify-center"
             >
-                             {business.businessSetting?.logo ? (
-                 <img 
-                   src={business.businessSetting.logo} 
+                             {business.businessSetting?.logoUrl ? (
+                 <Image 
+                   src={business.businessSetting.logoUrl} 
                    alt={business.name}
                    className="w-16 h-16 object-cover rounded-xl"
                  />

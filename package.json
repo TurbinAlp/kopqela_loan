@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
-    "start": "next start",
+    "start": "NODE_ENV=production node server.js",
     "lint": "next lint"
   },
   "prisma": {
@@ -16,8 +16,8 @@
     "@headlessui/react": "^2.2.4",
     "@heroicons/react": "^2.2.0",
     "@prisma/client": "^6.9.0",
-    "@stagewise-plugins/react": "^0.4.8",
-    "@stagewise/toolbar-next": "^0.4.8",
+    "@stagewise-plugins/react": "^0.4.9",
+    "@stagewise/toolbar-next": "^0.4.9",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/nodemailer": "^6.4.17",
@@ -28,7 +28,7 @@
     "jsonwebtoken": "^9.0.2",
     "next": "15.3.3",
     "next-auth": "^4.24.11",
-    "nodemailer": "^7.0.3",
+    "nodemailer": "^6.9.0",
     "pg": "^8.16.0",
     "prisma": "^6.9.0",
     "react": "^19.0.0",
