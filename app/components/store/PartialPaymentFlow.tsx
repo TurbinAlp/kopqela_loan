@@ -135,6 +135,25 @@ const PartialPaymentFlow: React.FC<PartialPaymentFlowProps> = ({
           <h4 className="font-medium text-blue-900 mb-4">
             {language === 'sw' ? 'Muhtasari wa Oda' : 'Order Summary'}
           </h4>
+          
+          {/* Selected Products */}
+          <div className="mb-4 pb-3 border-b border-blue-200">
+            <h5 className="text-sm font-medium text-blue-900 mb-2">
+              {language === 'sw' ? 'Bidhaa Zilizochaguliwa' : 'Selected Products'}:
+            </h5>
+            <div className="space-y-1">
+              {orderItems.map((item) => (
+                <div key={item.productId} className="flex justify-between text-sm">
+                  <span className="text-blue-700">
+                    {language === 'sw' ? item.nameSwahili : item.name} × {item.quantity}
+                  </span>
+                  <span className="font-medium text-blue-900">TSh {item.subtotal.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* Totals */}
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-blue-700">{t.orderTotal}:</span>
