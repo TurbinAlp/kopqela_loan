@@ -1862,6 +1862,101 @@ export default function OrderRequestPage() {
               </div>
             </div>
           )}
+
+          {/* Step 4: Partial Payment Setup - RESTORE THIS */}
+          {currentStep === 4 && selectedPaymentMethod === 'partial' && (
+            <div className="space-y-8">
+              <h2 className="text-xl font-semibold text-gray-900">{t.partialPaymentSetup}</h2>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h4 className="font-medium text-blue-900 mb-4">
+                  {language === 'sw' ? 'Muhtasari wa Oda' : 'Order Summary'}
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-blue-700">{t.orderTotal}:</span>
+                    <span className="font-medium text-blue-900">TSh {calculateTotal().toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-blue-700">{t.deliveryFee}:</span>
+                    <span className="font-medium text-blue-900">TSh {getDeliveryFee().toLocaleString()}</span>
+                  </div>
+                  <div className="border-t border-blue-200 pt-2 flex justify-between">
+                    <span className="text-blue-700 font-medium">{t.grandTotal}:</span>
+                    <span className="font-bold text-blue-900">TSh {getGrandTotal().toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.amountToPay} *
+                  </label>
+                  <input
+                    type="number"
+                    value={partialPayment.amountToPay}
+                    onChange={(e) => setPartialPayment({...partialPayment, amountToPay: parseInt(e.target.value) || 0})}
+                    min={Math.round(getGrandTotal() * 0.3)}
+                    max={getGrandTotal()}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {t.minimumPayment}: TSh {Math.round(getGrandTotal() * 0.3).toLocaleString()}
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.remainingBalance}
+                  </label>
+                  <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-700">
+                    TSh {(getGrandTotal() - partialPayment.amountToPay).toLocaleString()}
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.dueDate} *
+                  </label>
+                  <input
+                    type="date"
+                    value={partialPayment.dueDate}
+                    onChange={(e) => setPartialPayment({...partialPayment, dueDate: e.target.value})}
+                    min={new Date(Date.now() + 24*60*60*1000).toISOString().split('T')[0]}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t.paymentTerms}
+                  </label>
+                  <select
+                    value={partialPayment.paymentTerms}
+                    onChange={(e) => setPartialPayment({...partialPayment, paymentTerms: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700"
+                  >
+                    <option value="7">7 {t.days}</option>
+                    <option value="15">15 {t.days}</option>
+                    <option value="30">30 {t.days}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={partialPayment.agreesToTerms}
+                  onChange={(e) => setPartialPayment({...partialPayment, agreesToTerms: e.target.checked})}
+                  className="mr-2 text-teal-600 focus:ring-teal-500"
+                />
+                <label className="text-sm text-gray-700">
+                  {t.paymentTermsAgreement}
+                </label>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Navigation Buttons */}
