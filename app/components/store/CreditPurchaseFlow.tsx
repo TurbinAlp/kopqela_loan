@@ -43,6 +43,17 @@ interface OrderItem {
   stockCount?: number
 }
 
+interface Business {
+  businessSetting?: {
+    creditTerms?: Array<{
+      months: number
+      interestRate: number
+      isPopular: boolean
+      enabled: boolean
+    }>
+  }
+}
+
 interface CreditPurchaseFlowProps {
   currentStep: number
   orderItems: OrderItem[]
@@ -56,6 +67,7 @@ interface CreditPurchaseFlowProps {
   agreesToTerms: boolean
   setAgreesToTerms: (value: boolean) => void
   language: 'en' | 'sw'
+  business: Business
   calculateTotal: () => number
   getDeliveryFee: () => number
   getGrandTotal: () => number
@@ -74,6 +86,7 @@ const CreditPurchaseFlow: React.FC<CreditPurchaseFlowProps> = ({
   agreesToTerms,
   setAgreesToTerms,
   language,
+  business,
   calculateTotal,
   getDeliveryFee,
   getGrandTotal
@@ -185,6 +198,13 @@ const CreditPurchaseFlow: React.FC<CreditPurchaseFlowProps> = ({
 
   const t = translations[language]
 
+  // Get credit terms from business settings or use defaults
+  const creditTerms = business?.businessSetting?.creditTerms?.filter(term => term.enabled) ?? [
+    { months: 3, interestRate: 5, isPopular: false, enabled: true },
+    { months: 6, interestRate: 8, isPopular: true, enabled: true },
+    { months: 12, interestRate: 12, isPopular: false, enabled: true }
+  ]
+
   // Step 4: Credit Plan Selection
   if (currentStep === 4) {
     return (
@@ -282,107 +302,57 @@ const CreditPurchaseFlow: React.FC<CreditPurchaseFlowProps> = ({
         <div>
           <h3 className="text-lg font-medium text-gray-900 mb-6">{t.chooseRepaymentPeriod}</h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* 3 Month Plan */}
-            <div 
-              className={`border-2 rounded-lg p-6 cursor-pointer transition-colors ${
-                selectedCreditPlan === '3' 
-                  ? 'border-teal-500 bg-teal-50' 
-                  : 'border-gray-200 hover:border-teal-500'
-              }`}
-              onClick={() => setSelectedCreditPlan('3')}
-            >
-              <div className="text-center">
-                <h4 className="text-xl font-bold text-gray-900 mb-2">3 {t.months}</h4>
-                <div className="space-y-3">
-                  <div>
-                    <span className="text-sm text-gray-600">{t.interest}:</span>
-                    <p className="text-lg font-semibold text-gray-900">5%</p>
-                  </div>
-                  <div>
-                    <span className="text-sm text-gray-600">{t.monthlyPayment}:</span>
-                    <p className="text-lg font-bold text-gray-900">
-                      TSh {Math.ceil(getGrandTotal() * 1.05 / 3).toLocaleString()}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-sm text-gray-600">{t.totalToPay}:</span>
-                    <p className="text-xl font-bold text-teal-600">
-                      TSh {Math.ceil(getGrandTotal() * 1.05).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 6 Month Plan - Popular */}
-            <div 
-              className={`border-2 rounded-lg p-6 cursor-pointer transition-colors relative ${
-                selectedCreditPlan === '6' 
-                  ? 'border-teal-500 bg-teal-50' 
-                  : 'border-gray-200 hover:border-teal-500'
-              }`}
-              onClick={() => setSelectedCreditPlan('6')}
-            >
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <span className="bg-teal-500 text-white px-3 py-1 rounded-full text-xs font-medium">
-                  {t.popular}
-                </span>
-              </div>
-              <div className="text-center">
-                <h4 className="text-xl font-bold text-gray-900 mb-2">6 {t.months}</h4>
-                <div className="space-y-3">
-                  <div>
-                    <span className="text-sm text-gray-600">{t.interest}:</span>
-                    <p className="text-lg font-semibold text-gray-900">8%</p>
-                  </div>
-                  <div>
-                    <span className="text-sm text-gray-600">{t.monthlyPayment}:</span>
-                    <p className="text-lg font-bold text-gray-900">
-                      TSh {Math.ceil(getGrandTotal() * 1.08 / 6).toLocaleString()}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-sm text-gray-600">{t.totalToPay}:</span>
-                    <p className="text-xl font-bold text-teal-600">
-                      TSh {Math.ceil(getGrandTotal() * 1.08).toLocaleString()}
-                    </p>
+          <div className={`grid grid-cols-1 gap-6 ${
+            creditTerms.length === 1 ? 'md:grid-cols-1 max-w-md mx-auto' :
+            creditTerms.length === 2 ? 'md:grid-cols-2' : 
+            'md:grid-cols-3'
+          }`}>
+            {creditTerms.map((plan) => {
+              const multiplier = 1 + (plan.interestRate / 100)
+              const totalAmount = Math.ceil(getGrandTotal() * multiplier)
+              const monthlyPayment = Math.ceil(totalAmount / plan.months)
+              
+              return (
+                <div 
+                  key={plan.months}
+                  className={`border-2 rounded-lg p-6 cursor-pointer transition-colors relative ${
+                    selectedCreditPlan === plan.months.toString() 
+                      ? 'border-teal-500 bg-teal-50' 
+                      : 'border-gray-200 hover:border-teal-500'
+                  }`}
+                  onClick={() => setSelectedCreditPlan(plan.months.toString())}
+                >
+                  {plan.isPopular && (
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                      <span className="bg-teal-500 text-white px-3 py-1 rounded-full text-xs font-medium">
+                        {t.popular}
+                      </span>
+                    </div>
+                  )}
+                  <div className="text-center">
+                    <h4 className="text-xl font-bold text-gray-900 mb-2">{plan.months} {t.months}</h4>
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-sm text-gray-600">{t.interest}:</span>
+                        <p className="text-lg font-semibold text-gray-900">{plan.interestRate}%</p>
+                      </div>
+                      <div>
+                        <span className="text-sm text-gray-600">{t.monthlyPayment}:</span>
+                        <p className="text-lg font-bold text-gray-900">
+                          TSh {monthlyPayment.toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-sm text-gray-600">{t.totalToPay}:</span>
+                        <p className="text-xl font-bold text-teal-600">
+                          TSh {totalAmount.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* 12 Month Plan */}
-            <div 
-              className={`border-2 rounded-lg p-6 cursor-pointer transition-colors ${
-                selectedCreditPlan === '12' 
-                  ? 'border-teal-500 bg-teal-50' 
-                  : 'border-gray-200 hover:border-teal-500'
-              }`}
-              onClick={() => setSelectedCreditPlan('12')}
-            >
-              <div className="text-center">
-                <h4 className="text-xl font-bold text-gray-900 mb-2">12 {t.months}</h4>
-                <div className="space-y-3">
-                  <div>
-                    <span className="text-sm text-gray-600">{t.interest}:</span>
-                    <p className="text-lg font-semibold text-gray-900">12%</p>
-                  </div>
-                  <div>
-                    <span className="text-sm text-gray-600">{t.monthlyPayment}:</span>
-                    <p className="text-lg font-bold text-gray-900">
-                      TSh {Math.ceil(getGrandTotal() * 1.12 / 12).toLocaleString()}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-sm text-gray-600">{t.totalToPay}:</span>
-                    <p className="text-xl font-bold text-teal-600">
-                      TSh {Math.ceil(getGrandTotal() * 1.12).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+              )
+            })}
           </div>
         </div>
 

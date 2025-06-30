@@ -51,6 +51,13 @@ interface Business {
     estimatedDeliveryTime?: string
     // Display Settings
     showAboutSection?: boolean
+    // Credit Terms Settings
+    creditTerms?: Array<{
+      months: number
+      interestRate: number
+      isPopular: boolean
+      enabled: boolean
+    }>
   }
   _count?: {
     products: number

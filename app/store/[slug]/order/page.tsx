@@ -1157,6 +1157,7 @@ export default function OrderRequestPage() {
               agreesToTerms={agreesToTerms}
               setAgreesToTerms={setAgreesToTerms}
               language={language}
+              business={business}
               calculateTotal={calculateTotal}
               getDeliveryFee={getDeliveryFee}
               getGrandTotal={getGrandTotal}

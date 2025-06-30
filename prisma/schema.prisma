@@ -198,6 +198,8 @@ model BusinessSetting {
   businessHours             Json?    @map("business_hours") // JSON array of {day, open, close, isOpen}
   paymentMethods            Json?    @map("payment_methods") // JSON array of payment methods
   deliveryAreas             Json?    @map("delivery_areas") // JSON array of delivery areas
+  // Credit Terms Settings
+  creditTerms               Json?    @map("credit_terms") // JSON array of {months, interestRate, isPopular, enabled}
   deliveryFee               Decimal? @map("delivery_fee") @db.Decimal(10, 2)
   freeDeliveryMinimum       Decimal? @map("free_delivery_minimum") @db.Decimal(10, 2)
   estimatedDeliveryTime     String?  @map("estimated_delivery_time") @db.VarChar(100)

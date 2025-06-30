@@ -138,6 +138,17 @@ export async function GET(request: NextRequest) {
           feature4Description: business.businessSetting?.feature4Description,
           feature4DescriptionSwahili: business.businessSetting?.feature4DescriptionSwahili,
           feature4Icon: business.businessSetting?.feature4Icon,
+          // Business Operations
+          businessHours: business.businessSetting?.businessHours,
+          paymentMethods: business.businessSetting?.paymentMethods,
+          deliveryAreas: business.businessSetting?.deliveryAreas,
+          deliveryFee: business.businessSetting?.deliveryFee,
+          freeDeliveryMinimum: business.businessSetting?.freeDeliveryMinimum,
+          estimatedDeliveryTime: business.businessSetting?.estimatedDeliveryTime,
+          // Display Settings
+          showAboutSection: business.businessSetting?.showAboutSection,
+          // Credit Terms Settings
+          creditTerms: business.businessSetting?.creditTerms,
           owner: business.owner ? {
             id: business.owner.id,
             name: `${business.owner.firstName} ${business.owner.lastName}`,
@@ -263,7 +274,9 @@ export async function PUT(request: NextRequest) {
       freeDeliveryMinimum,
       estimatedDeliveryTime,
       // Display Settings
-      showAboutSection
+      showAboutSection,
+      // Credit Terms Settings
+      creditTerms
     } = updateData
 
     // Update business basic info
@@ -333,6 +346,8 @@ export async function PUT(request: NextRequest) {
       estimatedDeliveryTime?: string | null
       // Display Settings
       showAboutSection?: boolean
+      // Credit Terms Settings
+      creditTerms?: object
     } = {}
     if (description !== undefined) settingsUpdate.description = description
     if (address !== undefined) settingsUpdate.address = address
@@ -394,6 +409,8 @@ export async function PUT(request: NextRequest) {
     if (estimatedDeliveryTime !== undefined) settingsUpdate.estimatedDeliveryTime = estimatedDeliveryTime
     // Display Settings
     if (showAboutSection !== undefined) settingsUpdate.showAboutSection = showAboutSection
+    // Credit Terms Settings
+    if (creditTerms !== undefined) settingsUpdate.creditTerms = creditTerms
 
     // Update business and settings in transaction
     const updatedBusiness = await prisma.$transaction(async (tx) => {

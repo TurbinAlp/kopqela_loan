@@ -88,6 +88,14 @@ interface BusinessSettings {
   feature4DescriptionSwahili: string
   feature4Icon: string
   
+  // Credit Terms Settings
+  creditTerms: Array<{
+    months: number
+    interestRate: number
+    isPopular: boolean
+    enabled: boolean
+  }>
+  
   // Business Operations
   businessHours: Array<{day: string, open: string, close: string, isOpen: boolean}>
   paymentMethods: string[]
@@ -177,7 +185,14 @@ export default function EditBusinessPage() {
       freeDeliveryMinimum: 50000,
       estimatedDeliveryTime: '1-3 business days',
       // Display Settings
-      showAboutSection: false
+      showAboutSection: false,
+      
+      // Credit Terms Settings
+      creditTerms: [
+        { months: 3, interestRate: 5, isPopular: false, enabled: true },
+        { months: 6, interestRate: 8, isPopular: true, enabled: true },
+        { months: 12, interestRate: 12, isPopular: false, enabled: true }
+      ]
   })
 
   const translations = {
@@ -466,7 +481,13 @@ export default function EditBusinessPage() {
            freeDeliveryMinimum: business.freeDeliveryMinimum ,
            estimatedDeliveryTime: business.estimatedDeliveryTime,
            // Display Settings
-           showAboutSection: business.showAboutSection ?? false
+           showAboutSection: business.showAboutSection ?? false,
+           // Credit Terms Settings
+           creditTerms: business.creditTerms ?? [
+             { months: 3, interestRate: 5, isPopular: false, enabled: true },
+             { months: 6, interestRate: 8, isPopular: true, enabled: true },
+             { months: 12, interestRate: 12, isPopular: false, enabled: true }
+           ]
         })
       }
     } catch (error) {
@@ -1565,7 +1586,7 @@ export default function EditBusinessPage() {
             </div>
             
             {/* Feature Toggles */}
-            <div className="space-y-4">
+            <div className="space-y-4 mb-8">
               <h3 className="text-lg font-medium text-gray-900">Feature Settings</h3>
               
               {[
@@ -1590,6 +1611,128 @@ export default function EditBusinessPage() {
                 </div>
               ))}
             </div>
+
+            {/* Credit Terms Settings */}
+            {settings.enableCreditSales && (
+              <div className="border-t border-gray-200 pt-8">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  {language === 'sw' ? 'Mipangilio ya Masharti ya Mkopo' : 'Credit Terms Settings'}
+                </h3>
+                <p className="text-sm text-gray-600 mb-6">
+                  {language === 'sw' 
+                    ? 'Weka muda wa kulipa na viwango vya riba kwa wateja wanaotaka ununuzi kwa mkopo.'
+                    : 'Configure repayment periods and interest rates for customers who want to purchase on credit.'}
+                </p>
+
+                <div className="space-y-4">
+                  {settings.creditTerms.map((term, index) => (
+                    <div key={index} className="p-4 border border-gray-200 rounded-lg">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {language === 'sw' ? 'Miezi' : 'Months'}
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="60"
+                            value={term.months}
+                            onChange={(e) => {
+                              const newTerms = [...settings.creditTerms]
+                              newTerms[index].months = parseInt(e.target.value)
+                              setSettings(prev => ({ ...prev, creditTerms: newTerms }))
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            {language === 'sw' ? 'Riba (%)' : 'Interest Rate (%)'}
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                            value={term.interestRate}
+                            onChange={(e) => {
+                              const newTerms = [...settings.creditTerms]
+                              newTerms[index].interestRate = parseFloat(e.target.value)
+                              setSettings(prev => ({ ...prev, creditTerms: newTerms }))
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+                          />
+                        </div>
+
+                        <div className="flex items-center space-x-4">
+                          <label className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={term.isPopular}
+                              onChange={(e) => {
+                                const newTerms = [...settings.creditTerms]
+                                newTerms[index].isPopular = e.target.checked
+                                setSettings(prev => ({ ...prev, creditTerms: newTerms }))
+                              }}
+                              className="w-4 h-4 text-teal-600 bg-gray-100 border-gray-300 rounded focus:ring-teal-500"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">
+                              {language === 'sw' ? 'Maarufu' : 'Popular'}
+                            </span>
+                          </label>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <label className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={term.enabled}
+                              onChange={(e) => {
+                                const newTerms = [...settings.creditTerms]
+                                newTerms[index].enabled = e.target.checked
+                                setSettings(prev => ({ ...prev, creditTerms: newTerms }))
+                              }}
+                              className="w-4 h-4 text-teal-600 bg-gray-100 border-gray-300 rounded focus:ring-teal-500"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">
+                              {language === 'sw' ? 'Imeamilishwa' : 'Enabled'}
+                            </span>
+                          </label>
+                          
+                          {settings.creditTerms.length > 1 && (
+                            <button
+                              onClick={() => {
+                                const newTerms = settings.creditTerms.filter((_, i) => i !== index)
+                                setSettings(prev => ({ ...prev, creditTerms: newTerms }))
+                              }}
+                              className="text-red-600 hover:text-red-700 text-sm"
+                            >
+                              {language === 'sw' ? 'Ondoa' : 'Remove'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  <button
+                    onClick={() => {
+                      const newTerms = [...settings.creditTerms, {
+                        months: 6,
+                        interestRate: 10,
+                        isPopular: false,
+                        enabled: true
+                      }]
+                      setSettings(prev => ({ ...prev, creditTerms: newTerms }))
+                    }}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    + {language === 'sw' ? 'Ongeza Muda wa Malipo' : 'Add Payment Period'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
