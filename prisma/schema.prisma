@@ -219,6 +219,10 @@ model Customer {
   lastName     String?      @map("last_name") @db.VarChar(100)
   email        String?      @db.VarChar(255)
   phone        String       @db.VarChar(20)
+  address      String?      @db.VarChar(500)
+  idNumber     String?      @map("id_number") @db.VarChar(50)
+  dateOfBirth  DateTime?    @map("date_of_birth")
+  occupation   String?      @db.VarChar(255)
   customerType CustomerType @default(INDIVIDUAL) @map("customer_type")
   userId       Int?         @map("user_id") // Optional - for customers who register accounts
   joinDate     DateTime     @default(now()) @map("join_date")

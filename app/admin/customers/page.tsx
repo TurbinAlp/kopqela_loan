@@ -361,8 +361,9 @@ export default function CustomerManagementPage() {
     visible: { opacity: 1, y: 0 }
   }
 
-  const handleCustomerAdded = (newCustomer: Customer) => {
-    setCustomers(prevCustomers => [...prevCustomers, newCustomer])
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleCustomerAdded = (_newCustomer: Customer) => {
+    fetchCustomers()
   }
 
   // Show loading while checking authentication

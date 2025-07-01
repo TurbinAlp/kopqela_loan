@@ -208,4 +208,65 @@ export async function GET(request: NextRequest) {
   } finally {
     await prisma.$disconnect()
   }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { businessId, name, email, phone, address, idNumber, dateOfBirth, occupation, creditLimit, status, customerNotes } = body
+
+    if (!businessId || !name || !phone) {
+      return NextResponse.json(
+        { error: 'Business ID, name, and phone are required' },
+        { status: 400 }
+      )
+    }
+
+    const customer = await prisma.customer.create({
+      data: {
+        businessId: parseInt(businessId),
+        fullName: name,
+        email: email || null,
+        phone,
+        address: address || null,
+        idNumber: idNumber || null,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+        occupation: occupation || null,
+        notes: customerNotes || null,
+        creditLimit: creditLimit ? parseFloat(creditLimit) : 0,
+        isActive: status === 'active',
+        joinDate: new Date()
+      }
+    })
+
+    // Transform for frontend
+    const transformedCustomer = {
+      id: customer.id,
+      name: customer.fullName,
+      email: customer.email,
+      phone: customer.phone,
+      address: null,
+      status: customer.isActive ? 'active' : 'suspended',
+      registrationDate: customer.joinDate.toISOString().split('T')[0],
+      totalOrders: 0,
+      totalSpent: 0,
+      creditLimit: Number(customer.creditLimit),
+      outstandingBalance: 0,
+      creditScore: 'good' as const
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: transformedCustomer
+    })
+
+  } catch (error) {
+    console.error('Error creating customer:', error)
+    return NextResponse.json(
+      { error: 'Failed to create customer' },
+      { status: 500 }
+    )
+  } finally {
+    await prisma.$disconnect()
+  }
 } 

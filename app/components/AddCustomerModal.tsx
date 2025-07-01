@@ -17,6 +17,8 @@ import {
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../contexts/LanguageContext'
+import { useBusiness } from '../contexts/BusinessContext'
+import { useNotifications } from '../contexts/NotificationContext'
 
 interface AddCustomerModalProps {
   isOpen: boolean
@@ -75,6 +77,9 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: A
     status: 'active',
     customerNotes: ''
   })
+
+  const { currentBusiness } = useBusiness()
+  const { showSuccess, showError } = useNotifications()
 
   // Fix for HeadlessUI overflow hidden issue
   useEffect(() => {
@@ -281,57 +286,50 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: A
     setIsSubmitting(true)
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-
-      // Create customer object
-      const newCustomer = {
-        id: Date.now(), // In real app, this would come from API
-        name: formData.name,
-        email: formData.email || null,
-        phone: formData.phone,
-        address: formData.address || null,
-        idNumber: formData.idNumber || null,
-        dateOfBirth: formData.dateOfBirth || null,
-        occupation: formData.occupation || null,
-        creditLimit: Number(formData.creditLimit) || 0,
-        outstandingBalance: 0,
-        status: formData.status,
-        customerNotes: formData.customerNotes || null,
-        registrationDate: new Date().toISOString().split('T')[0],
-        totalOrders: 0,
-        totalSpent: 0,
-        creditScore: 'good' as const
-      }
-
-      // Call callback if provided
-      if (onCustomerAdded) {
-        onCustomerAdded(newCustomer)
-      }
-
-      // Reset form
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        address: '',
-        idNumber: '',
-        dateOfBirth: '',
-        occupation: '',
-        creditLimit: '0',
-        status: 'active',
-        customerNotes: ''
+      const response = await fetch('/api/admin/customers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          businessId: currentBusiness?.id,
+          name: formData.name,
+          email: formData.email || null,
+          phone: formData.phone,
+          address: formData.address || null,
+          idNumber: formData.idNumber || null,
+          dateOfBirth: formData.dateOfBirth || null,
+          occupation: formData.occupation || null,
+          creditLimit: formData.creditLimit || '0',
+          status: formData.status,
+          customerNotes: formData.customerNotes || null
+        })
       })
 
-      // Show success message (you can implement toast notification)
-      alert(t.customerAdded)
+      const result = await response.json()
 
-      // Close modal
-      onClose()
+      if (result.success) {
+        // Show success notification
+        showSuccess(t.customerAdded, `Customer ${formData.name} has been added successfully`)
+        
+        // Call callback to refresh the list
+        if (onCustomerAdded) {
+          onCustomerAdded(result.data)
+        }
+
+        // Reset form and close
+        setFormData({
+          name: '', email: '', phone: '', address: '', idNumber: '',
+          dateOfBirth: '', occupation: '', creditLimit: '0', status: 'active', customerNotes: ''
+        })
+        onClose()
+      } else {
+        showError('Error', result.error || 'Failed to add customer')
+      }
 
     } catch (error) {
       console.error('Error adding customer:', error)
-      alert('Error adding customer. Please try again.')
+      showError('Network Error', 'Failed to connect to server. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
