@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { 
   ArrowLeftIcon,
@@ -20,6 +21,8 @@ import {
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import Link from 'next/link'
+import { useBusiness } from '../../../contexts/BusinessContext'
+import Spinner from '../../../components/ui/Spinner'
 
 interface Customer {
   id: number
@@ -71,11 +74,64 @@ interface CreditHistory {
   balance: number
 }
 
+// Add API response interface
+interface CustomerDetailsApiResponse {
+  success: boolean
+  data: {
+    customer: Customer
+    orders: Order[]
+    payments: Payment[]
+    creditHistory: CreditHistory[]
+  }
+}
+
 export default function CustomerDetailsPage() {
   const { language } = useLanguage()
+  const params = useParams()
+  const { currentBusiness, isLoading: businessLoading } = useBusiness()
   const [isVisible, setIsVisible] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
   const [customerNotes, setCustomerNotes] = useState('')
+  
+  // Dynamic data states
+  const [customer, setCustomer] = useState<Customer | null>(null)
+  const [orders, setOrders] = useState<Order[]>([])
+  const [payments, setPayments] = useState<Payment[]>([])
+  const [creditHistory, setCreditHistory] = useState<CreditHistory[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch customer details
+  useEffect(() => {
+    const fetchCustomerDetails = async () => {
+      if (!params.id || !currentBusiness?.id) return
+
+      setLoading(true)
+      try {
+        const response = await fetch(`/api/admin/customers/${params.id}`)
+        const result: CustomerDetailsApiResponse = await response.json()
+
+        if (result.success) {
+          setCustomer(result.data.customer)
+          setOrders(result.data.orders)
+          setPayments(result.data.payments)
+          setCreditHistory(result.data.creditHistory)
+          setCustomerNotes(result.data.customer.customerNotes || '')
+        } else {
+          setError('Failed to load customer details')
+        }
+      } catch (error) {
+        console.error('Error fetching customer details:', error)
+        setError('Network error occurred')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (!businessLoading) {
+      fetchCustomerDetails()
+    }
+  }, [params.id, currentBusiness?.id, businessLoading])
 
   useEffect(() => {
     setIsVisible(true)
@@ -322,136 +378,6 @@ export default function CustomerDetailsPage() {
 
   const t = translations[language]
 
-  // Sample customer data (in real app, this would be fetched based on customerId)
-  const customer: Customer = {
-    id: 1,
-    name: "John Mwangi",
-    email: "john.mwangi@email.com",
-    phone: "+255 712 345 678",
-    address: "123 Uhuru Street, Dar es Salaam",
-    status: "active",
-    registrationDate: "2023-08-15",
-    lastOrderDate: "2024-01-15",
-    totalOrders: 12,
-    totalSpent: 2450000,
-    creditLimit: 500000,
-    outstandingBalance: 125000,
-    creditScore: "excellent",
-    idNumber: "19850415-5678-12345",
-    dateOfBirth: "1985-04-15",
-    occupation: "Business Owner",
-    customerNotes: "Reliable customer, always pays on time. Prefers mobile money payments."
-  }
-
-  // Sample orders data
-  const orders: Order[] = [
-    {
-      id: 1,
-      orderNumber: "ORD-2024-001",
-      date: "2024-01-15",
-      items: 3,
-      total: 450000,
-      status: "completed",
-      paymentStatus: "paid",
-      paymentMethod: "cash"
-    },
-    {
-      id: 2,
-      orderNumber: "ORD-2024-002",
-      date: "2024-01-10",
-      items: 2,
-      total: 320000,
-      status: "completed",
-      paymentStatus: "paid",
-      paymentMethod: "mobile"
-    },
-    {
-      id: 3,
-      orderNumber: "ORD-2023-045",
-      date: "2023-12-20",
-      items: 1,
-      total: 180000,
-      status: "completed",
-      paymentStatus: "paid",
-      paymentMethod: "credit"
-    },
-    {
-      id: 4,
-      orderNumber: "ORD-2023-032",
-      date: "2023-11-15",
-      items: 4,
-      total: 680000,
-      status: "completed",
-      paymentStatus: "partial",
-      paymentMethod: "credit",
-      dueDate: "2024-02-15"
-    }
-  ]
-
-  // Sample payments data
-  const payments: Payment[] = [
-    {
-      id: 1,
-      date: "2024-01-15",
-      amount: 450000,
-      method: "cash",
-      orderNumber: "ORD-2024-001",
-      status: "completed"
-    },
-    {
-      id: 2,
-      date: "2024-01-10",
-      amount: 320000,
-      method: "mobile",
-      orderNumber: "ORD-2024-002",
-      status: "completed"
-    },
-    {
-      id: 3,
-      date: "2023-12-20",
-      amount: 180000,
-      method: "cash",
-      orderNumber: "ORD-2023-045",
-      status: "completed"
-    }
-  ]
-
-  // Sample credit history data
-  const creditHistory: CreditHistory[] = [
-    {
-      id: 1,
-      date: "2024-01-15",
-      type: "payment",
-      amount: 125000,
-      description: "Payment received for order ORD-2023-032",
-      balance: 125000
-    },
-    {
-      id: 2,
-      date: "2023-12-20",
-      type: "loan_granted",
-      amount: 180000,
-      description: "Credit purchase for order ORD-2023-045",
-      balance: 250000
-    },
-    {
-      id: 3,
-      date: "2023-11-15",
-      type: "loan_granted",
-      amount: 680000,
-      description: "Credit purchase for order ORD-2023-032",
-      balance: 930000
-    },
-    {
-      id: 4,
-      date: "2023-08-15",
-      type: "limit_increase",
-      amount: 500000,
-      description: "Initial credit limit set during registration",
-      balance: 0
-    }
-  ]
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'text-green-600 bg-green-100'
@@ -496,6 +422,33 @@ export default function CustomerDetailsPage() {
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 }
+  }
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Spinner size="lg" />
+          <p className="mt-4 text-gray-600">Loading customer details...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (error || !customer) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Customer Not Found</h2>
+          <p className="text-gray-600">{error || 'The customer you\'re looking for doesn\'t exist.'}</p>
+          <Link href="/admin/customers" className="mt-4 text-teal-600 hover:text-teal-700">
+            Back to Customers
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
