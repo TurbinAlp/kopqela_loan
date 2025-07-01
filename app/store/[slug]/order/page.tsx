@@ -569,52 +569,109 @@ export default function OrderRequestPage() {
     }
   ]
 
-  const actualPaymentMethods = [
-    {
-      id: 'mobile_money',
-      name: 'Mobile Money',
-      nameSwahili: 'Pesa za Simu',
-      description: 'Pay via mobile money services',
-      descriptionSwahili: 'Lipa kwa huduma za pesa za simu',
-      icon: CreditCardIcon,
-      available: true,
-      processingTime: 'Instant',
-      processingTimeSwahili: 'Papo hapo'
-    },
-    {
-      id: 'cash',
-      name: 'Cash Payment',
-      nameSwahili: 'Malipo ya Taslimu',
-      description: 'Pay cash on delivery/pickup',
-      descriptionSwahili: 'Lipa taslimu wakati wa kupokea',
-      icon: BanknotesIcon,
-      available: true,
-      processingTime: 'On delivery',
-      processingTimeSwahili: 'Wakati wa utoaji'
-    },
-    {
-      id: 'credit_card',
-      name: 'Credit/Debit Card',
-      nameSwahili: 'Kadi ya Mkopo',
-      description: 'Pay with your card',
-      descriptionSwahili: 'Lipa kwa kadi yako',
-      icon: CreditCardIcon,
-      available: true,
-      processingTime: 'Instant',
-      processingTimeSwahili: 'Papo hapo'
-    },
-    {
-      id: 'bank_transfer',
-      name: 'Bank Transfer',
-      nameSwahili: 'Uhamisho wa Benki',
-      description: 'Transfer to business bank account',
-      descriptionSwahili: 'Hamisha kwa akaunti ya benki ya biashara',
-      icon: BanknotesIcon,
-      available: true,
-      processingTime: '1-2 days',
-      processingTimeSwahili: 'Siku 1-2'
+  // Get payment methods DIRECTLY from business database settings (NO hardcoding)
+  const getActualPaymentMethods = () => {
+    const businessPaymentMethods = business?.businessSetting?.paymentMethods || []
+    console.log('🔍 Business Settings:', business?.businessSetting)
+    console.log('💳 Payment Methods from DB:', businessPaymentMethods)
+    console.log('📊 Payment Methods Type:', typeof businessPaymentMethods)
+    console.log('📏 Payment Methods Length:', Array.isArray(businessPaymentMethods) ? businessPaymentMethods.length : 'Not Array')
+
+    // Return empty array if no payment methods configured in database
+    if (!Array.isArray(businessPaymentMethods) || businessPaymentMethods.length === 0) {
+      console.log('❌ Business has NO payment methods configured - NO PAYMENT METHODS AVAILABLE')
+      return []
     }
-  ]
+
+    // Create payment method objects DIRECTLY from database entries
+    console.log('✅ Business HAS payment methods configured - creating from database')
+    const databasePaymentMethods = businessPaymentMethods.map((methodData: string | { name: string; enabled?: boolean; description?: string }, index: number) => {
+      // Handle both string and object formats from database
+      let methodName: string
+      let enabled: boolean = true
+      let customDescription: string = ''
+
+      if (typeof methodData === 'string') {
+        // Simple string format: ["Mobile Money", "Cash Payment"]
+        methodName = methodData
+      } else if (typeof methodData === 'object' && methodData.name) {
+        // Complex object format: [{name: "Mobile Money", enabled: true, ...}]
+        methodName = methodData.name
+        enabled = methodData.enabled !== false // Default to true
+        customDescription = methodData.description || ''
+      } else {
+        console.warn('Invalid payment method format:', methodData)
+        return null
+      }
+
+      // Skip disabled methods
+      if (!enabled) {
+        console.log(`⏭️ Skipping disabled payment method: ${methodName}`)
+        return null
+      }
+
+      const methodNameLower = methodName.toLowerCase()
+
+      if(methodName === '' || methodName === null || methodName === undefined){
+        return null
+      }
+      
+      // Determine method properties based on database name
+      const methodConfig = {
+        id: `method_${index}`,
+        name: methodName,
+        nameSwahili: methodName,
+        description: customDescription || `Pay using ${methodName}`,
+        descriptionSwahili: customDescription || `Lipa kwa kutumia ${methodName}`,
+        icon: CreditCardIcon, // Default icon
+        processingTime: 'Varies',
+        processingTimeSwahili: 'Inatofautiana',
+        available: true
+      }
+
+      // Enhanced icon and description logic based on method name
+      if (methodNameLower.includes('mobile') || methodNameLower.includes('mpesa') || methodNameLower.includes('airtel') || methodNameLower.includes('tigo') || methodNameLower.includes('pesa za simu')) {
+        methodConfig.id = 'mobile_money'
+        methodConfig.nameSwahili = 'Pesa za Simu'
+        methodConfig.description = customDescription || 'Pay via mobile money services'
+        methodConfig.descriptionSwahili = customDescription || 'Lipa kwa huduma za pesa za simu'
+        methodConfig.icon = CreditCardIcon
+        methodConfig.processingTime = 'Instant'
+        methodConfig.processingTimeSwahili = 'Papo hapo'
+      } else if (methodNameLower.includes('cash') || methodNameLower.includes('taslimu') || methodNameLower.includes('fedha')) {
+        methodConfig.id = 'cash'
+        methodConfig.nameSwahili = 'Malipo ya Taslimu'
+        methodConfig.description = customDescription || 'Pay cash on delivery/pickup'
+        methodConfig.descriptionSwahili = customDescription || 'Lipa taslimu wakati wa kupokea'
+        methodConfig.icon = BanknotesIcon
+        methodConfig.processingTime = 'On delivery'
+        methodConfig.processingTimeSwahili = 'Wakati wa utoaji'
+      } else if (methodNameLower.includes('card') || methodNameLower.includes('visa') || methodNameLower.includes('mastercard') || methodNameLower.includes('credit') || methodNameLower.includes('debit') || methodNameLower.includes('kadi')) {
+        methodConfig.id = 'credit_card'
+        methodConfig.nameSwahili = 'Kadi ya Mkopo/Debit'
+        methodConfig.description = customDescription || 'Pay with your card'
+        methodConfig.descriptionSwahili = customDescription || 'Lipa kwa kadi yako'
+        methodConfig.icon = CreditCardIcon
+        methodConfig.processingTime = 'Instant'
+        methodConfig.processingTimeSwahili = 'Papo hapo'
+      } else if (methodNameLower.includes('bank') || methodNameLower.includes('transfer') || methodNameLower.includes('benki') || methodNameLower.includes('uhamisho')) {
+        methodConfig.id = 'bank_transfer'
+        methodConfig.nameSwahili = 'Uhamisho wa Benki'
+        methodConfig.description = customDescription || 'Transfer to business bank account'
+        methodConfig.descriptionSwahili = customDescription || 'Hamisha kwa akaunti ya benki ya biashara'
+        methodConfig.icon = BanknotesIcon
+        methodConfig.processingTime = '1-2 days'
+        methodConfig.processingTimeSwahili = 'Siku 1-2'
+      }
+
+      return methodConfig
+    }).filter(Boolean) as PaymentMethod[] // Remove null entries (disabled methods)
+
+    console.log('🎯 Created payment methods from database:', databasePaymentMethods)
+    return databasePaymentMethods
+  }
+
+  const actualPaymentMethods = getActualPaymentMethods()
 
   const deliveryOptions: DeliveryOption[] = [
     {
@@ -1134,45 +1191,60 @@ export default function OrderRequestPage() {
                   )}
 
                   <div className="space-y-3">
-                    {actualPaymentMethods.map((method) => (
-                      <div
-                        key={method.id}
-                        className={`p-3 border-2 rounded-lg cursor-pointer transition-colors ${
-                          selectedActualPaymentMethod === method.id
-                            ? 'border-teal-500 bg-teal-50'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                        onClick={() => setSelectedActualPaymentMethod(method.id)}
-                      >
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0">
-                            <method.icon className="w-5 h-5 text-gray-600" />
-                          </div>
-                          <div className="ml-3 flex-1">
-                            <h4 className="font-medium text-gray-900">
-                              {language === 'sw' ? method.nameSwahili : method.name}
-                            </h4>
-                            <p className="text-sm text-gray-600">
-                              {language === 'sw' ? method.descriptionSwahili : method.description}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {t.processingTime}: {language === 'sw' ? method.processingTimeSwahili : method.processingTime}
-                            </p>
-                          </div>
-                          <div className="flex-shrink-0">
-                            <div className={`w-4 h-4 rounded-full border-2 ${
-                              selectedActualPaymentMethod === method.id
-                                ? 'border-teal-500 bg-teal-500'
-                                : 'border-gray-300'
-                            }`}>
-                              {selectedActualPaymentMethod === method.id && (
-                                <CheckIconSolid className="w-3 h-3 text-white" />
-                              )}
+                    {actualPaymentMethods.length === 0 ? (
+                      <div className="text-center py-8 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg">
+                        <p className="text-gray-500 font-medium">
+                          {language === 'sw' 
+                            ? 'Hakuna njia za malipo zinazopatikana' 
+                            : 'No payment methods available'}
+                        </p>
+                        <p className="text-sm text-gray-400 mt-2">
+                          {language === 'sw' 
+                            ? 'Biashara haijaweka njia za malipo' 
+                            : 'Business has not configured payment methods'}
+                        </p>
+                      </div>
+                    ) : (
+                      actualPaymentMethods.map((method) => (
+                        <div
+                          key={method.id}
+                          className={`p-3 border-2 rounded-lg cursor-pointer transition-colors ${
+                            selectedActualPaymentMethod === method.id
+                              ? 'border-teal-500 bg-teal-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                          onClick={() => setSelectedActualPaymentMethod(method.id)}
+                        >
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0">
+                              <method.icon className="w-5 h-5 text-gray-600" />
+                            </div>
+                            <div className="ml-3 flex-1">
+                              <h4 className="font-medium text-gray-900">
+                                {language === 'sw' ? method.nameSwahili : method.name}
+                              </h4>
+                              <p className="text-sm text-gray-600">
+                                {language === 'sw' ? method.descriptionSwahili : method.description}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {t.processingTime}: {language === 'sw' ? method.processingTimeSwahili : method.processingTime}
+                              </p>
+                            </div>
+                            <div className="flex-shrink-0">
+                              <div className={`w-4 h-4 rounded-full border-2 ${
+                                selectedActualPaymentMethod === method.id
+                                  ? 'border-teal-500 bg-teal-500'
+                                  : 'border-gray-300'
+                              }`}>
+                                {selectedActualPaymentMethod === method.id && (
+                                  <CheckIconSolid className="w-3 h-3 text-white" />
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               )}
@@ -1390,8 +1462,6 @@ export default function OrderRequestPage() {
               getGrandTotal={getGrandTotal}
             />
           )}
-
-
 
           {/* Step 4: Partial Payment Setup - REFACTORED */}
           {currentStep === 4 && selectedPaymentMethod === 'partial' && (
