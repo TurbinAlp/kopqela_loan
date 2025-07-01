@@ -23,6 +23,7 @@ const orderSubmissionSchema = z.object({
   
   // Payment and Delivery
   paymentMethod: z.enum(['full', 'partial', 'credit']),
+  actualPaymentMethod: z.enum(['mobile_money', 'cash', 'credit_card', 'bank_transfer']).optional(),
   deliveryOption: z.string(),
   deliveryFee: z.number().min(0),
   
@@ -104,7 +105,8 @@ export async function POST(
     const { 
       customerInfo, 
       orderItems, 
-      paymentMethod, 
+      paymentMethod,
+      actualPaymentMethod,
       deliveryOption,
       deliveryFee,
       partialPayment,
@@ -171,18 +173,68 @@ export async function POST(
       const orderPrefix = business.businessSetting?.orderPrefix ?? 'ORD'
       const orderNumber = `${orderPrefix}${Date.now()}`
 
-      // 4. Determine payment method enum value
+      // 4. Determine payment plan and method enum values
+      let paymentPlanEnum: 'FULL' | 'PARTIAL' | 'CREDIT'
       let paymentMethodEnum: 'CASH' | 'CARD' | 'MOBILE_MONEY' | 'BANK_TRANSFER' | 'CREDIT' | 'PARTIAL'
+      
+      // Set payment plan
       switch (paymentMethod) {
         case 'credit':
-          paymentMethodEnum = 'CREDIT'
+          paymentPlanEnum = 'CREDIT'
           break
         case 'partial':
-          paymentMethodEnum = 'PARTIAL'
+          paymentPlanEnum = 'PARTIAL'
           break
         case 'full':
         default:
-          paymentMethodEnum = 'CASH'
+          paymentPlanEnum = 'FULL'
+      }
+      
+      if (paymentMethod === 'credit') {
+        switch (actualPaymentMethod) {
+          case 'mobile_money':
+            paymentMethodEnum = 'MOBILE_MONEY'
+            break
+          case 'credit_card':
+            paymentMethodEnum = 'CARD'
+            break
+          case 'bank_transfer':
+            paymentMethodEnum = 'BANK_TRANSFER'
+            break
+          case 'cash':
+          default:
+            paymentMethodEnum = 'CASH'
+        }
+      } else if (paymentMethod === 'partial') {
+        switch (actualPaymentMethod) {
+          case 'mobile_money':
+            paymentMethodEnum = 'MOBILE_MONEY'
+            break
+          case 'credit_card':
+            paymentMethodEnum = 'CARD'
+            break
+          case 'bank_transfer':
+            paymentMethodEnum = 'BANK_TRANSFER'
+            break
+          case 'cash':
+          default:
+            paymentMethodEnum = 'CASH'
+        }
+      } else {
+          switch (actualPaymentMethod) {
+           case 'mobile_money':
+             paymentMethodEnum = 'MOBILE_MONEY'
+             break
+           case 'credit_card':
+             paymentMethodEnum = 'CARD'
+             break
+           case 'bank_transfer':
+             paymentMethodEnum = 'BANK_TRANSFER'
+             break
+           case 'cash':
+           default:
+             paymentMethodEnum = 'CASH'
+         }
       }
 
       // 5. Create the order
@@ -197,6 +249,7 @@ export async function POST(
           taxAmount: taxAmount,
           totalAmount: totalAmount + deliveryFee,
           paymentMethod: paymentMethodEnum,
+          paymentPlan: paymentPlanEnum,
           paymentStatus: paymentMethod === 'credit' ? 'PENDING' : 
                         paymentMethod === 'partial' ? 'PARTIAL' : 'PENDING',
           notes: customerInfo.specialInstructions || null,

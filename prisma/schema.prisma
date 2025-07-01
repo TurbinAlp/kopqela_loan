@@ -329,6 +329,7 @@ model Order {
   discountAmount    Decimal            @default(0) @map("discount_amount") @db.Decimal(10, 2)
   totalAmount       Decimal            @map("total_amount") @db.Decimal(10, 2)
   paymentMethod     PaymentMethod      @map("payment_method")
+  paymentPlan       PaymentPlan        @default(FULL) @map("payment_plan")
   paymentStatus     PaymentStatus      @default(PENDING) @map("payment_status")
   notes             String?
   deliveryAddress   String?            @map("delivery_address")
@@ -464,6 +465,14 @@ enum PaymentMethod {
   PARTIAL
 
   @@map("payment_method")
+}
+
+enum PaymentPlan {
+  FULL
+  PARTIAL
+  CREDIT
+
+  @@map("payment_plan")
 }
 
 enum PaymentStatus {

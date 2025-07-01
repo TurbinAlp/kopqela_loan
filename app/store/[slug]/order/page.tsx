@@ -67,6 +67,7 @@ export default function OrderRequestPage() {
   const [currentStep, setCurrentStep] = useState(1)
   const [orderItems, setOrderItems] = useState<OrderItem[]>([])
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('')
+  const [selectedActualPaymentMethod, setSelectedActualPaymentMethod] = useState('')
   const [selectedDeliveryOption, setSelectedDeliveryOption] = useState('')
   const [customerInfo, setCustomerInfo] = useState({
     fullName: '',
@@ -122,6 +123,7 @@ export default function OrderRequestPage() {
       step: 'Step',
       of: 'of',
       productConfirmation: 'Product Confirmation',
+      paymentPlan: 'Payment Plan',
       paymentMethod: 'Payment Method',
       orderDetails: 'Order Details',
       reviewOrder: 'Review Order',
@@ -185,6 +187,7 @@ export default function OrderRequestPage() {
       clearAll: 'Clear All',
       
       // Step 2
+      choosePaymentPlan: 'Choose Payment Plan',
       choosePaymentMethod: 'Choose Payment Method',
       fullPayment: 'Full Payment',
       fullPaymentDesc: 'Pay the complete amount now',
@@ -198,6 +201,8 @@ export default function OrderRequestPage() {
       bankTransferDesc: 'Transfer to business bank account',
       cash: 'Cash Payment',
       cashDesc: 'Pay cash on delivery/pickup',
+      creditCard: 'Credit/Debit Card',
+      creditCardDesc: 'Pay with your card',
       processingTime: 'Processing Time',
       
       // Step 3
@@ -246,6 +251,7 @@ export default function OrderRequestPage() {
       step: 'Hatua',
       of: 'ya',
       productConfirmation: 'Uhakikisho wa Bidhaa',
+      paymentPlan: 'Mpango wa Malipo',
       paymentMethod: 'Njia ya Malipo',
       orderDetails: 'Maelezo ya Oda',
       reviewOrder: 'Hakiki Oda',
@@ -309,6 +315,7 @@ export default function OrderRequestPage() {
       clearAll: 'Futa Vyote',
       
       // Step 2
+      choosePaymentPlan: 'Chagua Mpango wa Malipo',
       choosePaymentMethod: 'Chagua Njia ya Malipo',
       fullPayment: 'Malipo Kamili',
       fullPaymentDesc: 'Lipa kiasi chote sasa',
@@ -322,6 +329,8 @@ export default function OrderRequestPage() {
       bankTransferDesc: 'Hamisha kwa akaunti ya benki ya biashara',
       cash: 'Malipo ya Taslimu',
       cashDesc: 'Lipa taslimu wakati wa kupokea',
+      creditCard: 'Kadi ya Mkopo',
+      creditCardDesc: 'Lipa kwa kadi yako',
       processingTime: 'Muda wa Uchakataji',
       
       // Step 3
@@ -380,7 +389,7 @@ export default function OrderRequestPage() {
     if (selectedPaymentMethod === 'credit') {
       switch (step) {
         case 1: return t.productConfirmation
-        case 2: return t.paymentMethod
+        case 2: return t.paymentPlan
         case 3: return t.orderDetails
         case 4: return t.creditDetails
         case 5: return t.creditTerms
@@ -390,7 +399,7 @@ export default function OrderRequestPage() {
     } else if (selectedPaymentMethod === 'partial') {
       switch (step) {
         case 1: return t.productConfirmation
-        case 2: return t.paymentMethod
+        case 2: return t.paymentPlan
         case 3: return t.orderDetails
         case 4: return t.partialPaymentSetup
         case 5: return t.reviewOrder
@@ -399,7 +408,7 @@ export default function OrderRequestPage() {
     } else {
       switch (step) {
         case 1: return t.productConfirmation
-        case 2: return t.paymentMethod
+        case 2: return t.paymentPlan
         case 3: return t.orderDetails
         case 4: return t.reviewOrder
         default: return ''
@@ -560,6 +569,53 @@ export default function OrderRequestPage() {
     }
   ]
 
+  const actualPaymentMethods = [
+    {
+      id: 'mobile_money',
+      name: 'Mobile Money',
+      nameSwahili: 'Pesa za Simu',
+      description: 'Pay via mobile money services',
+      descriptionSwahili: 'Lipa kwa huduma za pesa za simu',
+      icon: CreditCardIcon,
+      available: true,
+      processingTime: 'Instant',
+      processingTimeSwahili: 'Papo hapo'
+    },
+    {
+      id: 'cash',
+      name: 'Cash Payment',
+      nameSwahili: 'Malipo ya Taslimu',
+      description: 'Pay cash on delivery/pickup',
+      descriptionSwahili: 'Lipa taslimu wakati wa kupokea',
+      icon: BanknotesIcon,
+      available: true,
+      processingTime: 'On delivery',
+      processingTimeSwahili: 'Wakati wa utoaji'
+    },
+    {
+      id: 'credit_card',
+      name: 'Credit/Debit Card',
+      nameSwahili: 'Kadi ya Mkopo',
+      description: 'Pay with your card',
+      descriptionSwahili: 'Lipa kwa kadi yako',
+      icon: CreditCardIcon,
+      available: true,
+      processingTime: 'Instant',
+      processingTimeSwahili: 'Papo hapo'
+    },
+    {
+      id: 'bank_transfer',
+      name: 'Bank Transfer',
+      nameSwahili: 'Uhamisho wa Benki',
+      description: 'Transfer to business bank account',
+      descriptionSwahili: 'Hamisha kwa akaunti ya benki ya biashara',
+      icon: BanknotesIcon,
+      available: true,
+      processingTime: '1-2 days',
+      processingTimeSwahili: 'Siku 1-2'
+    }
+  ]
+
   const deliveryOptions: DeliveryOption[] = [
     {
       id: 'pickup',
@@ -634,7 +690,7 @@ export default function OrderRequestPage() {
       case 1:
         return orderItems.length > 0
       case 2:
-        return selectedPaymentMethod !== ''
+        return selectedPaymentMethod !== '' && selectedActualPaymentMethod !== ''
       case 3:
         const isDeliverySelected = selectedDeliveryOption !== ''
         const isInfoComplete = customerInfo.fullName && customerInfo.phone && 
@@ -717,6 +773,7 @@ export default function OrderRequestPage() {
           subtotal: Number(item.subtotal)
         })),
         paymentMethod: selectedPaymentMethod,
+        actualPaymentMethod: selectedActualPaymentMethod,
         deliveryOption: selectedDeliveryOption,
         deliveryFee: getDeliveryFee(),
         subtotal: calculateTotal(),
@@ -759,6 +816,7 @@ export default function OrderRequestPage() {
       setOrderItems([])
       setCurrentStep(1)
       setSelectedPaymentMethod('')
+      setSelectedActualPaymentMethod('')
       setSelectedDeliveryOption('')
       setCustomerInfo({
         fullName: '',
@@ -999,12 +1057,12 @@ export default function OrderRequestPage() {
             </div>
           )}
 
-          {/* Step 2: Payment Method */}
+          {/* Step 2: Payment Plan */}
           {currentStep === 2 && (
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">{t.choosePaymentMethod}</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">{t.choosePaymentPlan}</h2>
               
-              <div className="space-y-4">
+              <div className="space-y-4 mb-8">
                 {paymentMethods.filter(method => method.available).map((method) => (
                   <div
                     key={method.id}
@@ -1013,7 +1071,10 @@ export default function OrderRequestPage() {
                         ? 'border-teal-500 bg-teal-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
-                    onClick={() => setSelectedPaymentMethod(method.id)}
+                    onClick={() => {
+                      setSelectedPaymentMethod(method.id)
+                      setSelectedActualPaymentMethod('') // Reset payment method when plan changes
+                    }}
                   >
                     <div className="flex items-center">
                       <div className="flex-shrink-0">
@@ -1045,6 +1106,76 @@ export default function OrderRequestPage() {
                   </div>
                 ))}
               </div>
+
+              {/* Show Payment Methods after selecting a payment plan */}
+              {selectedPaymentMethod && (
+                <div className="border-t pt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">{t.choosePaymentMethod}</h3>
+                  
+                  {/* Payment method context messages */}
+                  {selectedPaymentMethod === 'partial' && (
+                    <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                      <p className="text-sm text-orange-700">
+                        {language === 'sw' 
+                          ? 'Chagua njia ya kulipa kiasi cha sasa na pia ya kulipa salio baadaye.'
+                          : 'Choose payment method for your current payment and future balance payment.'}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {selectedPaymentMethod === 'credit' && (
+                    <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-700">
+                        {language === 'sw' 
+                          ? 'Chagua njia ya malipo utakayotumia kulipa mkopo baada ya kukubaliwa.'
+                          : 'Choose payment method you will use to pay the credit after approval.'}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                    {actualPaymentMethods.map((method) => (
+                      <div
+                        key={method.id}
+                        className={`p-3 border-2 rounded-lg cursor-pointer transition-colors ${
+                          selectedActualPaymentMethod === method.id
+                            ? 'border-teal-500 bg-teal-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                        onClick={() => setSelectedActualPaymentMethod(method.id)}
+                      >
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0">
+                            <method.icon className="w-5 h-5 text-gray-600" />
+                          </div>
+                          <div className="ml-3 flex-1">
+                            <h4 className="font-medium text-gray-900">
+                              {language === 'sw' ? method.nameSwahili : method.name}
+                            </h4>
+                            <p className="text-sm text-gray-600">
+                              {language === 'sw' ? method.descriptionSwahili : method.description}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {t.processingTime}: {language === 'sw' ? method.processingTimeSwahili : method.processingTime}
+                            </p>
+                          </div>
+                          <div className="flex-shrink-0">
+                            <div className={`w-4 h-4 rounded-full border-2 ${
+                              selectedActualPaymentMethod === method.id
+                                ? 'border-teal-500 bg-teal-500'
+                                : 'border-gray-300'
+                            }`}>
+                              {selectedActualPaymentMethod === method.id && (
+                                <CheckIconSolid className="w-3 h-3 text-white" />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
