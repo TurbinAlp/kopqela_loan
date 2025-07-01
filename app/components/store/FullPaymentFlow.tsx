@@ -45,6 +45,7 @@ interface FullPaymentFlowProps {
   setAgreesToTerms: (value: boolean) => void
   language: 'en' | 'sw'
   onSubmitOrder: () => void
+  isSubmitting?: boolean
   formatPrice: (price: number) => string
   calculateTotal: () => number
   getDeliveryFee: () => number

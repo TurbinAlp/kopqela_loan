@@ -52,6 +52,7 @@ interface PartialPaymentFlowProps {
   agreesToTerms: boolean
   setAgreesToTerms: (value: boolean) => void
   language: 'en' | 'sw'
+  isSubmitting?: boolean
   formatPrice: (price: number) => string
   calculateTotal: () => number
   getDeliveryFee: () => number

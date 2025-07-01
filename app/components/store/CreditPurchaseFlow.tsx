@@ -68,6 +68,7 @@ interface CreditPurchaseFlowProps {
   setAgreesToTerms: (value: boolean) => void
   language: 'en' | 'sw'
   business: Business
+  isSubmitting?: boolean
   calculateTotal: () => number
   getDeliveryFee: () => number
   getGrandTotal: () => number

@@ -114,6 +114,7 @@ export default function OrderRequestPage() {
     idNumber: '',
     monthlyIncome: ''
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const translations = {
     en: {
@@ -701,11 +702,56 @@ export default function OrderRequestPage() {
     }
   }
 
-  const handleSubmitOrder = () => {
-    if (validateStep(4)) {
-      // Generate order number
-      const orderNumber = `ORD${Date.now()}`
-      
+  const handleSubmitOrder = async () => {
+    if (!validateStep(getTotalSteps()) || isSubmitting) return
+
+    setIsSubmitting(true)
+    try {
+      // Prepare order data for submission
+      const orderData = {
+        customerInfo,
+        orderItems: orderItems.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          price: Number(item.price),
+          subtotal: Number(item.subtotal)
+        })),
+        paymentMethod: selectedPaymentMethod,
+        deliveryOption: selectedDeliveryOption,
+        deliveryFee: getDeliveryFee(),
+        subtotal: calculateTotal(),
+        taxAmount: 0, // Can be calculated based on business tax rate
+        totalAmount: calculateTotal(),
+        ...(selectedPaymentMethod === 'partial' && partialPayment && {
+          partialPayment: {
+            amountToPay: partialPayment.amountToPay,
+            dueDate: partialPayment.dueDate,
+            paymentTerms: partialPayment.paymentTerms
+          }
+        }),
+        ...(selectedPaymentMethod === 'credit' && {
+          creditPurchase: {
+            selectedPlan: selectedCreditPlan,
+            verificationData,
+            customerType: 'individual' // For now, always individual
+          }
+        })
+      }
+
+      // Submit order to backend
+      console.log('Sending order data:', orderData)
+      const response = await fetch(`/api/businesses/${business?.slug}/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(orderData)
+      })
+
+      const result = await response.json()
+      console.log('Order submission result:', result)
+
+      if (result.success) {
       // Clear order from localStorage
       localStorage.removeItem(getStorageKey())
       
@@ -747,9 +793,36 @@ export default function OrderRequestPage() {
         paymentTerms: '30',
         agreesToTerms: false
       })
-      
-      alert(`${t.orderSubmitted}\n${t.orderNumber}: ${orderNumber}`)
-      // Here you would normally send the order to the backend
+        setSelectedCreditPlan('6')
+        setVerificationData({
+          fullName: '',
+          phone: '',
+          idNumber: '',
+          monthlyIncome: ''
+        })
+        
+        // Show success message with order details
+        let successMessage = `${t.orderSubmitted}\n${t.orderNumber}: ${result.data.orderNumber}`
+        
+        if (selectedPaymentMethod === 'credit') {
+          successMessage += `\n\n${language === 'sw' ? 'Ombi la mkopo limejazwa kwa ukaguzi.' : 'Credit application submitted for review.'}`
+        } else if (selectedPaymentMethod === 'partial') {
+          successMessage += `\n\n${language === 'sw' ? 'Malipo ya sehemu' : 'Partial Payment'}: TSh ${result.data.partialPaymentAmount?.toLocaleString()}`
+          successMessage += `\n${language === 'sw' ? 'Salio' : 'Balance'}: TSh ${result.data.balanceDue?.toLocaleString()}`
+        }
+        
+        alert(successMessage)
+        
+        // Optionally redirect to order confirmation page
+        // window.location.href = `/store/${business?.slug}/order/confirmation/${result.data.orderNumber}`
+      } else {
+        alert(`${language === 'sw' ? 'Hitilafu' : 'Error'}: ${result.message}`)
+      }
+         } catch (error) {
+       console.error('Error submitting order:', error)
+       alert(`${language === 'sw' ? 'Hitilafu ya mtandao. Jaribu tena.' : 'Network error. Please try again.'}`)
+     } finally {
+       setIsSubmitting(false)
     }
   }
 
@@ -1133,6 +1206,7 @@ export default function OrderRequestPage() {
               setAgreesToTerms={setAgreesToTerms}
               language={language}
               onSubmitOrder={handleSubmitOrder}
+              isSubmitting={isSubmitting}
               formatPrice={formatPrice}
               calculateTotal={calculateTotal}
               getDeliveryFee={getDeliveryFee}
@@ -1158,6 +1232,7 @@ export default function OrderRequestPage() {
               setAgreesToTerms={setAgreesToTerms}
               language={language}
               business={business}
+              isSubmitting={isSubmitting}
               calculateTotal={calculateTotal}
               getDeliveryFee={getDeliveryFee}
               getGrandTotal={getGrandTotal}
@@ -1177,6 +1252,7 @@ export default function OrderRequestPage() {
               agreesToTerms={agreesToTerms}
               setAgreesToTerms={setAgreesToTerms}
               language={language}
+              isSubmitting={isSubmitting}
               formatPrice={formatPrice}
               calculateTotal={calculateTotal}
               getDeliveryFee={getDeliveryFee}
@@ -1199,6 +1275,7 @@ export default function OrderRequestPage() {
               agreesToTerms={agreesToTerms}
               setAgreesToTerms={setAgreesToTerms}
               language={language}
+              isSubmitting={isSubmitting}
               formatPrice={formatPrice}
               calculateTotal={calculateTotal}
               getDeliveryFee={getDeliveryFee}
@@ -1231,11 +1308,15 @@ export default function OrderRequestPage() {
           ) : (
             <button
               onClick={handleSubmitOrder}
-              disabled={!validateStep(getTotalSteps())}
+              disabled={!validateStep(getTotalSteps()) || isSubmitting}
               className="flex items-center px-6 py-2 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
               style={{ backgroundColor: '#14b8a6' }}
             >
-              {t.submitOrder}
+              {isSubmitting ? (
+                language === 'sw' ? 'Inatuma...' : 'Submitting...'
+              ) : (
+                t.submitOrder
+              )}
             </button>
           )}
         </div>
