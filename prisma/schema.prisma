@@ -29,10 +29,7 @@ model User {
   createdAt             DateTime            @default(now()) @map("created_at")
   updatedAt             DateTime            @updatedAt @map("updated_at")
   ownedBusinesses       Business[]          @relation("BusinessOwner")
-  creditApplications    CreditApplication[]
-  customerProfiles      CustomerProfile[]
-  orders                Order[]
-  payments              Payment[]
+  customers             Customer[]          // Customers who linked their account
   grantedPermissions    UserPermission[]    @relation("PermissionGrantedBy")
   userPermissions       UserPermission[]
   sessions              UserSession[]
@@ -122,7 +119,7 @@ model Business {
   owner              User?               @relation("BusinessOwner", fields: [ownerId], references: [id])
   categories         Category[]
   creditApplications CreditApplication[]
-  customerProfiles   CustomerProfile[]
+  customers          Customer[]
   inventory          Inventory[]
   orders             Order[]
   payments           Payment[]
@@ -214,11 +211,16 @@ model BusinessSetting {
   @@map("business_settings")
 }
 
-model CustomerProfile {
+model Customer {
   id           Int          @id @default(autoincrement())
-  userId       Int          @map("user_id")
   businessId   Int          @map("business_id")
+  fullName     String       @map("full_name") @db.VarChar(255)
+  firstName    String?      @map("first_name") @db.VarChar(100)
+  lastName     String?      @map("last_name") @db.VarChar(100)
+  email        String?      @db.VarChar(255)
+  phone        String       @db.VarChar(20)
   customerType CustomerType @default(INDIVIDUAL) @map("customer_type")
+  userId       Int?         @map("user_id") // Optional - for customers who register accounts
   joinDate     DateTime     @default(now()) @map("join_date")
   notes        String?
   creditLimit  Decimal?     @map("credit_limit") @db.Decimal(10, 2)
@@ -226,10 +228,13 @@ model CustomerProfile {
   createdAt    DateTime     @default(now()) @map("created_at")
   updatedAt    DateTime     @updatedAt @map("updated_at")
   business     Business     @relation(fields: [businessId], references: [id])
-  user         User         @relation(fields: [userId], references: [id])
+  user         User?        @relation(fields: [userId], references: [id])
+  orders       Order[]
+  payments     Payment[]
+  creditApplications CreditApplication[]
 
-  @@unique([userId, businessId])
-  @@map("customer_profiles")
+  @@unique([businessId, phone]) // Each customer has unique phone per business
+  @@map("customers")
 }
 
 model Category {
@@ -334,7 +339,7 @@ model Order {
   creditApplication CreditApplication?
   orderItems        OrderItem[]
   business          Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  customer          User               @relation(fields: [customerId], references: [id])
+  customer          Customer           @relation(fields: [customerId], references: [id])
   payments          Payment[]
 
   @@map("orders")
@@ -369,7 +374,7 @@ model Payment {
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
   business      Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  customer      User          @relation(fields: [customerId], references: [id])
+  customer      Customer      @relation(fields: [customerId], references: [id])
   order         Order?        @relation(fields: [orderId], references: [id])
 
   @@map("payments")
@@ -400,7 +405,7 @@ model CreditApplication {
   createdAt         DateTime     @default(now()) @map("created_at")
   updatedAt         DateTime     @updatedAt @map("updated_at")
   business          Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  customer          User         @relation(fields: [customerId], references: [id])
+  customer          Customer     @relation(fields: [customerId], references: [id])
   order             Order?       @relation(fields: [orderId], references: [id])
 
   @@map("credit_applications")

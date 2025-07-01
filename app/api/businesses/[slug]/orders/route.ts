@@ -116,59 +116,55 @@ export async function POST(
 
     // Create order with transaction
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Find or create customer user
-      let customer = await tx.user.findFirst({
+      // 1. Find or create customer in this business
+      let customer = await tx.customer.findFirst({
         where: {
-          OR: [
-            { phone: customerInfo.phone },
-            ...(customerInfo.email ? [{ email: customerInfo.email }] : [])
-          ]
+          businessId: business.id,
+          phone: customerInfo.phone
         }
       })
 
       if (!customer) {
-        // Create new customer user
+        // Create new customer for this business
         const nameParts = customerInfo.fullName.split(' ')
         const firstName = nameParts[0] || customerInfo.fullName
         const lastName = nameParts.slice(1).join(' ') || ''
 
-        customer = await tx.user.create({
+        customer = await tx.customer.create({
           data: {
+            businessId: business.id,
+            fullName: customerInfo.fullName,
             firstName,
             lastName,
             email: customerInfo.email && customerInfo.email !== '' ? customerInfo.email : null,
             phone: customerInfo.phone,
-            role: 'CUSTOMER',
-            isVerified: false,
-            provider: 'phone'
-          }
-        })
-      } else {
-        // Update customer info if email is provided and not set
-        if (customerInfo.email && customerInfo.email !== '' && !customer.email) {
-          customer = await tx.user.update({
-            where: { id: customer.id },
-            data: { email: customerInfo.email }
-          })
-        }
-      }
-
-      // 2. Create or get customer profile for this business
-      let customerProfile = await tx.customerProfile.findFirst({
-        where: {
-          userId: customer.id,
-          businessId: business.id
-        }
-      })
-
-      if (!customerProfile) {
-        customerProfile = await tx.customerProfile.create({
-          data: {
-            userId: customer.id,
-            businessId: business.id,
             customerType: creditPurchase?.customerType === 'business' ? 'BUSINESS' : 'INDIVIDUAL'
           }
         })
+      } else {
+        // Update customer info if needed
+        const updateData: {
+          email?: string | null
+          fullName?: string
+          firstName?: string
+          lastName?: string
+        } = {}
+        if (customerInfo.email && customerInfo.email !== '' && !customer.email) {
+          updateData.email = customerInfo.email
+        }
+        if (customerInfo.fullName !== customer.fullName) {
+          updateData.fullName = customerInfo.fullName
+          const nameParts = customerInfo.fullName.split(' ')
+          updateData.firstName = nameParts[0] || customerInfo.fullName
+          updateData.lastName = nameParts.slice(1).join(' ') || ''
+        }
+        
+        if (Object.keys(updateData).length > 0) {
+          customer = await tx.customer.update({
+            where: { id: customer.id },
+            data: updateData
+          })
+        }
       }
 
       // 3. Generate order number
