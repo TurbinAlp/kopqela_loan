@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { 
   PlusIcon,
@@ -25,6 +25,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useRequireAdminAuth } from '../../hooks/useRequireAuth'
+import { useBusiness } from '../../contexts/BusinessContext'
 import Spinner from '../../components/ui/Spinner'
 import Link from 'next/link'
 import AddCustomerModal from '../../components/AddCustomerModal'
@@ -45,133 +46,29 @@ interface Customer {
   creditScore: 'excellent' | 'good' | 'fair' | 'poor'
 }
 
-// Sample customers data
-const allCustomers: Customer[] = [
-  {
-    id: 1,
-    name: "John Mwangi",
-    email: "john.mwangi@email.com",
-    phone: "+255 712 345 678",
-    address: "123 Uhuru Street, Dar es Salaam",
-    status: "active",
-    registrationDate: "2023-08-15",
-    lastOrderDate: "2024-01-15",
-    totalOrders: 12,
-    totalSpent: 2450000,
-    creditLimit: 500000,
-    outstandingBalance: 125000,
-    creditScore: "excellent"
-  },
-  {
-    id: 2,
-    name: "Mary Wanjiku",
-    email: "mary.wanjiku@email.com",
-    phone: "+255 723 456 789",
-    address: "456 Kenyatta Avenue, Arusha",
-    status: "active",
-    registrationDate: "2023-09-20",
-    lastOrderDate: "2024-01-14",
-    totalOrders: 8,
-    totalSpent: 1350000,
-    creditLimit: 300000,
-    outstandingBalance: 45000,
-    creditScore: "good"
-  },
-  {
-    id: 3,
-    name: "Peter Kamau",
-    email: "peter.kamau@email.com",
-    phone: "+255 734 567 890",
-    address: "789 Mandela Road, Mwanza",
-    status: "suspended",
-    registrationDate: "2023-06-10",
-    lastOrderDate: "2023-12-28",
-    totalOrders: 15,
-    totalSpent: 3200000,
-    creditLimit: 1000000,
-    outstandingBalance: 850000,
-    creditScore: "poor"
-  },
-  {
-    id: 4,
-    name: "Grace Achieng",
-    email: "grace.achieng@email.com",
-    phone: "+255 745 678 901",
-    address: "321 Independence Street, Dodoma",
-    status: "active",
-    registrationDate: "2023-11-05",
-    lastOrderDate: "2024-01-13",
-    totalOrders: 5,
-    totalSpent: 890000,
-    creditLimit: 200000,
-    outstandingBalance: 0,
-    creditScore: "good"
-  },
-  {
-    id: 5,
-    name: "James Ochieng",
-    email: "",
-    phone: "+255 756 789 012",
-    address: "654 Nyerere Boulevard, Mbeya",
-    status: "inactive",
-    registrationDate: "2023-07-18",
-    lastOrderDate: undefined,
-    totalOrders: 3,
-    totalSpent: 450000,
-    creditLimit: 150000,
-    outstandingBalance: 75000,
-    creditScore: "fair"
-  },
-  {
-    id: 6,
-    name: "Sarah Njeri",
-    email: "sarah.njeri@email.com",
-    phone: "+255 767 890 123",
-    address: "987 Market Street, Kilimanjaro",
-    status: "active",
-    registrationDate: "2023-10-12",
-    lastOrderDate: "2024-01-12",
-    totalOrders: 9,
-    totalSpent: 1680000,
-    creditLimit: 400000,
-    outstandingBalance: 220000,
-    creditScore: "fair"
-  },
-  {
-    id: 7,
-    name: "David Mwaura",
-    email: "david.mwaura@email.com",
-    phone: "+255 778 901 234",
-    address: "147 Unity Plaza, Tanga",
-    status: "active",
-    registrationDate: "2023-12-01",
-    lastOrderDate: "2024-01-10",
-    totalOrders: 4,
-    totalSpent: 720000,
-    creditLimit: 250000,
-    outstandingBalance: 0,
-    creditScore: "excellent"
-  },
-  {
-    id: 8,
-    name: "Elizabeth Wanjala",
-    email: "elizabeth.w@email.com",
-    phone: "+255 789 012 345",
-    address: "258 Freedom Avenue, Morogoro",
-    status: "active",
-    registrationDate: "2023-09-08",
-    lastOrderDate: "2024-01-11",
-    totalOrders: 11,
-    totalSpent: 1980000,
-    creditLimit: 350000,
-    outstandingBalance: 95000,
-    creditScore: "good"
+interface CustomersApiResponse {
+  success: boolean
+  data: {
+    customers: Customer[]
+    pagination: {
+      currentPage: number
+      totalPages: number
+      totalItems: number
+      itemsPerPage: number
+    }
+    summary: {
+      totalCustomers: number
+      activeCustomers: number
+      totalOutstanding: number
+      averageSpent: number
+    }
   }
-]
+}
 
 export default function CustomerManagementPage() {
   const { language } = useLanguage()
   const { isLoading: authLoading } = useRequireAdminAuth()
+  const { currentBusiness, isLoading: businessLoading } = useBusiness()
   const [isVisible, setIsVisible] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('all')
@@ -181,7 +78,59 @@ export default function CustomerManagementPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [customers, setCustomers] = useState(allCustomers)
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [loading, setLoading] = useState(true)
+  const [summary, setSummary] = useState({
+    totalCustomers: 0,
+    activeCustomers: 0,
+    totalOutstanding: 0,
+    averageSpent: 0
+  })
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: 10
+  })
+
+  const fetchCustomers = useCallback(async () => {
+    if (!currentBusiness?.id) return
+
+    setLoading(true)
+    try {
+      const params = new URLSearchParams({
+        businessId: currentBusiness.id.toString(),
+        search: searchQuery,
+        status: selectedStatus,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString()
+      })
+
+      const response = await fetch(`/api/admin/customers?${params}`)
+      const result: CustomersApiResponse = await response.json()
+
+      if (result.success) {
+        setCustomers(result.data.customers)
+        setSummary(result.data.summary)
+        setPagination(result.data.pagination)
+      } else {
+        console.error('Failed to fetch customers:', result)
+      }
+    } catch (error) {
+      console.error('Error fetching customers:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [currentBusiness?.id, searchQuery, selectedStatus, sortBy, sortOrder, currentPage, itemsPerPage])
+
+  // Initial load and when dependencies change
+  useEffect(() => {
+    if (currentBusiness?.id && !businessLoading) {
+      fetchCustomers()
+    }
+  }, [currentBusiness?.id, businessLoading, fetchCustomers])
 
   useEffect(() => {
     setIsVisible(true)
@@ -367,48 +316,14 @@ export default function CustomerManagementPage() {
     { value: 'outstandingBalance', label: t.outstandingBalance }
   ]
 
-  // Filter and sort customers
-  const filteredAndSortedCustomers = customers
-    .filter(customer => {
-      const matchesSearch = customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           customer.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           customer.phone.includes(searchQuery)
-      const matchesStatus = selectedStatus === 'all' || customer.status === selectedStatus
-      
-      return matchesSearch && matchesStatus
-    })
-    .sort((a, b) => {
-      let aValue = a[sortBy as keyof Customer]
-      let bValue = b[sortBy as keyof Customer]
-      
-      // Handle undefined/null values
-      if (aValue === undefined || aValue === null) aValue = ''
-      if (bValue === undefined || bValue === null) bValue = ''
-      
-      // Convert to comparable format
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        aValue = aValue.toLowerCase()
-        bValue = bValue.toLowerCase()
-      }
-      
-      let comparison = 0
-      if (aValue < bValue) comparison = -1
-      if (aValue > bValue) comparison = 1
-      
-      return sortOrder === 'asc' ? comparison : -comparison
-    })
+  // Use customers directly from API (already filtered and paginated)
+  const currentCustomers = customers
 
-  // Pagination
-  const totalPages = Math.ceil(filteredAndSortedCustomers.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentCustomers = filteredAndSortedCustomers.slice(startIndex, endIndex)
-
-  // Analytics
-  const totalCustomers = customers.length
-  const activeCustomers = customers.filter(c => c.status === 'active').length
-  const totalOutstanding = customers.reduce((sum, c) => sum + c.outstandingBalance, 0)
-  const averageSpent = customers.reduce((sum, c) => sum + c.totalSpent, 0) / totalCustomers
+  // Use summary and pagination data directly from API
+  const totalCustomers = summary.totalCustomers
+  const activeCustomers = summary.activeCustomers
+  const totalOutstanding = summary.totalOutstanding
+  const averageSpent = summary.averageSpent
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -656,22 +571,28 @@ export default function CustomerManagementPage() {
 
       {/* Customers Table */}
       <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm border border-gray-100">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.customer}</th>
-                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.contact}</th>
-                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.status}</th>
-                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.orders}</th>
-                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.spent}</th>
-                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.credit}</th>
-                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.lastOrderDate}</th>
-                <th className="text-center py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.actions}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {currentCustomers.map((customer, index) => (
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Spinner size="lg" />
+            <span className="ml-3 text-gray-600">Loading customers...</span>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.customer}</th>
+                  <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.contact}</th>
+                  <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.status}</th>
+                  <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.orders}</th>
+                  <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.spent}</th>
+                  <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.credit}</th>
+                  <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.lastOrderDate}</th>
+                  <th className="text-center py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.actions}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentCustomers.map((customer, index) => (
                 <motion.tr
                   key={customer.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -780,23 +701,24 @@ export default function CustomerManagementPage() {
                     </div>
                   </td>
                 </motion.tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                              ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </motion.div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {!loading && pagination.totalPages > 1 && (
         <motion.div variants={itemVariants} className="mt-6 lg:mt-8 flex items-center justify-between">
           <div className="text-sm text-gray-600">
-            {t.showing} {startIndex + 1}-{Math.min(endIndex, filteredAndSortedCustomers.length)} {t.of} {filteredAndSortedCustomers.length} {t.results}
+            {t.showing} {((pagination.currentPage - 1) * pagination.itemsPerPage) + 1}-{Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)} {t.of} {pagination.totalItems} {t.results}
           </div>
           
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
+              disabled={pagination.currentPage === 1}
               className="flex items-center space-x-1 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 hover:text-gray-900"
             >
               <ChevronLeftIcon className="w-4 h-4" />
@@ -804,12 +726,12 @@ export default function CustomerManagementPage() {
             </button>
 
             <div className="flex items-center space-x-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
                   className={`w-10 h-10 rounded-lg font-medium transition-colors ${
-                    currentPage === page
+                    pagination.currentPage === page
                       ? 'bg-teal-500 text-white hover:bg-teal-600'
                       : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
                   }`}
@@ -820,8 +742,8 @@ export default function CustomerManagementPage() {
             </div>
 
             <button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, pagination.totalPages))}
+              disabled={pagination.currentPage === pagination.totalPages}
               className="flex items-center space-x-1 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 hover:text-gray-900"
             >
               <span>{t.next}</span>
