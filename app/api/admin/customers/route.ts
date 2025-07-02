@@ -117,10 +117,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Determine status based on isActive and recent activity
-      let status: 'active' | 'inactive' | 'suspended' = customer.isActive ? 'active' : 'suspended'
-      if (customer.isActive && (!lastOrderDate || new Date(lastOrderDate) < new Date(Date.now() - 90 * 24 * 60 * 60 * 1000))) {
-        status = 'inactive'
-      }
+      const status: 'active' | 'inactive' | 'suspended' = customer.isActive ? 'active' : 'suspended'
 
       return {
         id: customer.id,

@@ -130,6 +130,35 @@ export async function GET(
   }
 }
 
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const customerId = parseInt(params.id)
+    const body = await request.json()
+    const { name, email, phone, address, idNumber, dateOfBirth, occupation, creditLimit, status, customerNotes } = body
+
+    const customer = await prisma.customer.update({
+      where: { id: customerId },
+      data: {
+        fullName: name,
+        email: email || null,
+        phone,
+        address: address || null,
+        idNumber: idNumber || null,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+        occupation: occupation || null,
+        notes: customerNotes || null,
+        creditLimit: creditLimit ? parseFloat(creditLimit) : 0,
+        isActive: status === 'active'
+      }
+    })
+
+    return NextResponse.json({ success: true, data: customer })
+  } catch (error) {
+    console.error('Error updating customer:', error)
+    return NextResponse.json({ error: 'Failed to update customer' }, { status: 500 })
+  }
+}
+
 // Helper function to calculate credit score
 function calculateCreditScore(customer: {
   orders: Array<{ totalAmount: Decimal }>

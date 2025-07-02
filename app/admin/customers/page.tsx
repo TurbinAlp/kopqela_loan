@@ -29,6 +29,7 @@ import { useBusiness } from '../../contexts/BusinessContext'
 import Spinner from '../../components/ui/Spinner'
 import Link from 'next/link'
 import AddCustomerModal from '../../components/AddCustomerModal'
+import EditCustomerModal from '../../components/EditCustomerModal'
 
 interface Customer {
   id: number
@@ -36,6 +37,10 @@ interface Customer {
   email: string | null
   phone: string
   address: string | null
+  idNumber: string | null
+  dateOfBirth: string | null
+  occupation: string | null
+  customerNotes: string | null
   status: 'active' | 'inactive' | 'suspended'
   registrationDate: string
   lastOrderDate?: string
@@ -92,6 +97,8 @@ export default function CustomerManagementPage() {
     totalItems: 0,
     itemsPerPage: 10
   })
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
 
   const fetchCustomers = useCallback(async () => {
     if (!currentBusiness?.id) return
@@ -316,7 +323,7 @@ export default function CustomerManagementPage() {
     { value: 'outstandingBalance', label: t.outstandingBalance }
   ]
 
-  // Use customers directly from API (already filtered and paginated)
+  // Use customers directly from API (already filtered and )
   const currentCustomers = customers
 
   // Use summary and pagination data directly from API
@@ -364,6 +371,17 @@ export default function CustomerManagementPage() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleCustomerAdded = (_newCustomer: Customer) => {
     fetchCustomers()
+  }
+
+  const handleEditCustomer = (customer: Customer) => {
+    setEditingCustomer(customer)
+    setIsEditModalOpen(true)
+  }
+
+  const handleCustomerUpdated = () => {
+    fetchCustomers()
+    setIsEditModalOpen(false)
+    setEditingCustomer(null)
   }
 
   // Show loading while checking authentication
@@ -678,6 +696,7 @@ export default function CustomerManagementPage() {
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
+                        onClick={() => handleEditCustomer(customer)}
                         className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                         title={t.edit}
                       >
@@ -760,6 +779,19 @@ export default function CustomerManagementPage() {
           isOpen={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}
           onCustomerAdded={handleCustomerAdded}
+        />
+      )}
+
+      {/* Edit Customer Modal */}
+      {isEditModalOpen && editingCustomer && (
+        <EditCustomerModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false)
+            setEditingCustomer(null)
+          }}
+          customer={editingCustomer}
+          onCustomerUpdated={handleCustomerUpdated}
         />
       )}
     </motion.div>
