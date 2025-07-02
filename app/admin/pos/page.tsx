@@ -1,11 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  PrinterIcon,
-  CheckIcon
-} from '@heroicons/react/24/outline'
+import { AnimatePresence } from 'framer-motion'
+import { useSession } from 'next-auth/react'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useBusiness } from '../../contexts/BusinessContext'
 import { useNotifications } from '../../contexts/NotificationContext'
@@ -14,6 +11,7 @@ import ProductsSection from '../../components/admin/pos/ProductsSection'
 import CustomerSection from '../../components/admin/pos/CustomerSection'
 import CartSection from '../../components/admin/pos/CartSection'
 import AddCustomerModal from '../../components/AddCustomerModal'
+import Receipt from '../../components/Receipt'
 
 interface Product {
   id: number
@@ -83,17 +81,23 @@ interface Transaction {
   items: CartItem[]
   customer: string
   total: number
+  originalTotal?: number
   paymentMethod: string
+  paymentPlan?: 'full' | 'partial' | 'credit'
   cashReceived: number
   change: number
   date: string
   businessId: number
+  partialPercentage?: number
+  dueDate?: string
+  creditPlan?: string
 }
 
 export default function POSSystem() {
   const { language } = useLanguage()
   const { currentBusiness } = useBusiness()
   const { showSuccess, showError } = useNotifications()
+  const { data: session, status } = useSession()
   
   // State management
   const [searchQuery, setSearchQuery] = useState('')
@@ -163,7 +167,9 @@ export default function POSSystem() {
       paymentSuccessful: "Payment processed successfully",
       currency: "TZS",
       addCustomer: "Add New Customer",
-      noBusinessSelected: "No business selected"
+      noBusinessSelected: "No business selected",
+      authRequired: "Authentication Required",
+      loginToViewReceipt: "Please login to view receipt"
     },
     sw: {
       pageTitle: "Mfumo wa Mauzo",
@@ -208,7 +214,9 @@ export default function POSSystem() {
       paymentSuccessful: "Malipo yameshughulikiwa kikamilifu",
       currency: "TSh",
       addCustomer: "Ongeza Mteja Mpya",
-      noBusinessSelected: "Hakuna biashara iliyochaguliwa"
+      noBusinessSelected: "Hakuna biashara iliyochaguliwa",
+      authRequired: "Uhakikishaji Unahitajika",
+      loginToViewReceipt: "Tafadhali ingia ili kuona risiti"
     }
   }
 
@@ -396,20 +404,38 @@ export default function POSSystem() {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000))
       
+      // Store payment plan before clearing states
+      const currentPaymentPlan = paymentMethod
+      const currentDueDate = dueDate
+      const currentPartialPercentage = partialPercentage
+      const currentCreditPlan = creditPlan
+      
       const transaction: Transaction = {
         id: `TXN-${Date.now()}`,
         items: cart,
         customer: selectedCustomer?.name || 'Walk-in Customer',
         total: finalTotal,
+        originalTotal: baseTotal, // Store original total
         paymentMethod: paymentMethod === 'full' ? actualPaymentMethod : 
                       paymentMethod === 'partial' ? partialPaymentMethod : 'credit',
+        paymentPlan: currentPaymentPlan, // Store payment plan
         cashReceived: paymentMethod === 'partial' ? partialCalculatedAmount : finalTotal,
         change: 0,
         date: new Date().toLocaleString(),
-        businessId: currentBusiness.id
+        businessId: currentBusiness.id,
+        partialPercentage: currentPaymentPlan === 'partial' ? currentPartialPercentage : undefined,
+        dueDate: currentPaymentPlan === 'partial' ? currentDueDate : undefined,
+        creditPlan: currentPaymentPlan === 'credit' ? currentCreditPlan : undefined
       }
       
       setLastTransaction(transaction)
+      
+      // Check authentication before showing receipt
+      if (status !== 'authenticated' || !session?.user) {
+        showError(t.authRequired, t.loginToViewReceipt)
+        return
+      }
+      
       setShowReceipt(true)
       showSuccess('Payment Successful', t.paymentSuccessful)
       clearCart()
@@ -518,64 +544,55 @@ export default function POSSystem() {
           />
         )}
 
-        {/* Receipt Modal */}
+        {/* Receipt Modal - Only show if authenticated */}
         <AnimatePresence>
-          {showReceipt && lastTransaction && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-white rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
-              >
-                <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <CheckIcon className="w-8 h-8 text-green-600" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800 mb-2">{t.transactionComplete}</h3>
-                  <p className="text-gray-600">Transaction ID: {lastTransaction.id}</p>
-                </div>
-
-                {/* Receipt Details */}
-                <div className="border-t border-b border-gray-200 py-4 mb-6">
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-900">Customer:</span>
-                      <span className="text-gray-900">{lastTransaction.customer}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-900">Date:</span>
-                      <span className="text-gray-900">{lastTransaction.date}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-900">Payment:</span>
-                      <span className="text-gray-900">{lastTransaction.paymentMethod}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowReceipt(false)}
-                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    Close
-                  </button>
-                  <button
-                    onClick={() => window.print()}
-                    className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center justify-center"
-                  >
-                    <PrinterIcon className="w-4 h-4 mr-2" />
-                    {t.printReceipt}
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
+          {showReceipt && lastTransaction && status === 'authenticated' && session?.user && (
+            <Receipt
+              isOpen={showReceipt}
+              onClose={() => setShowReceipt(false)}
+                              receiptData={{
+                transactionId: lastTransaction.id,
+                businessName: currentBusiness?.name || 'Business Name',
+                businessPhone: currentBusiness?.businessSetting?.phone,
+                businessEmail: currentBusiness?.businessSetting?.email,
+                businessAddress: currentBusiness?.businessSetting?.address,
+                customerName: lastTransaction.customer,
+                customerPhone: selectedCustomer?.phone,
+                customerEmail: selectedCustomer?.email,
+                items: lastTransaction.items.map(item => ({
+                  id: item.id,
+                  name: item.name,
+                  nameSwahili: item.nameSwahili,
+                  quantity: item.quantity,
+                  price: item.price,
+                  subtotal: item.subtotal,
+                  unit: item.unit
+                })),
+                subtotal: lastTransaction.items.reduce((sum, item) => sum + Number(item.subtotal), 0),
+                taxAmount: includeTax ? lastTransaction.items.reduce((sum, item) => sum + Number(item.subtotal), 0) * ((currentBusiness?.businessSetting?.taxRate || 18) / 100) : 0,
+                taxRate: currentBusiness?.businessSetting?.taxRate || 18,
+                interestAmount: lastTransaction.paymentPlan === 'credit' ? 
+                   lastTransaction.items.reduce((sum, item) => sum + Number(item.subtotal), 0) * 
+                   (lastTransaction.creditPlan === '3' ? 0.05 : lastTransaction.creditPlan === '6' ? 0.08 : lastTransaction.creditPlan === '12' ? 0.12 : lastTransaction.creditPlan === '24' ? 0.15 : 0.08) : 0,
+                interestRate: lastTransaction.paymentPlan === 'credit' ? 
+                   (lastTransaction.creditPlan === '3' ? 5 : lastTransaction.creditPlan === '6' ? 8 : lastTransaction.creditPlan === '12' ? 12 : lastTransaction.creditPlan === '24' ? 15 : 8) : 0,
+                finalTotal: lastTransaction.originalTotal || lastTransaction.total,
+                paymentMethod: lastTransaction.paymentMethod,
+                paymentPlan: lastTransaction.paymentPlan,
+                partialAmount: lastTransaction.paymentPlan === 'partial' ? lastTransaction.cashReceived : undefined,
+                balanceDue: lastTransaction.paymentPlan === 'partial' ? ((lastTransaction.originalTotal || lastTransaction.total) - lastTransaction.cashReceived) : undefined,
+                dueDate: lastTransaction.paymentPlan === 'partial' ? lastTransaction.dueDate : undefined,
+                creditPlan: lastTransaction.paymentPlan === 'credit' ? lastTransaction.creditPlan : undefined,
+                transactionDate: lastTransaction.date,
+                cashierName: 'Cashier'
+              }}
+              onNewTransaction={() => {
+                setShowReceipt(false)
+                clearCart()
+                setSelectedCustomer(null)
+                setPaymentMethod('full')
+              }}
+            />
           )}
         </AnimatePresence>
       </div>
