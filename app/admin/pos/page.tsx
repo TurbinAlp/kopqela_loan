@@ -3,20 +3,16 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  MagnifyingGlassIcon,
-  ShoppingCartIcon,
-  UserIcon,
   PrinterIcon,
-  PlusIcon,
-  MinusIcon,
-  XMarkIcon,
-  TagIcon,
   CheckIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useBusiness } from '../../contexts/BusinessContext'
 import { useNotifications } from '../../contexts/NotificationContext'
 import PaymentSection from '../../components/admin/pos/PaymentSection'
+import ProductsSection from '../../components/admin/pos/ProductsSection'
+import CustomerSection from '../../components/admin/pos/CustomerSection'
+import CartSection from '../../components/admin/pos/CartSection'
 import AddCustomerModal from '../../components/AddCustomerModal'
 
 interface Product {
@@ -179,30 +175,24 @@ export default function POSSystem() {
 
   const t = translations[language]
 
-  // Sample data - replace with API calls
-  const sampleProducts: Product[] = [
-    { id: 1, name: "Rice 25kg", nameSwahili: "Mchele 25kg", price: 45000, category: "Food", stock: 50, unit: "bag" },
-    { id: 2, name: "Sugar 2kg", nameSwahili: "Sukari 2kg", price: 4500, category: "Food", stock: 100, unit: "packet" },
-    { id: 3, name: "Cooking Oil 1L", nameSwahili: "Mafuta ya Kupikia 1L", price: 3200, category: "Food", stock: 75, unit: "bottle" },
-    { id: 4, name: "Cement 50kg", nameSwahili: "Saruji 50kg", price: 18000, category: "Construction", stock: 200, unit: "bag" },
-    { id: 5, name: "Iron Sheets", nameSwahili: "Mabati", price: 1200, category: "Construction", stock: 150, unit: "piece" },
-  ]
-
-  const sampleCustomers: Customer[] = [
-    { id: 1, name: "John Mwangi", phone: "+255701234567", email: "john@example.com", creditLimit: 500000, outstandingBalance: 0 },
-    { id: 2, name: "Mary Wanjiku", phone: "+255712345678", email: "mary@example.com", creditLimit: 300000, outstandingBalance: 25000 },
-    { id: 3, name: "Peter Kamau", phone: "+255723456789", email: "peter@example.com", creditLimit: 1000000, outstandingBalance: 150000 },
-  ]
-
-  const categories = [
-    { value: 'all', label: t.all },
-    { value: 'Food', label: 'Food/Chakula' },
-    { value: 'Construction', label: 'Construction/Ujenzi' },
-  ]
-
   useEffect(() => {
     // Load products and customers when business is selected
     if (currentBusiness) {
+      // Sample data - replace with API calls
+      const sampleProducts: Product[] = [
+        { id: 1, name: "Rice 25kg", nameSwahili: "Mchele 25kg", price: 45000, category: "Food", stock: 50, unit: "bag" },
+        { id: 2, name: "Sugar 2kg", nameSwahili: "Sukari 2kg", price: 4500, category: "Food", stock: 100, unit: "packet" },
+        { id: 3, name: "Cooking Oil 1L", nameSwahili: "Mafuta ya Kupikia 1L", price: 3200, category: "Food", stock: 75, unit: "bottle" },
+        { id: 4, name: "Cement 50kg", nameSwahili: "Saruji 50kg", price: 18000, category: "Construction", stock: 200, unit: "bag" },
+        { id: 5, name: "Iron Sheets", nameSwahili: "Mabati", price: 1200, category: "Construction", stock: 150, unit: "piece" },
+      ]
+
+      const sampleCustomers: Customer[] = [
+        { id: 1, name: "John Mwangi", phone: "+255701234567", email: "john@example.com", creditLimit: 500000, outstandingBalance: 0 },
+        { id: 2, name: "Mary Wanjiku", phone: "+255712345678", email: "mary@example.com", creditLimit: 300000, outstandingBalance: 25000 },
+        { id: 3, name: "Peter Kamau", phone: "+255723456789", email: "peter@example.com", creditLimit: 1000000, outstandingBalance: 150000 },
+      ]
+
       setProducts(sampleProducts)
       setCustomers(sampleCustomers)
     }
@@ -262,10 +252,7 @@ export default function POSSystem() {
     setCustomerSearch('')
   }
 
-  const filteredCustomers = customers.filter(customer =>
-    customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
-    customer.phone.includes(customerSearch)
-  )
+
 
   // Calculations
   const cartTotal = cart.reduce((sum, item) => sum + item.subtotal, 0)
@@ -328,13 +315,7 @@ export default function POSSystem() {
     }
   }
 
-  // Filter products
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (product.nameSwahili && product.nameSwahili.toLowerCase().includes(searchQuery.toLowerCase()))
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory
-    return matchesSearch && matchesCategory
-  })
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -350,156 +331,32 @@ export default function POSSystem() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Products Section */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Search and Filters */}
-            <div className="bg-white rounded-xl p-6 shadow-sm">
-              <div className="flex flex-col md:flex-row gap-4 mb-6">
-                <div className="flex-1 relative">
-                  <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder={t.productSearch}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
-                  />
-                </div>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white text-gray-900"
-                >
-                  {categories.map(category => (
-                    <option key={category.value} value={category.value}>
-                      {category.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Products Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {filteredProducts.map(product => (
-                  <motion.div
-                    key={product.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="bg-gray-50 rounded-lg p-4 cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={() => addToCart(product)}
-                  >
-                    <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center">
-                      <TagIcon className="w-8 h-8 text-gray-400" />
-                    </div>
-                    <h3 className="font-medium text-sm mb-1 line-clamp-2">
-                      {language === 'sw' && product.nameSwahili ? product.nameSwahili : product.name}
-                    </h3>
-                    <p className="text-lg font-bold text-teal-600 mb-1">
-                      {t.currency} {product.price.toLocaleString()}
-                    </p>
-                    <p className={`text-xs ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {product.stock > 0 ? `${t.inStock}: ${product.stock}` : t.outOfStock}
-                    </p>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
+            <ProductsSection
+              products={products}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              onAddToCart={addToCart}
+            />
           </div>
 
           {/* Cart and Payment Section */}
           <div className="space-y-6">
-            {/* Customer Selection */}
-            <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h3 className="font-semibold mb-4 flex items-center text-gray-900">
-                <UserIcon className="w-5 h-5 mr-2 text-gray-900" />
-                {t.customer}
-              </h3>
-              <div className="space-y-3">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder={t.customerSearch}
-                    value={customerSearch}
-                    onChange={(e) => setCustomerSearch(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
-                  />
-                  
-                  {/* Customer dropdown */}
-                  {customerSearch && filteredCustomers.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-40 overflow-y-auto text-gray-900">
-                      {filteredCustomers.map(customer => (
-                        <button
-                          key={customer.id}
-                          onClick={() => selectCustomer(customer)}
-                          className="w-full px-3 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 text-gray-900"
-                        >
-                          <div className="font-medium text-gray-900">{customer.name}</div>
-                          <div className="text-sm text-gray-600 text-gray-900">{customer.phone}</div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <div className="text-sm text-gray-600">
-                    {selectedCustomer ? selectedCustomer.name : t.walkInCustomer}
-                  </div>
-                  <button
-                    onClick={() => setShowCustomerModal(true)}
-                    className="text-teal-600 text-sm hover:text-teal-700"
-                  >
-                    {t.addCustomer}
-                  </button>
-                </div>
-              </div>
-            </div>
+            <CustomerSection
+              selectedCustomer={selectedCustomer}
+              customers={customers}
+              customerSearch={customerSearch}
+              setCustomerSearch={setCustomerSearch}
+              onSelectCustomer={selectCustomer}
+              onAddCustomerClick={() => setShowCustomerModal(true)}
+            />
 
-            {/* Shopping Cart */}
-            <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h3 className="font-semibold mb-4 flex items-center text-gray-900">
-                <ShoppingCartIcon className="w-5 h-5 mr-2 text-gray-900" />
-                {t.cart} ({cart.length})
-              </h3>
-              
-              <div className="space-y-3 max-h-60 overflow-y-auto">
-                {cart.map(item => (
-                  <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate text-gray-900">
-                        {language === 'sw' && item.nameSwahili ? item.nameSwahili : item.name}
-                      </p>
-                      <p className="text-xs text-gray-600 text-gray-900">
-                        {t.currency} {item.price.toLocaleString()} x {item.quantity}
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 text-gray-900"
-                      >
-                        <MinusIcon className="w-3 h-3 text-gray-900" />
-                      </button>
-                      <span className="text-sm font-medium w-8 text-center text-gray-900">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 text-gray-900"
-                      >
-                        <PlusIcon className="w-3 h-3 text-gray-900" />
-                      </button>
-                      <button
-                        onClick={() => removeFromCart(item.id)}
-                        className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center hover:bg-red-200 ml-2"
-                      >
-                        <XMarkIcon className="w-3 h-3 text-red-600" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {cart.length === 0 && (
-                <p className="text-gray-500 text-center py-8">Cart is empty</p>
-              )}
-            </div>
+            <CartSection
+              cart={cart}
+              onUpdateQuantity={updateQuantity}
+              onRemoveFromCart={removeFromCart}
+            />
 
             {/* Payment Summary */}
             <PaymentSection
