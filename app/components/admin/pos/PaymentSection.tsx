@@ -39,6 +39,7 @@ interface PaymentSectionProps {
   processPayment: () => void
   includeTax: boolean
   setIncludeTax: (include: boolean) => void
+  taxRate: number
 }
 
 export default function PaymentSection({
@@ -58,7 +59,8 @@ export default function PaymentSection({
   isProcessing,
   processPayment,
   includeTax,
-  setIncludeTax
+  setIncludeTax,
+  taxRate
 }: PaymentSectionProps) {
   const { language } = useLanguage()
   
@@ -111,7 +113,7 @@ export default function PaymentSection({
 
   // Calculations
   const cartTotal = cart.reduce((sum, item) => sum + Number(item.subtotal), 0)
-  const taxAmount = includeTax ? cartTotal * 0.18 : 0 // 18% VAT
+  const taxAmount = includeTax ? cartTotal * (taxRate / 100) : 0 // Dynamic tax rate
   
   // Credit interest calculation
   const getInterestRate = () => {
@@ -310,7 +312,7 @@ export default function PaymentSection({
               onChange={(e) => setIncludeTax(e.target.checked)}
               className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
             />
-            <label htmlFor="includeTax" className="text-gray-900">{t.tax} (18%)</label>
+            <label htmlFor="includeTax" className="text-gray-900">{t.tax} ({taxRate}%)</label>
           </div>
           <span className="text-gray-900">{t.currency} {taxAmount.toLocaleString()}</span>
         </div>

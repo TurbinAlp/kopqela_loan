@@ -481,6 +481,7 @@ export default function POSSystem() {
               processPayment={processPayment}
               includeTax={includeTax}
               setIncludeTax={setIncludeTax}
+              taxRate={currentBusiness?.businessSetting?.taxRate || 18}
             />
           </div>
         </div>

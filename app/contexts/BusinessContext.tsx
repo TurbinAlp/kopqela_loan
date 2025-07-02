@@ -16,6 +16,7 @@ interface Business {
     city?: string
     region?: string
     country?: string
+    taxRate?: number
   }
   _count?: {
     users: number
@@ -27,6 +28,7 @@ interface BusinessContextType {
   businesses: Business[]
   setCurrentBusiness: (business: Business | null) => void
   loadBusinesses: () => Promise<void>
+  loadBusinessSettings: () => Promise<void>
   isLoading: boolean
 }
 
@@ -45,6 +47,29 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     setCurrentBusinessState(business)
     localStorage.setItem('currentBusinessId', business.id.toString())
   }
+
+  // Load business settings including taxRate
+  const loadBusinessSettings = useCallback(async () => {
+    if (!currentBusiness?.id) return
+    
+    try {
+      const response = await fetch(`/api/admin/business/settings?businessId=${currentBusiness.id}`)
+      const data = await response.json()
+      
+      if (data.success && data.data) {
+        // Update current business with taxRate from settings
+        setCurrentBusinessState(prev => prev ? {
+          ...prev,
+          businessSetting: {
+            ...prev.businessSetting,
+            taxRate: data.data.taxRate
+          }
+        } : null)
+      }
+    } catch (error) {
+      console.error('Error loading business settings:', error)
+    }
+  }, [currentBusiness?.id])
 
   // Load businesses from API
   const loadBusinesses = useCallback(async () => {
@@ -84,11 +109,19 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     loadBusinesses()
   }, [loadBusinesses])
 
+  // Load business settings when currentBusiness changes
+  useEffect(() => {
+    if (currentBusiness?.id) {
+      loadBusinessSettings()
+    }
+  }, [currentBusiness?.id, loadBusinessSettings])
+
   const value = {
     currentBusiness,
     businesses,
     setCurrentBusiness,
     loadBusinesses,
+    loadBusinessSettings,
     isLoading
   }
 
