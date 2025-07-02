@@ -3,9 +3,9 @@
 import { motion } from 'framer-motion'
 import { 
   MagnifyingGlassIcon,
-  TagIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../../contexts/LanguageContext'
+import Image from 'next/image'
 
 interface Product {
   id: number
@@ -110,7 +110,7 @@ export default function ProductsSection({
             onClick={() => onAddToCart(product)}
           >
             <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center">
-              <TagIcon className="w-8 h-8 text-gray-400" />
+                <Image src={product?.image || ''} alt={product.name} width={200} height={200} />
             </div>
             <h3 className="font-medium text-sm mb-1 line-clamp-2">
               {language === 'sw' && product.nameSwahili ? product.nameSwahili : product.name}

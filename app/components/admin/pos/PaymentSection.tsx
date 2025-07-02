@@ -110,7 +110,7 @@ export default function PaymentSection({
   const t = translations[language]
 
   // Calculations
-  const cartTotal = cart.reduce((sum, item) => sum + item.subtotal, 0)
+  const cartTotal = cart.reduce((sum, item) => sum + Number(item.subtotal), 0)
   const taxAmount = includeTax ? cartTotal * 0.18 : 0 // 18% VAT
   
   // Credit interest calculation

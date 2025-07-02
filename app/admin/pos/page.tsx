@@ -41,6 +41,27 @@ interface Customer {
   outstandingBalance?: number
 }
 
+interface ApiProduct {
+  id: number
+  name: string
+  nameSwahili?: string
+  price: number
+  category?: { name: string }
+  images?: { url: string }[]
+  inventory?: { quantity: number }
+  barcode?: string
+  unit?: string
+}
+
+interface ApiCustomer {
+  id: number
+  name: string
+  phone?: string
+  email?: string
+  creditLimit?: number
+  outstandingBalance?: number
+}
+
 interface Transaction {
   id: string
   items: CartItem[]
@@ -79,6 +100,7 @@ export default function POSSystem() {
   const [lastTransaction, setLastTransaction] = useState<Transaction | null>(null)
   const [showCustomerModal, setShowCustomerModal] = useState(false)
   const [includeTax, setIncludeTax] = useState(false)
+  const [isLoadingData, setIsLoadingData] = useState(true)
   
   const translations = {
     en: {
@@ -176,27 +198,59 @@ export default function POSSystem() {
   const t = translations[language]
 
   useEffect(() => {
-    // Load products and customers when business is selected
-    if (currentBusiness) {
-      // Sample data - replace with API calls
-      const sampleProducts: Product[] = [
-        { id: 1, name: "Rice 25kg", nameSwahili: "Mchele 25kg", price: 45000, category: "Food", stock: 50, unit: "bag" },
-        { id: 2, name: "Sugar 2kg", nameSwahili: "Sukari 2kg", price: 4500, category: "Food", stock: 100, unit: "packet" },
-        { id: 3, name: "Cooking Oil 1L", nameSwahili: "Mafuta ya Kupikia 1L", price: 3200, category: "Food", stock: 75, unit: "bottle" },
-        { id: 4, name: "Cement 50kg", nameSwahili: "Saruji 50kg", price: 18000, category: "Construction", stock: 200, unit: "bag" },
-        { id: 5, name: "Iron Sheets", nameSwahili: "Mabati", price: 1200, category: "Construction", stock: 150, unit: "piece" },
-      ]
+    const fetchData = async () => {
+      if (!currentBusiness?.id) return
 
-      const sampleCustomers: Customer[] = [
-        { id: 1, name: "John Mwangi", phone: "+255701234567", email: "john@example.com", creditLimit: 500000, outstandingBalance: 0 },
-        { id: 2, name: "Mary Wanjiku", phone: "+255712345678", email: "mary@example.com", creditLimit: 300000, outstandingBalance: 25000 },
-        { id: 3, name: "Peter Kamau", phone: "+255723456789", email: "peter@example.com", creditLimit: 1000000, outstandingBalance: 150000 },
-      ]
+      setIsLoadingData(true)
+      try {
+        // ==============Fetch products from API=====================
+        // TODO: Add pagination
+        const productsResponse = await fetch(`/api/admin/products?businessId=${currentBusiness.id}&limit=100`)
+        const productsResult = await productsResponse.json()
+        
+        if (productsResult.success) {
+          // Transform API data to match POS interface
+          const transformedProducts: Product[] = productsResult.data.products.map((product: ApiProduct) => ({
+            id: product.id,
+            name: product.name,
+            nameSwahili: product.nameSwahili,
+            price: Number(product.price) || 0, // Ensure price is a number
+            category: product.category?.name || 'General',
+            image: product.images?.[0]?.url,
+            stock: product.inventory?.quantity || 0,
+            barcode: product.barcode,
+            unit: product.unit
+          }))
+          setProducts(transformedProducts)
+        }
 
-      setProducts(sampleProducts)
-      setCustomers(sampleCustomers)
+        // ==============Fetch customers from API=====================
+        // TODO: Add pagination
+        const customersResponse = await fetch(`/api/admin/customers?businessId=${currentBusiness.id}&limit=100`)
+        const customersResult = await customersResponse.json()
+        
+        if (customersResult.success) {
+          // Transform API data to match POS interface
+          const transformedCustomers: Customer[] = customersResult.data.customers.map((customer: ApiCustomer) => ({
+            id: customer.id,
+            name: customer.name,
+            phone: customer.phone || '',
+            email: customer.email,
+            creditLimit: customer.creditLimit || 0,
+            outstandingBalance: customer.outstandingBalance || 0
+          }))
+          setCustomers(transformedCustomers)
+        }
+      } catch (error) {
+        console.error('Error fetching POS data:', error)
+        showError('Data Loading Error', 'Failed to load products and customers')
+      } finally {
+        setIsLoadingData(false)
+      }
     }
-  }, [currentBusiness])
+
+    fetchData()
+  }, [currentBusiness?.id, showError])
 
   // Check if business is selected
   if (!currentBusiness) {
@@ -209,16 +263,29 @@ export default function POSSystem() {
     )
   }
 
+  // Show loading state while fetching data
+  if (isLoadingData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
+          <p className="text-xl text-gray-600">Loading products and customers...</p>
+        </div>
+      </div>
+    )
+  }
+
   // Cart functions
   const addToCart = (product: Product) => {
     const existingItem = cart.find(item => item.id === product.id)
+
     if (existingItem) {
       updateQuantity(product.id, existingItem.quantity + 1)
     } else {
       const cartItem: CartItem = {
         ...product,
         quantity: 1,
-        subtotal: product.price
+        subtotal: Number(product.price) // Ensure subtotal is a number
       }
       setCart([...cart, cartItem])
     }
@@ -230,9 +297,10 @@ export default function POSSystem() {
       return
     }
     
+
     setCart(cart.map(item => 
       item.id === productId 
-        ? { ...item, quantity: newQuantity, subtotal: item.price * newQuantity }
+        ? { ...item, quantity: newQuantity, subtotal: Number(item.price) * newQuantity }
         : item
     ))
   }
