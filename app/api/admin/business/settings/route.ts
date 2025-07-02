@@ -102,6 +102,12 @@ export async function GET(request: NextRequest) {
       
       // Operational Settings
       defaultPaymentMethod: business.businessSetting?.defaultPaymentMethod || 'CASH',
+      paymentMethods: business.businessSetting?.paymentMethods || [
+        { value: 'cash', label: 'Cash', labelSwahili: 'Fedha Taslimu', icon: 'BanknotesIcon' },
+        { value: 'card', label: 'Card', labelSwahili: 'Kadi', icon: 'CreditCardIcon' },
+        { value: 'mobile', label: 'Mobile Money', labelSwahili: 'Fedha za Simu', icon: 'DevicePhoneMobileIcon' },
+        { value: 'bank', label: 'Bank Transfer', labelSwahili: 'Uhamisho wa Benki', icon: 'BuildingLibraryIcon' }
+      ],
       invoicePrefix: business.businessSetting?.invoicePrefix || 'INV',
       orderPrefix: business.businessSetting?.orderPrefix || 'ORD',
       receiptFooterMessage: business.businessSetting?.receiptFooterMessage || ''

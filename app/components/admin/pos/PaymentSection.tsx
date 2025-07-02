@@ -9,6 +9,7 @@ import {
   ClockIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../../contexts/LanguageContext'
+import { type PaymentMethod } from '../../../contexts/BusinessContext'
 
 interface CartItem {
   id: number
@@ -40,6 +41,7 @@ interface PaymentSectionProps {
   includeTax: boolean
   setIncludeTax: (include: boolean) => void
   taxRate: number
+  paymentMethods: (PaymentMethod | string)[]
 }
 
 export default function PaymentSection({
@@ -60,9 +62,49 @@ export default function PaymentSection({
   processPayment,
   includeTax,
   setIncludeTax,
-  taxRate
+  taxRate,
+  paymentMethods
 }: PaymentSectionProps) {
   const { language } = useLanguage()
+
+  // Convert string-based payment methods to object format
+  const normalizedPaymentMethods = paymentMethods?.map((method) => {
+    // If method is already an object, return it as is
+    if (typeof method === 'object' && method.value) {
+      return method
+    }
+    
+    // If method is a string, convert to object format
+    if (typeof method === 'string') {
+      const methodMap: { [key: string]: { value: string, label: string, labelSwahili: string, icon: string } } = {
+        'CASH': { value: 'cash', label: 'Cash', labelSwahili: 'Fedha Taslimu', icon: 'BanknotesIcon' },
+        'CARD': { value: 'card', label: 'Card', labelSwahili: 'Kadi', icon: 'CreditCardIcon' },
+        'CREDIT_CARD': { value: 'card', label: 'Card', labelSwahili: 'Kadi', icon: 'CreditCardIcon' },
+        'MOBILE_MONEY': { value: 'mobile', label: 'Mobile Money', labelSwahili: 'Fedha za Simu', icon: 'DevicePhoneMobileIcon' },
+        'MOBILE MONEY': { value: 'mobile', label: 'Mobile Money', labelSwahili: 'Fedha za Simu', icon: 'DevicePhoneMobileIcon' },
+        'BANK_TRANSFER': { value: 'bank', label: 'Bank Transfer', labelSwahili: 'Uhamisho wa Benki', icon: 'BuildingLibraryIcon' },
+        'BANK TRANSFER': { value: 'bank', label: 'Bank Transfer', labelSwahili: 'Uhamisho wa Benki', icon: 'BuildingLibraryIcon' }
+      }
+      
+      return methodMap[method] || { 
+        value: (method as string).toLowerCase().replace(/\s+/g, '_'), 
+        label: method as string, 
+        labelSwahili: method as string, 
+        icon: 'BanknotesIcon' 
+      }
+    }
+    
+    // Fallback
+    return { value: 'cash', label: 'Cash', labelSwahili: 'Fedha Taslimu', icon: 'BanknotesIcon' }
+  }) || [
+    { value: 'cash', label: 'Cash', labelSwahili: 'Fedha Taslimu', icon: 'BanknotesIcon' },
+    { value: 'card', label: 'Card', labelSwahili: 'Kadi', icon: 'CreditCardIcon' },
+    { value: 'mobile', label: 'Mobile Money', labelSwahili: 'Fedha za Simu', icon: 'DevicePhoneMobileIcon' },
+    { value: 'bank', label: 'Bank Transfer', labelSwahili: 'Uhamisho wa Benki', icon: 'BuildingLibraryIcon' }
+  ]
+
+  // Debug: Check normalized payment methods
+  console.log('PaymentSection - Normalized payment methods:', normalizedPaymentMethods)
   
   const translations = {
     en: {
@@ -110,6 +152,17 @@ export default function PaymentSection({
   }
 
   const t = translations[language]
+
+  // Helper function to get icon component
+  const getIconComponent = (iconName: string) => {
+    switch (iconName) {
+      case 'BanknotesIcon': return BanknotesIcon
+      case 'CreditCardIcon': return CreditCardIcon
+      case 'DevicePhoneMobileIcon': return DevicePhoneMobileIcon
+      case 'BuildingLibraryIcon': return BuildingLibraryIcon
+      default: return BanknotesIcon
+    }
+  }
 
   // Calculations
   const cartTotal = cart.reduce((sum, item) => sum + Number(item.subtotal), 0)
@@ -181,26 +234,30 @@ export default function PaymentSection({
           <label className="block text-sm font-medium text-gray-700 mb-2">
             {t.actualPaymentMethod}
           </label>
-          <div className="grid grid-cols-4 gap-2">
-            {[
-              { value: 'cash', label: t.cash, icon: BanknotesIcon },
-              { value: 'card', label: t.card, icon: CreditCardIcon },
-              { value: 'mobile', label: t.mobile, icon: DevicePhoneMobileIcon },
-              { value: 'bank', label: t.bank, icon: BuildingLibraryIcon }
-            ].map(method => (
-              <button
-                key={method.value}
-                onClick={() => setActualPaymentMethod(method.value as 'cash' | 'card' | 'mobile' | 'bank')}
-                className={`p-2 rounded-lg border transition-colors ${
-                  actualPaymentMethod === method.value
-                    ? 'border-teal-500 bg-teal-50 text-teal-600'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <method.icon className="w-4 h-4 mx-auto mb-1" />
-                <span className="text-xs font-medium">{method.label}</span>
-              </button>
-            ))}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {normalizedPaymentMethods.map((method) => {
+              const IconComponent = getIconComponent(method.icon)
+              return (
+                <button
+                  key={method.value}
+                  onClick={() => setActualPaymentMethod(method.value as 'cash' | 'card' | 'mobile' | 'bank')}
+                  className={`p-3 rounded-lg border transition-colors flex flex-col items-center ${
+                    actualPaymentMethod === method.value
+                      ? 'border-teal-500 bg-teal-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <IconComponent className={`w-5 h-5 mb-2 ${
+                    actualPaymentMethod === method.value ? 'text-teal-600' : 'text-gray-600'
+                  }`} />
+                  <span className={`text-xs font-medium text-center leading-tight ${
+                    actualPaymentMethod === method.value ? 'text-teal-700' : 'text-gray-800'
+                  }`}>
+                    {language === 'sw' && method.labelSwahili ? method.labelSwahili : method.label}
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </div>
       )}
@@ -241,26 +298,30 @@ export default function PaymentSection({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {t.paymentMethod} *
             </label>
-            <div className="grid grid-cols-4 gap-2">
-              {[
-                { value: 'cash', label: t.cash, icon: BanknotesIcon },
-                { value: 'card', label: t.card, icon: CreditCardIcon },
-                { value: 'mobile', label: t.mobile, icon: DevicePhoneMobileIcon },
-                { value: 'bank', label: t.bank, icon: BuildingLibraryIcon }
-              ].map(method => (
-                <button
-                  key={method.value}
-                  onClick={() => setPartialPaymentMethod(method.value as 'cash' | 'card' | 'mobile' | 'bank')}
-                                      className={`p-2 rounded-lg border transition-colors ${
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {normalizedPaymentMethods.map((method) => {
+                const IconComponent = getIconComponent(method.icon)
+                return (
+                  <button
+                    key={method.value}
+                    onClick={() => setPartialPaymentMethod(method.value as 'cash' | 'card' | 'mobile' | 'bank')}
+                    className={`p-3 rounded-lg border transition-colors flex flex-col items-center ${
                       partialPaymentMethod === method.value
-                        ? 'border-teal-500 bg-teal-50 text-teal-600'
+                        ? 'border-teal-500 bg-teal-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
-                >
-                  <method.icon className="w-4 h-4 mx-auto mb-1" />
-                  <span className="text-xs font-medium">{method.label}</span>
-                </button>
-              ))}
+                  >
+                    <IconComponent className={`w-5 h-5 mb-2 ${
+                      partialPaymentMethod === method.value ? 'text-teal-600' : 'text-gray-600'
+                    }`} />
+                    <span className={`text-xs font-medium text-center leading-tight ${
+                      partialPaymentMethod === method.value ? 'text-teal-700' : 'text-gray-800'
+                    }`}>
+                      {language === 'sw' && method.labelSwahili ? method.labelSwahili : method.label}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
           </div>
           <div>

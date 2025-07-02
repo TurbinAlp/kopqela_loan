@@ -2,6 +2,13 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 
+interface PaymentMethod {
+  value: string
+  label: string
+  labelSwahili?: string
+  icon: string
+}
+
 interface Business {
   id: number
   name: string
@@ -17,6 +24,7 @@ interface Business {
     region?: string
     country?: string
     taxRate?: number
+    paymentMethods?: PaymentMethod[]
   }
   _count?: {
     users: number
@@ -57,12 +65,13 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       const data = await response.json()
       
       if (data.success && data.data) {
-        // Update current business with taxRate from settings
+        // Update current business with settings from API
         setCurrentBusinessState(prev => prev ? {
           ...prev,
           businessSetting: {
             ...prev.businessSetting,
-            taxRate: data.data.taxRate
+            taxRate: data.data.taxRate,
+            paymentMethods: data.data.paymentMethods
           }
         } : null)
       }
@@ -140,4 +149,5 @@ export function useBusiness() {
   return context
 }
 
+export type { PaymentMethod, Business }
 export default BusinessContext 

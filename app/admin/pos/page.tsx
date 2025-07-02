@@ -285,6 +285,11 @@ export default function POSSystem() {
     fetchData()
   }, [currentBusiness?.id, showError])
 
+  // Debug payment methods data format
+  if (currentBusiness?.businessSetting?.paymentMethods) {
+    console.log('POS - Payment methods from database:', currentBusiness.businessSetting.paymentMethods)
+  }
+
   // Check if business is selected
   if (!currentBusiness) {
     return (
@@ -482,6 +487,12 @@ export default function POSSystem() {
               includeTax={includeTax}
               setIncludeTax={setIncludeTax}
               taxRate={currentBusiness?.businessSetting?.taxRate || 18}
+              paymentMethods={currentBusiness?.businessSetting?.paymentMethods || [
+                { value: 'cash', label: 'Cash', labelSwahili: 'Fedha Taslimu', icon: 'BanknotesIcon' },
+                { value: 'card', label: 'Card', labelSwahili: 'Kadi', icon: 'CreditCardIcon' },
+                { value: 'mobile', label: 'Mobile Money', labelSwahili: 'Fedha za Simu', icon: 'DevicePhoneMobileIcon' },
+                { value: 'bank', label: 'Bank Transfer', labelSwahili: 'Uhamisho wa Benki', icon: 'BuildingLibraryIcon' }
+              ]}
             />
           </div>
         </div>
