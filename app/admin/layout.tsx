@@ -116,7 +116,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       ]
     },
     { name: t.sales, icon: DocumentChartBarIcon, href: "/admin/sales" },
-    { name: t.pos, icon: ComputerDesktopIcon, href: "/cashier/pos" },
+    { name: t.pos, icon: ComputerDesktopIcon, href: "/admin/pos" },
     { name: t.customers, icon: UserGroupIcon, href: "/admin/customers" },
     { name: t.customerLookup, icon: MagnifyingGlassIcon, href: "/admin/customers/lookup" },
     { name: t.paymentCollection, icon: BanknotesIcon, href: "/admin/payments" },

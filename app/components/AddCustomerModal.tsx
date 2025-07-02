@@ -293,15 +293,15 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: A
         },
         body: JSON.stringify({
           businessId: currentBusiness?.id,
-          name: formData.name,
-          email: formData.email || null,
-          phone: formData.phone,
-          address: formData.address || null,
-          idNumber: formData.idNumber || null,
-          dateOfBirth: formData.dateOfBirth || null,
-          occupation: formData.occupation || null,
+        name: formData.name,
+        email: formData.email || null,
+        phone: formData.phone,
+        address: formData.address || null,
+        idNumber: formData.idNumber || null,
+        dateOfBirth: formData.dateOfBirth || null,
+        occupation: formData.occupation || null,
           creditLimit: formData.creditLimit || '0',
-          status: formData.status,
+        status: formData.status,
           customerNotes: formData.customerNotes || null
         })
       })
@@ -313,16 +313,16 @@ export default function AddCustomerModal({ isOpen, onClose, onCustomerAdded }: A
         showSuccess(t.customerAdded, `Customer ${formData.name} has been added successfully`)
         
         // Call callback to refresh the list
-        if (onCustomerAdded) {
+      if (onCustomerAdded) {
           onCustomerAdded(result.data)
-        }
+      }
 
         // Reset form and close
-        setFormData({
+      setFormData({
           name: '', email: '', phone: '', address: '', idNumber: '',
           dateOfBirth: '', occupation: '', creditLimit: '0', status: 'active', customerNotes: ''
-        })
-        onClose()
+      })
+      onClose()
       } else {
         showError('Error', result.error || 'Failed to add customer')
       }

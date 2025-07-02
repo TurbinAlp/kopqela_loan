@@ -297,7 +297,7 @@ export default function BusinessDashboard() {
       title: t.newSale,
       icon: PlusIcon,
       color: "bg-teal-500 hover:bg-teal-600",
-      href: "/cashier/pos"
+      href: "/admin/pos"
     },
     {
       title: t.customerLookup,

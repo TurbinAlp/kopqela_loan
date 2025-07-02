@@ -596,22 +596,22 @@ export default function CustomerManagementPage() {
             <span className="ml-3 text-gray-600">Loading customers...</span>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.customer}</th>
-                  <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.contact}</th>
-                  <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.status}</th>
-                  <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.orders}</th>
-                  <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.spent}</th>
-                  <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.credit}</th>
-                  <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.lastOrderDate}</th>
-                  <th className="text-center py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.actions}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentCustomers.map((customer, index) => (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.customer}</th>
+                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.contact}</th>
+                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.status}</th>
+                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.orders}</th>
+                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.spent}</th>
+                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.credit}</th>
+                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.lastOrderDate}</th>
+                <th className="text-center py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.actions}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {currentCustomers.map((customer, index) => (
                 <motion.tr
                   key={customer.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -721,10 +721,10 @@ export default function CustomerManagementPage() {
                     </div>
                   </td>
                 </motion.tr>
-                              ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
         )}
       </motion.div>
 

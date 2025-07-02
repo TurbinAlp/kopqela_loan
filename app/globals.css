@@ -25,6 +25,21 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Global text color - sets default for all text */
+body, 
+input, 
+textarea, 
+select, 
+button {
+  color: #111827; /* equivalent to text-gray-900 */
+}
+
+/* Ensure form elements inherit the color */
+input::placeholder,
+textarea::placeholder {
+  color: #6b7280; /* text-gray-500 for placeholders */
+}
+
 /* Hide scrollbar for horizontal scroll */
 .scrollbar-hide {
   -ms-overflow-style: none;  /* Internet Explorer 10+ */
