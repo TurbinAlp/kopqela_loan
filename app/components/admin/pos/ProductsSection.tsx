@@ -19,8 +19,17 @@ interface Product {
   unit?: string
 }
 
+interface Category {
+  id: number
+  name: string
+  nameSwahili?: string
+  description?: string
+  productCount?: number
+}
+
 interface ProductsSectionProps {
   products: Product[]
+  categories: Category[]
   searchQuery: string
   setSearchQuery: (query: string) => void
   selectedCategory: string
@@ -30,6 +39,7 @@ interface ProductsSectionProps {
 
 export default function ProductsSection({
   products,
+  categories,
   searchQuery,
   setSearchQuery,
   selectedCategory,
@@ -59,10 +69,15 @@ export default function ProductsSection({
 
   const t = translations[language]
 
-  const categories = [
+  // Build categories for filter dropdown
+  const categoryOptions = [
     { value: 'all', label: t.all },
-    { value: 'Food', label: 'Food/Chakula' },
-    { value: 'Construction', label: 'Construction/Ujenzi' },
+    ...categories.map(category => ({
+      value: category.name,
+      label: language === 'sw' && category.nameSwahili 
+        ? `${category.nameSwahili}/${category.name}` 
+        : category.name
+    }))
   ]
 
   // Filter products
@@ -91,9 +106,9 @@ export default function ProductsSection({
           onChange={(e) => setSelectedCategory(e.target.value)}
           className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white text-gray-900"
         >
-          {categories.map(category => (
-            <option key={category.value} value={category.value}>
-              {category.label}
+          {categoryOptions.map(option => (
+            <option key={option.value} value={option.value}>
+              {option.label}
             </option>
           ))}
         </select>

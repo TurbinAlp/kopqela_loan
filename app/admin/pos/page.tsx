@@ -62,6 +62,22 @@ interface ApiCustomer {
   outstandingBalance?: number
 }
 
+interface ApiCategory {
+  id: number
+  name: string
+  nameSwahili?: string
+  description?: string
+  productCount?: number
+}
+
+interface Category {
+  id: number
+  name: string
+  nameSwahili?: string
+  description?: string
+  productCount?: number
+}
+
 interface Transaction {
   id: string
   items: CartItem[]
@@ -83,6 +99,7 @@ export default function POSSystem() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -240,6 +257,22 @@ export default function POSSystem() {
             outstandingBalance: customer.outstandingBalance || 0
           }))
           setCustomers(transformedCustomers)
+        }
+
+        // ==============Fetch categories from API=====================
+        const categoriesResponse = await fetch(`/api/admin/categories?businessId=${currentBusiness.id}`)
+        const categoriesResult = await categoriesResponse.json()
+        
+        if (categoriesResult.success) {
+          // Transform API data to match POS interface
+          const transformedCategories: Category[] = categoriesResult.data.categories.map((category: ApiCategory) => ({
+            id: category.id,
+            name: category.name,
+            nameSwahili: category.nameSwahili,
+            description: category.description,
+            productCount: category.productCount || 0
+          }))
+          setCategories(transformedCategories)
         }
       } catch (error) {
         console.error('Error fetching POS data:', error)
@@ -401,6 +434,7 @@ export default function POSSystem() {
           <div className="lg:col-span-2 space-y-6">
             <ProductsSection
               products={products}
+              categories={categories}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
               selectedCategory={selectedCategory}
