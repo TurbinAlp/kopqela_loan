@@ -249,5 +249,5 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
             </motion.div>
           </div>
         </div>
-  )
+  ) 
 }
