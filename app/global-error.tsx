@@ -76,9 +76,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
   const [showDetails, setShowDetails] = React.useState(false)
 
   return (
-    <html>
-      <body>
-        <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl w-full space-y-8 text-center">
             {/* Error Icon */}
             <motion.div
@@ -251,7 +249,5 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
             </motion.div>
           </div>
         </div>
-      </body>
-    </html>
   )
 }
