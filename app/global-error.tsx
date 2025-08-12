@@ -14,7 +14,7 @@ interface GlobalErrorProps {
   reset: () => void
 }
 
-export default function Error({ error, reset }: GlobalErrorProps) {
+export default function GlobalError({ error, reset }: GlobalErrorProps) {
   useEffect(() => {
     // Log error to monitoring service
     console.error('Global error:', error)
@@ -76,7 +76,9 @@ export default function Error({ error, reset }: GlobalErrorProps) {
   const [showDetails, setShowDetails] = useState(false)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <html>
+      <body>
+        <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center px-4 sm:px-6 lg:px-8">
           <div className="max-w-2xl w-full space-y-8 text-center">
             {/* Error Icon */}
             <motion.div
@@ -249,5 +251,7 @@ export default function Error({ error, reset }: GlobalErrorProps) {
             </motion.div>
           </div>
         </div>
+      </body>
+    </html>
   ) 
 }
