@@ -1,5 +1,7 @@
 'use client'
-
+ 
+import { useEffect } from 'react'
+ 
 export default function GlobalError({
   error,
   reset,
@@ -7,54 +9,33 @@ export default function GlobalError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  useEffect(() => {
+    // Log the error to an error reporting service
+    console.error(error)
+  }, [error])
+ 
   return (
-    <html>
-      <body>
-        <div style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexDirection: 'column',
-          padding: '20px',
-          fontFamily: 'system-ui, sans-serif'
-        }}>
-          <h1 style={{ fontSize: '2rem', marginBottom: '1rem', color: '#ef4444' }}>
-            Something went wrong!
-          </h1>
-          <p style={{ marginBottom: '1rem', color: '#6b7280' }}>
-            {error.message || 'An unexpected error occurred. Please try again.'}
-          </p>
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <button
-              onClick={reset}
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: '#ef4444',
-                color: 'white',
-                border: 'none',
-                borderRadius: '0.5rem',
-                cursor: 'pointer'
-              }}
-            >
-              Try again
-            </button>
-            <button
-              onClick={() => window.location.href = '/'}
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: '#6b7280',
-                color: 'white',
-                border: 'none',
-                borderRadius: '0.5rem',
-                cursor: 'pointer'
-              }}
-            >
-              Go home
-            </button>
-          </div>
-        </div>
-      </body>
-    </html>
+    <div className="min-h-screen flex items-center justify-center flex-col p-5 font-sans">
+      <h1 className="text-3xl font-bold mb-4 text-red-500">
+        Something went wrong!
+      </h1>
+      <p className="mb-4 text-gray-600 text-center max-w-md">
+        {error.message || 'An unexpected error occurred. Please try again.'}
+      </p>
+      <div className="flex gap-4">
+        <button
+          onClick={reset}
+          className="px-4 py-2 bg-red-500 text-white border-none rounded-lg cursor-pointer hover:bg-red-600 transition-colors"
+        >
+          Try again
+        </button>
+        <button
+          onClick={() => window.location.href = '/'}
+          className="px-4 py-2 bg-gray-500 text-white border-none rounded-lg cursor-pointer hover:bg-gray-600 transition-colors"
+        >
+          Go home
+        </button>
+      </div>
+    </div>
   )
 }
