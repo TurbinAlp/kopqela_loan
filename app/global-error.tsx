@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   ExclamationTriangleIcon,
@@ -14,7 +14,7 @@ interface GlobalErrorProps {
   reset: () => void
 }
 
-export default function GlobalError({ error, reset }: GlobalErrorProps) {
+export default function Error({ error, reset }: GlobalErrorProps) {
   useEffect(() => {
     // Log error to monitoring service
     console.error('Global error:', error)
@@ -73,7 +73,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
   // Default to English since we might not have language context available
   const t = translations.en
 
-  const [showDetails, setShowDetails] = React.useState(false)
+  const [showDetails, setShowDetails] = useState(false)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center px-4 sm:px-6 lg:px-8">

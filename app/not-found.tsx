@@ -1,8 +1,9 @@
-import React from 'react'
+'use client'
+
 import Link from 'next/link'
 import { HomeIcon, ArrowLeftIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 
-export default function NotFoundPage() {
+export default function NotFound() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="max-w-lg w-full space-y-8 text-center">
@@ -34,17 +35,13 @@ export default function NotFoundPage() {
               <HomeIcon className="w-5 h-5 mr-2" />
               Go to Homepage
             </Link>
-            <Link
-              href="#"
-              onClick={(e) => {
-                e.preventDefault()
-                if (typeof window !== 'undefined') window.history.back()
-              }}
+            <button
+              onClick={() => window.history.back()}
               className="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 shadow-md hover:shadow-lg"
             >
               <ArrowLeftIcon className="w-5 h-5 mr-2" />
               Go Back
-            </Link>
+            </button>
           </div>
         </div>
       </div>
