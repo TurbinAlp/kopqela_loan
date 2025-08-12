@@ -6,7 +6,7 @@
     "dev": "next dev --turbopack",
     "prebuild": "prisma generate",
     "build": "next build",
-    "start": "NODE_ENV=production node server.js",
+    "start": "next start",
     "lint": "next lint"
   },
   "prisma": {
