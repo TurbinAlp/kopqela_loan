@@ -1,18 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { 
-  PlusIcon,
   MagnifyingGlassIcon,
   EyeIcon,
   CheckIcon,
-  XMarkIcon,
   ClockIcon,
   BanknotesIcon,
   UserGroupIcon,
   ChartBarIcon,
-  DocumentCheckIcon,
   BellIcon,
   FunnelIcon,
   ChevronDownIcon,
@@ -22,13 +19,15 @@ import {
   ArrowTrendingDownIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
-import Link from 'next/link'
+import { useBusiness } from '../../contexts/BusinessContext'
+import { useNotifications } from '../../contexts/NotificationContext'
 
-interface CreditSalesApplication {
+interface CreditSale {
   id: number
-  applicantName: string
-  applicantEmail: string
-  applicantPhone: string
+  saleNumber: string
+  customerName: string
+  customerEmail: string
+  customerPhone: string
   products: {
     name: string
     category: string
@@ -36,86 +35,202 @@ interface CreditSalesApplication {
     quantity: number
     total: number
   }[]
-  totalOrderValue: number
-  downPayment: number
-  creditAmount: number
-  paymentPeriod: number
-  monthlyPayment: number
-  guarantorName: string
-  guarantorPhone: string
-  applicationDate: string
-  status: 'pending' | 'approved' | 'rejected' | 'under_review'
-  creditScore: 'excellent' | 'good' | 'fair' | 'poor'
-  riskLevel: 'low' | 'medium' | 'high'
-  businessType: string
+  totalAmount: number
+  amountPaid: number
+  outstandingBalance: number
+  paymentPlan: 'PARTIAL' | 'CREDIT'
+  paymentMethod: string
+  saleDate: string
+  dueDate?: string
+  status: 'pending' | 'partial' | 'paid' | 'overdue' | 'defaulted'
+  paymentStatus: 'PENDING' | 'PARTIAL' | 'PAID' | 'OVERDUE'
+  lastPaymentDate?: string
+  nextPaymentDate?: string
 }
 
-interface ActiveCreditSale {
+interface PaymentHistory {
   id: number
+  saleId: number
   saleNumber: string
   customerName: string
-  customerPhone: string
-  products: {
-    name: string
-    category: string
-    price: number
-    quantity: number
-  }[]
-  totalOrderValue: number
-  downPaymentMade: number
-  remainingBalance: number
-  monthlyPayment: number
-  nextPaymentDate: string
-  startDate: string
-  endDate: string
-  interestRate: number
-  status: 'current' | 'late' | 'overdue' | 'defaulted'
-  paymentsRemaining: number
-  totalPayments: number
+  paymentDate: string
+  amount: number
+  paymentMethod: string
+  paymentType: 'DOWN_PAYMENT' | 'INSTALLMENT' | 'FULL_PAYMENT'
+  balanceAfter: number
+  status: 'COMPLETED' | 'PENDING' | 'FAILED'
+  reference?: string
+  notes?: string
 }
 
 export default function CreditSalesManagementPage() {
   const { language } = useLanguage()
+  const { currentBusiness } = useBusiness()
+  const { showError } = useNotifications()
+  
   const [isVisible, setIsVisible] = useState(false)
-  const [activeTab, setActiveTab] = useState('applications')
+  const [activeTab, setActiveTab] = useState('activeSales')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [showFilters, setShowFilters] = useState(false)
-  const [selectedApplications, setSelectedApplications] = useState<number[]>([])
+  const [selectedSales, setSelectedSales] = useState<number[]>([])
+  
+  // API Data states
+  const [creditSales, setCreditSales] = useState<CreditSale[]>([])
+  const [paymentHistory, setPaymentHistory] = useState<PaymentHistory[]>([])
+  const [analytics, setAnalytics] = useState({
+    activeCreditSalesCount: 0,
+    totalActiveSales: 0,
+    totalOutstanding: 0,
+    overdueSalesCount: 0,
+    averageSaleAmount: 0,
+    collectionRate: 0,
+    paymentSuccessRate: 85.2,
+    defaultRate: 0
+  })
+  const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(true)
 
+  // Fetch active credit sales from API
+  const fetchCreditSales = useCallback(async () => {
+    if (!currentBusiness?.id) return
+
+    setIsLoading(true)
+    try {
+      const params = new URLSearchParams({
+        businessId: currentBusiness.id.toString(),
+        limit: '50',
+        offset: '0'
+      })
+
+      if (selectedStatus !== 'all') {
+        params.append('status', selectedStatus.toUpperCase())
+      }
+
+      const response = await fetch(`/api/admin/credit/sales?${params}`)
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Failed to fetch credit sales')
+      }
+
+      setCreditSales(result.data.sales)
+    } catch (error) {
+      showError('Error Loading Credit Sales', `Failed to load credit sales: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      setCreditSales([])
+    } finally {
+      setIsLoading(false)
+    }
+  }, [currentBusiness?.id, selectedStatus, showError])
+
+  // Fetch payment history from API
+  const fetchPaymentHistory = useCallback(async () => {
+    if (!currentBusiness?.id) return
+
+    setIsLoading(true)
+    try {
+      const params = new URLSearchParams({
+        businessId: currentBusiness.id.toString(),
+        limit: '50',
+        offset: '0'
+      })
+
+      const response = await fetch(`/api/admin/credit/payments?${params}`)
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Failed to fetch payment history')
+      }
+
+      setPaymentHistory(result.data.payments)
+    } catch (error) {
+      showError('Error Loading Payment History', `Failed to load payment history: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      setPaymentHistory([])
+    } finally {
+      setIsLoading(false)
+    }
+  }, [currentBusiness?.id, showError])
+
+  // Fetch analytics from API
+  const fetchAnalytics = useCallback(async () => {
+    if (!currentBusiness?.id) return
+
+    setIsLoadingAnalytics(true)
+    try {
+      const response = await fetch('/api/admin/credit/sales', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          businessId: currentBusiness.id
+        })
+      })
+      
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Failed to fetch analytics')
+      }
+
+      setAnalytics(result.data)
+    } catch (error) {
+      console.error('Error fetching analytics:', error)
+      // Use default analytics on error
+    } finally {
+      setIsLoadingAnalytics(false)
+    }
+  }, [currentBusiness?.id])
+
+  // Initial load and business change
   useEffect(() => {
     setIsVisible(true)
-  }, [])
+    if (currentBusiness?.id) {
+      fetchCreditSales()
+      fetchPaymentHistory()
+      fetchAnalytics()
+    }
+  }, [currentBusiness?.id, fetchCreditSales, fetchPaymentHistory, fetchAnalytics])
+
+  // Refetch when filters change
+  useEffect(() => {
+    if (currentBusiness?.id) {
+      if (activeTab === 'activeSales' || activeTab === 'overdueSales') {
+        fetchCreditSales()
+      } else if (activeTab === 'paymentHistory') {
+        fetchPaymentHistory()
+      }
+    }
+  }, [activeTab, selectedStatus, currentBusiness?.id, fetchCreditSales, fetchPaymentHistory])
 
   const translations = {
     en: {
       pageTitle: "Credit Sales Management",
-      pageSubtitle: "Manage credit sales applications, active credit sales, and sales analytics",
+      pageSubtitle: "Manage active credit sales, payment tracking, and sales analytics",
       
       // Tabs
-      applications: "Credit Sales Applications",
-      activeLoans: "Active Credit Sales",
+      activeSales: "Active Credit Sales",
+      paymentHistory: "Payment History", 
+      overdueSales: "Overdue Sales",
       analytics: "Analytics",
       
       // Actions
-      reviewApplication: "Review Application",
-      approveSelected: "Approve Selected",
-      rejectSelected: "Reject Selected",
+      viewSaleDetails: "View Sale Details",
+      recordPayment: "Record Payment",
       sendReminder: "Send Payment Reminder",
       viewDetails: "View Details",
-      approve: "Approve",
-      reject: "Reject",
+      markPaid: "Mark as Paid",
+      adjustBalance: "Adjust Balance",
       
-      // Application statuses
-      pending: "Pending",
-      approved: "Approved",
-      rejected: "Rejected",
-      under_review: "Under Review",
+      // Sale/Payment statuses
+      pending: "Pending Payment",
+      partial: "Partially Paid", 
+      paid: "Fully Paid",
+      overdue: "Overdue",
       
       // Payment statuses
       current: "Current",
-      late: "Late",
-      overdue: "Overdue",
+      late: "Late Payment", 
       defaulted: "Defaulted",
       
       // Credit scores
@@ -130,25 +245,26 @@ export default function CreditSalesManagementPage() {
       high: "High Risk",
       
       // Summary cards
-      pendingApplications: "Pending Credit Apps",
-      totalActiveLoans: "Active Credit Sales",
+      activeCreditSales: "Active Credit Sales",
+      totalActiveSales: "Total Active Sales",
       totalOutstanding: "Total Outstanding",
-      overdueLoans: "Overdue Payments",
-      averageLoanAmount: "Average Order Value",
-      defaultRate: "Default Rate",
+      averageSaleAmount: "Average Sale Value",
       collectionRate: "Collection Rate",
+      paymentSuccess: "Payment Success Rate",
+      averageLoanAmount: "Average Credit Amount",
+      defaultRate: "Default Rate",
       
       // Table headers
-      applicant: "Customer",
-      loanAmount: "Order Value",
-      duration: "Payment Period",
-      applicationDate: "Application Date",
+      customer: "Customer",
+      saleAmount: "Sale Amount",
+      outstandingBalance: "Outstanding Balance",
+      saleDate: "Sale Date",
       status: "Status",
-      riskLevel: "Risk Level",
+      paymentPlan: "Payment Plan",
       actions: "Actions",
-      loanNumber: "Sale Number",
-      borrower: "Customer",
-      currentBalance: "Outstanding Balance",
+      saleNumber: "Sale Number",
+      totalAmount: "Total Amount",
+      amountPaid: "Amount Paid",
       nextPayment: "Next Payment",
       paymentStatus: "Payment Status",
       products: "Products",
@@ -156,8 +272,8 @@ export default function CreditSalesManagementPage() {
       // Filters
       allStatuses: "All Statuses",
       filters: "Filters",
-      searchApplications: "Search credit applications...",
-      searchLoans: "Search credit sales...",
+      searchSales: "Search credit sales...",
+      searchPayments: "Search payments...",
       
       // Analytics
       loanPortfolioOverview: "Credit Sales Portfolio",
@@ -168,7 +284,6 @@ export default function CreditSalesManagementPage() {
       // Other
       months: "months",
       currency: "TZS",
-      noApplications: "No applications found",
       noLoans: "No active credit sales found",
       selectAll: "Select All",
       selected: "selected",
@@ -182,30 +297,28 @@ export default function CreditSalesManagementPage() {
     },
     sw: {
       pageTitle: "Usimamizi wa Mauzo ya Mkopo",
-      pageSubtitle: "Simamia maombi ya mauzo ya mkopo, mauzo hai, na takwimu za mauzo",
+      pageSubtitle: "Simamia mauzo ya mkopo hai, ufuatiliaji wa malipo, na takwimu za mauzo",
       
       // Tabs
-      applications: "Maombi ya Mauzo ya Mkopo",
-      activeLoans: "Mauzo ya Mkopo Hai",
+      activeSales: "Mauzo ya Mkopo Hai",
+      paymentHistory: "Historia ya Malipo",
+      overdueSales: "Mauzo Yaliyopitisha",
       analytics: "Takwimu",
       
       // Actions
-      reviewApplication: "Kagua Ombi",
-      approveSelected: "Idhinisha Zilizochaguliwa",
-      rejectSelected: "Kataa Zilizochaguliwa",
       sendReminder: "Tuma Ukumbusho wa Malipo",
       viewDetails: "Angalia Maelezo",
-      approve: "Idhinisha",
-      reject: "Kataa",
+      viewSaleDetails: "Angalia Maelezo ya Uuzaji",
+      recordPayment: "Rekodi Malipo",
+      markPaid: "Andika Imelipwa",
       
-      // Application statuses
+      // Sale statuses
       pending: "Inasubiri",
-      approved: "Imeidhinishwa",
-      rejected: "Imekataliwa",
-      under_review: "Inakaguliwa",
+      partial: "Imelipwa Sehemu",
+      paid: "Imelipwa Kamili",
       
       // Payment statuses
-      current: "Hai",
+      current: "Hai", 
       late: "Imechelewa",
       overdue: "Imepitisha",
       defaulted: "Haijalipi",
@@ -222,34 +335,30 @@ export default function CreditSalesManagementPage() {
       high: "Hatari Kubwa",
       
       // Summary cards
-      pendingApplications: "Maombi Yanayosubiri",
-      totalActiveLoans: "Mauzo ya Mkopo Hai",
+      totalActiveSales: "Mauzo ya Mkopo Hai",
       totalOutstanding: "Jumla ya Deni",
-      overdueLoans: "Malipo Yaliyopitisha",
-      averageLoanAmount: "Wastani wa Thamani ya Agizo",
-      defaultRate: "Kiwango cha Kutolipa",
+      averageLoanAmount: "Wastani wa Kiasi cha Mkopo",
+      defaultRate: "Kiwango cha Kutolipa", 
       collectionRate: "Kiwango cha Ukusanyaji",
+      averageSaleAmount: "Wastani wa Thamani ya Agizo",
       
       // Table headers
-      applicant: "Mteja",
-      loanAmount: "Thamani ya Agizo",
-      duration: "Muda wa Malipo",
-      applicationDate: "Tarehe ya Ombi",
       status: "Hali",
-      riskLevel: "Kiwango cha Hatari",
       actions: "Vitendo",
-      loanNumber: "Namba ya Uuzaji",
-      borrower: "Mteja",
-      currentBalance: "Salio Linalobaki",
       nextPayment: "Malipo Yajayo",
       paymentStatus: "Hali ya Malipo",
       products: "Bidhaa",
+      customer: "Mteja",
+      saleNumber: "Namba ya Uuzaji",
+      totalAmount: "Jumla ya Kiasi",
+      outstandingBalance: "Salio Linalobaki",
+      saleDate: "Tarehe ya Uuzaji",
       
       // Filters
       allStatuses: "Hali Zote",
       filters: "Vichujio",
-      searchApplications: "Tafuta maombi ya mkopo...",
-      searchLoans: "Tafuta mauzo ya mkopo...",
+      searchSales: "Tafuta mauzo ya mkopo...",
+      searchPayments: "Tafuta malipo...",
       
       // Analytics
       loanPortfolioOverview: "Mkoba wa Mauzo ya Mkopo",
@@ -260,7 +369,6 @@ export default function CreditSalesManagementPage() {
       // Other
       months: "miezi",
       currency: "TSh",
-      noApplications: "Hakuna maombi",
       noLoans: "Hakuna mauzo ya mkopo hai",
       selectAll: "Chagua Yote",
       selected: "imechaguliwa",
@@ -276,185 +384,17 @@ export default function CreditSalesManagementPage() {
 
   const t = translations[language] 
 
-  // Sample credit sales applications data
-  const allApplications: CreditSalesApplication[] = [
-    {
-      id: 1,
-      applicantName: "Grace Mwangi Wanjiku",
-      applicantEmail: "grace.mwangi@email.com",
-      applicantPhone: "+255 712 345 678",
-      products: [
-        { name: "Premium Fertilizer NPK", category: "Fertilizers", price: 85000, quantity: 10, total: 850000 },
-        { name: "Maize Seeds", category: "Seeds", price: 12000, quantity: 5, total: 60000 }
-      ],
-      totalOrderValue: 910000,
-      downPayment: 200000,
-      creditAmount: 710000,
-      paymentPeriod: 6,
-      monthlyPayment: 125000,
-      guarantorName: "John Mwangi",
-      guarantorPhone: "+255 723 456 789",
-      applicationDate: "2024-01-20",
-      status: "pending",
-      creditScore: "good",
-      riskLevel: "medium",
-      businessType: "Hardware Store"
-    },
-    {
-      id: 2,
-      applicantName: "Peter Kimani Njoroge",
-      applicantEmail: "peter.kimani@email.com",
-      applicantPhone: "+255 745 678 901",
-      products: [
-        { name: "Solar Panels 300W", category: "Electronics", price: 250000, quantity: 4, total: 1000000 },
-        { name: "Battery 100Ah", category: "Electronics", price: 180000, quantity: 2, total: 360000 }
-      ],
-      totalOrderValue: 1360000,
-      downPayment: 300000,
-      creditAmount: 1060000,
-      paymentPeriod: 12,
-      monthlyPayment: 95000,
-      guarantorName: "Sarah Wanjiku",
-      guarantorPhone: "+255 756 789 012",
-      applicationDate: "2024-01-19",
-      status: "under_review",
-      creditScore: "excellent",
-      riskLevel: "low",
-      businessType: "Electronics Shop"
-    },
-    {
-      id: 3,
-      applicantName: "Mary Achieng Ochieng",
-      applicantEmail: "mary.achieng@email.com",
-      applicantPhone: "+255 734 567 890",
-      products: [
-        { name: "Cooking Gas Cylinders", category: "Gas Equipment", price: 45000, quantity: 20, total: 900000 },
-        { name: "Gas Burners", category: "Gas Equipment", price: 25000, quantity: 15, total: 375000 }
-      ],
-      totalOrderValue: 1275000,
-      downPayment: 250000,
-      creditAmount: 1025000,
-      paymentPeriod: 8,
-      monthlyPayment: 140000,
-      guarantorName: "James Ochieng",
-      guarantorPhone: "+255 767 890 123",
-      applicationDate: "2024-01-18",
-      status: "pending",
-      creditScore: "fair",
-      riskLevel: "high",
-      businessType: "Gas Supply Business"
-    },
-    {
-      id: 4,
-      applicantName: "David Mwaura Kamau",
-      applicantEmail: "david.mwaura@email.com",
-      applicantPhone: "+255 789 012 345",
-      products: [
-        { name: "Motorcycle Spare Parts", category: "Automotive", price: 15000, quantity: 30, total: 450000 },
-        { name: "Motorcycle Tires", category: "Automotive", price: 35000, quantity: 10, total: 350000 }
-      ],
-      totalOrderValue: 800000,
-      downPayment: 150000,
-      creditAmount: 650000,
-      paymentPeriod: 10,
-      monthlyPayment: 70000,
-      guarantorName: "Elizabeth Njeri",
-      guarantorPhone: "+255 778 901 234",
-      applicationDate: "2024-01-17",
-      status: "approved",
-      creditScore: "good",
-      riskLevel: "medium",
-      businessType: "Motorcycle Parts Shop"
-    }
-  ]
-
-  // Sample active credit sales data
-  const allLoans: ActiveCreditSale[] = [
-    {
-      id: 1,
-      saleNumber: "CS-2023-001",
-      customerName: "Alice Mutua Kioko",
-      customerPhone: "+255 701 234 567",
-      products: [
-        { name: "Building Materials - Cement", category: "Construction", price: 18000, quantity: 40 },
-        { name: "Iron Sheets", category: "Construction", price: 1200, quantity: 50 }
-      ],
-      totalOrderValue: 780000,
-      downPaymentMade: 150000,
-      remainingBalance: 450000,
-      monthlyPayment: 75000,
-      nextPaymentDate: "2024-02-05",
-      startDate: "2023-08-15",
-      endDate: "2024-08-15",
-      interestRate: 8,
-      status: "current",
-      paymentsRemaining: 6,
-      totalPayments: 12
-    },
-    {
-      id: 2,
-      saleNumber: "CS-2023-002",
-      customerName: "Robert Kiprotich Koech",
-      customerPhone: "+255 712 345 678",
-      products: [
-        { name: "Agricultural Equipment", category: "Agriculture", price: 180000, quantity: 3 },
-        { name: "Irrigation Pipes", category: "Agriculture", price: 8000, quantity: 100 }
-      ],
-      totalOrderValue: 1340000,
-      downPaymentMade: 300000,
-      remainingBalance: 780000,
-      monthlyPayment: 65000,
-      nextPaymentDate: "2024-01-28",
-      startDate: "2023-06-10",
-      endDate: "2025-06-10",
-      interestRate: 10,
-      status: "overdue",
-      paymentsRemaining: 12,
-      totalPayments: 24
-    },
-    {
-      id: 3,
-      saleNumber: "CS-2023-003",
-      customerName: "Susan Wanjiku Mwangi",
-      customerPhone: "+255 723 456 789",
-      products: [
-        { name: "Restaurant Equipment", category: "Hospitality", price: 120000, quantity: 5 },
-        { name: "Kitchen Appliances", category: "Hospitality", price: 45000, quantity: 8 }
-      ],
-      totalOrderValue: 960000,
-      downPaymentMade: 200000,
-      remainingBalance: 380000,
-      monthlyPayment: 95000,
-      nextPaymentDate: "2024-02-10",
-      startDate: "2023-10-01",
-      endDate: "2024-10-01",
-      interestRate: 6,
-      status: "current",
-      paymentsRemaining: 4,
-      totalPayments: 12
-    },
-    {
-      id: 4,
-      saleNumber: "CS-2023-004",
-      customerName: "Michael Otieno Odhiambo",
-      customerPhone: "+255 734 567 890",
-      products: [
-        { name: "Computer Hardware", category: "Technology", price: 85000, quantity: 12 },
-        { name: "Software Licenses", category: "Technology", price: 25000, quantity: 20 }
-      ],
-      totalOrderValue: 1520000,
-      downPaymentMade: 300000,
-      remainingBalance: 1050000,
-      monthlyPayment: 110000,
-      nextPaymentDate: "2024-01-25",
-      startDate: "2024-01-01",
-      endDate: "2024-12-01",
-      interestRate: 12,
-      status: "late",
-      paymentsRemaining: 10,
-      totalPayments: 11
-    }
-  ]
+  // Check if business is selected
+  if (!currentBusiness) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-xl text-gray-600">No business selected</p>
+          <p className="text-sm text-gray-500 mt-2">Please select a business to view credit sales data</p>
+        </div>
+      </div>
+    )
+  }
 
   // Helper functions
   const getStatusColor = (status: string) => {
@@ -471,40 +411,29 @@ export default function CreditSalesManagementPage() {
     }
   }
 
-  const getRiskColor = (risk: string) => {
-    switch (risk) {
-      case 'low': return 'text-green-600 bg-green-100'
-      case 'medium': return 'text-yellow-600 bg-yellow-100'
-      case 'high': return 'text-red-600 bg-red-100'
-      default: return 'text-gray-600 bg-gray-100'
-    }
-  }
 
-  // Filter data based on search and status
-  const filteredApplications = allApplications.filter(app => {
-    const matchesSearch = app.applicantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         app.applicantEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         app.applicantPhone.includes(searchQuery)
-    const matchesStatus = selectedStatus === 'all' || app.status === selectedStatus
-    return matchesSearch && matchesStatus
-  })
 
-  const filteredSales = allLoans.filter(sale => {
-    const matchesSearch = sale.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  // Filter data based on search and status (client-side filtering on already fetched data)
+  const filteredCreditSales = creditSales.filter(sale => {
+    const matchesSearch = searchQuery === '' || 
+      sale.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      sale.customerEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          sale.saleNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          sale.customerPhone.includes(searchQuery)
-    const matchesStatus = selectedStatus === 'all' || sale.status === selectedStatus
-    return matchesSearch && matchesStatus
+    return matchesSearch
   })
 
-  // Analytics calculations for credit sales
-  const pendingApplicationsCount = allApplications.filter(app => app.status === 'pending').length
-  const totalActiveSalesCount = allLoans.length
-  const totalOutstanding = allLoans.reduce((sum, sale) => sum + sale.remainingBalance, 0)
-  const overdueSalesCount = allLoans.filter(sale => sale.status === 'overdue' || sale.status === 'defaulted').length
-  const averageOrderValue = allApplications.reduce((sum, app) => sum + app.totalOrderValue, 0) / allApplications.length || 0
-  const defaultRate = (allLoans.filter(sale => sale.status === 'defaulted').length / allLoans.length * 100) || 0
-  const collectionRate = 85.2 // This would be calculated based on actual payment data
+  const filteredPaymentHistory = paymentHistory.filter(payment => {
+    const matchesSearch = searchQuery === '' ||
+      payment.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      payment.saleNumber.toLowerCase().includes(searchQuery.toLowerCase())
+    return matchesSearch
+  })
+
+  // Get overdue sales (subset of credit sales)
+  const overdueSales = filteredCreditSales.filter(sale => 
+    sale.status === 'overdue' || sale.paymentStatus === 'OVERDUE'
+  )
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -539,13 +468,7 @@ export default function CreditSalesManagementPage() {
               <DocumentArrowDownIcon className="w-5 h-5" />
               <span>Export</span>
             </button>
-            <Link
-              href="/admin/credit/applications/new"
-              className="flex items-center space-x-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-semibold py-2.5 px-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl"
-            >
-              <PlusIcon className="w-5 h-5" />
-              <span>New Credit Application</span>
-            </Link>
+
           </div>
         </div>
       </motion.div>
@@ -555,8 +478,9 @@ export default function CreditSalesManagementPage() {
         <div className="border-b border-gray-200 px-6">
           <div className="flex space-x-8 overflow-x-auto">
             {[
-              { id: 'applications', label: t.applications, icon: DocumentCheckIcon },
-              { id: 'activeLoans', label: t.activeLoans, icon: BanknotesIcon },
+              { id: 'activeSales', label: t.activeSales, icon: BanknotesIcon },
+              { id: 'paymentHistory', label: t.paymentHistory, icon: ClockIcon },
+              { id: 'overdueSales', label: t.overdueSales, icon: ShieldExclamationIcon },
               { id: 'analytics', label: t.analytics, icon: ChartBarIcon }
             ].map((tab) => (
               <button
@@ -582,7 +506,7 @@ export default function CreditSalesManagementPage() {
               <MagnifyingGlassIcon className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
               <input
                 type="text"
-                placeholder={activeTab === 'applications' ? t.searchApplications : t.searchLoans}
+                placeholder={activeTab === 'paymentHistory' ? t.searchPayments : t.searchSales}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
@@ -616,12 +540,18 @@ export default function CreditSalesManagementPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
                   >
                     <option value="all" className="text-gray-900">{t.allStatuses}</option>
-                    {activeTab === 'applications' ? (
+                    {activeTab === 'activeSales' || activeTab === 'overdueSales' ? (
                       <>
                         <option value="pending" className="text-gray-900">{t.pending}</option>
-                        <option value="under_review" className="text-gray-900">{t.under_review}</option>
-                        <option value="approved" className="text-gray-900">{t.approved}</option>
-                        <option value="rejected" className="text-gray-900">{t.rejected}</option>
+                        <option value="partial" className="text-gray-900">{t.partial}</option>
+                        <option value="paid" className="text-gray-900">{t.paid}</option>
+                        <option value="overdue" className="text-gray-900">{t.overdue}</option>
+                      </>
+                    ) : activeTab === 'paymentHistory' ? (
+                      <>
+                        <option value="completed" className="text-gray-900">Completed</option>
+                        <option value="pending" className="text-gray-900">{t.pending}</option>
+                        <option value="failed" className="text-gray-900">Failed</option>
                       </>
                     ) : (
                       <>
@@ -640,27 +570,27 @@ export default function CreditSalesManagementPage() {
 
         {/* Tab Content */}
         <div className="p-6 lg:p-8">
-          {/* Credit Sales Applications Tab */}
-          {activeTab === 'applications' && (
+          {/* Active Credit Sales Tab */}
+          {activeTab === 'activeSales' && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="space-y-6"
             >
               {/* Bulk Actions */}
-              {selectedApplications.length > 0 && (
+              {selectedSales.length > 0 && (
                 <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
                   <span className="text-sm text-blue-700">
-                    {selectedApplications.length} {t.selected}
+                    {selectedSales.length} {t.selected}
                   </span>
                   <div className="flex items-center space-x-2">
                     <button className="flex items-center space-x-2 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
                       <CheckIcon className="w-4 h-4" />
-                      <span>{t.approveSelected}</span>
+                      <span>{t.markPaid}</span>
                     </button>
-                    <button className="flex items-center space-x-2 px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
-                      <XMarkIcon className="w-4 h-4" />
-                      <span>{t.rejectSelected}</span>
+                    <button className="flex items-center space-x-2 px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">
+                      <BellIcon className="w-4 h-4" />
+                      <span>{t.sendReminder}</span>
                     </button>
                   </div>
                 </div>
@@ -673,30 +603,81 @@ export default function CreditSalesManagementPage() {
                       <th className="text-left py-4 px-4 lg:px-6">
                         <input
                           type="checkbox"
-                          checked={selectedApplications.length === filteredApplications.length}
+                          checked={selectedSales.length === filteredCreditSales.length}
                           onChange={(e) => {
                             if (e.target.checked) {
-                              setSelectedApplications(filteredApplications.map(app => app.id))
+                              setSelectedSales(filteredCreditSales.map(sale => sale.id))
                             } else {
-                              setSelectedApplications([])
+                              setSelectedSales([])
                             }
                           }}
                           className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
                         />
                       </th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.applicant}</th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.loanAmount}</th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.duration}</th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.applicationDate}</th>
+                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.saleNumber}</th>
+                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.customer}</th>
+                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.totalAmount}</th>
+                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.outstandingBalance}</th>
+                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.saleDate}</th>
                       <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.status}</th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.riskLevel}</th>
                       <th className="text-center py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.actions}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredApplications.map((application, index) => (
-                      <motion.tr
-                        key={application.id}
+                    {isLoading ? (
+                      // Loading skeleton rows
+                      Array.from({ length: 5 }).map((_, index) => (
+                        <tr key={index} className="border-b border-gray-100">
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="w-4 h-4 bg-gray-200 rounded animate-pulse"></div>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
+                              <div>
+                                <div className="w-32 h-4 bg-gray-200 rounded animate-pulse mb-1"></div>
+                                <div className="w-24 h-3 bg-gray-200 rounded animate-pulse"></div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="w-24 h-4 bg-gray-200 rounded animate-pulse mb-1"></div>
+                            <div className="w-16 h-3 bg-gray-200 rounded animate-pulse"></div>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="w-20 h-4 bg-gray-200 rounded animate-pulse"></div>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="w-16 h-6 bg-gray-200 rounded-full animate-pulse"></div>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="w-16 h-6 bg-gray-200 rounded-full animate-pulse"></div>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="flex items-center justify-center space-x-1">
+                              <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
+                              <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
+                              <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : filteredCreditSales.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-12 text-center text-gray-500">
+                          <div className="flex flex-col items-center">
+                            <BanknotesIcon className="w-12 h-12 text-gray-300 mb-4" />
+                            <p className="text-lg font-medium text-gray-600">No credit sales found</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredCreditSales.map((sale, index) => (
+                        <motion.tr
+                        key={sale.id}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.05 }}
@@ -705,124 +686,17 @@ export default function CreditSalesManagementPage() {
                         <td className="py-4 px-4 lg:px-6">
                           <input
                             type="checkbox"
-                            checked={selectedApplications.includes(application.id)}
+                            checked={selectedSales.includes(sale.id)}
                             onChange={(e) => {
                               if (e.target.checked) {
-                                setSelectedApplications([...selectedApplications, application.id])
+                                setSelectedSales([...selectedSales, sale.id])
                               } else {
-                                setSelectedApplications(selectedApplications.filter(id => id !== application.id))
+                                setSelectedSales(selectedSales.filter(id => id !== sale.id))
                               }
                             }}
                             className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
                           />
                         </td>
-                        <td className="py-4 px-4 lg:px-6">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center">
-                              <span className="text-white font-medium text-sm">
-                                {application.applicantName.split(' ').map(n => n[0]).join('')}
-                              </span>
-                            </div>
-                            <div>
-                              <p className="font-medium text-gray-800">{application.applicantName}</p>
-                              <p className="text-sm text-gray-500">{application.applicantPhone}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 lg:px-6">
-                          <div>
-                            <div className="font-semibold text-gray-800">
-                              {t.currency} {application.totalOrderValue.toLocaleString()}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {application.products.length} {application.products.length === 1 ? 'product' : 'products'}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 lg:px-6">
-                          <span className="text-gray-700">{application.paymentPeriod} {t.months}</span>
-                        </td>
-                        <td className="py-4 px-4 lg:px-6">
-                          <span className="text-gray-700">{application.applicationDate}</span>
-                        </td>
-                        <td className="py-4 px-4 lg:px-6">
-                          <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(application.status)}`}>
-                            {t[application.status as keyof typeof t]}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 lg:px-6">
-                          <span className={`px-2 py-1 text-xs rounded-full font-medium ${getRiskColor(application.riskLevel)}`}>
-                            {t[application.riskLevel as keyof typeof t]}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 lg:px-6">
-                          <div className="flex items-center justify-center space-x-1">
-                            <Link
-                              href={`/admin/credit/applications/${application.id}`}
-                            >
-                              <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                title={t.viewDetails}
-                              >
-                                <EyeIcon className="w-4 h-4" />
-                              </motion.button>
-                            </Link>
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                              title={t.approve}
-                            >
-                              <CheckIcon className="w-4 h-4" />
-                            </motion.button>
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title={t.reject}
-                            >
-                              <XMarkIcon className="w-4 h-4" />
-                            </motion.button>
-                          </div>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Active Credit Sales Tab */}
-          {activeTab === 'activeLoans' && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-6"
-            >
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.loanNumber}</th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.borrower}</th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.currentBalance}</th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.nextPayment}</th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.paymentStatus}</th>
-                      <th className="text-center py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.actions}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredSales.map((sale, index) => (
-                      <motion.tr
-                        key={sale.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-                      >
                         <td className="py-4 px-4 lg:px-6">
                           <span className="font-mono text-sm font-medium text-gray-800">{sale.saleNumber}</span>
                         </td>
@@ -840,21 +714,27 @@ export default function CreditSalesManagementPage() {
                           </div>
                         </td>
                         <td className="py-4 px-4 lg:px-6">
-                          <div className="space-y-1">
-                            <span className="font-semibold text-gray-800">{t.currency} {sale.remainingBalance.toLocaleString()}</span>
-                            <div className="text-xs text-gray-500">
-                              {sale.paymentsRemaining}/{sale.totalPayments} payments left
+                          <div>
+                            <div className="font-semibold text-gray-800">
+                              {t.currency} {sale.totalAmount.toLocaleString()}
                             </div>
-                            <div className="text-xs text-blue-600">
-                              {sale.products.length} product categories
+                            <div className="text-xs text-gray-500">
+                              {sale.products.length} {sale.products.length === 1 ? 'product' : 'products'}
                             </div>
                           </div>
                         </td>
                         <td className="py-4 px-4 lg:px-6">
-                          <div className="space-y-1">
-                            <span className="text-gray-700">{sale.nextPaymentDate}</span>
-                            <div className="text-xs text-gray-500">{t.currency} {sale.monthlyPayment.toLocaleString()}</div>
+                          <div>
+                            <div className="font-semibold text-red-600">
+                              {t.currency} {sale.outstandingBalance.toLocaleString()}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Paid: {t.currency} {sale.amountPaid.toLocaleString()}
+                            </div>
                           </div>
+                        </td>
+                        <td className="py-4 px-4 lg:px-6">
+                          <span className="text-gray-700">{sale.saleDate}</span>
                         </td>
                         <td className="py-4 px-4 lg:px-6">
                           <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(sale.status)}`}>
@@ -867,9 +747,17 @@ export default function CreditSalesManagementPage() {
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
                               className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title={t.viewDetails}
+                              title={t.viewSaleDetails}
                             >
                               <EyeIcon className="w-4 h-4" />
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                              title={t.recordPayment}
+                            >
+                              <CheckIcon className="w-4 h-4" />
                             </motion.button>
                             <motion.button
                               whileHover={{ scale: 1.1 }}
@@ -882,7 +770,280 @@ export default function CreditSalesManagementPage() {
                           </div>
                         </td>
                       </motion.tr>
-                    ))}
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Payment History Tab */}
+          {activeTab === 'paymentHistory' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+            >
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.saleNumber}</th>
+                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.customer}</th>
+                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">Payment Date</th>
+                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">Amount</th>
+                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">Method</th>
+                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.status}</th>
+                      <th className="text-center py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.actions}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {isLoading ? (
+                      // Loading skeleton rows
+                      Array.from({ length: 5 }).map((_, index) => (
+                        <tr key={index} className="border-b border-gray-100">
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="w-24 h-4 bg-gray-200 rounded animate-pulse"></div>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
+                              <div>
+                                <div className="w-32 h-4 bg-gray-200 rounded animate-pulse mb-1"></div>
+                                <div className="w-24 h-3 bg-gray-200 rounded animate-pulse"></div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="w-24 h-4 bg-gray-200 rounded animate-pulse mb-1"></div>
+                            <div className="w-16 h-3 bg-gray-200 rounded animate-pulse mb-1"></div>
+                            <div className="w-20 h-3 bg-gray-200 rounded animate-pulse"></div>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="w-20 h-4 bg-gray-200 rounded animate-pulse mb-1"></div>
+                            <div className="w-16 h-3 bg-gray-200 rounded animate-pulse"></div>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="w-16 h-6 bg-gray-200 rounded-full animate-pulse"></div>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="flex items-center justify-center space-x-1">
+                              <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
+                              <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : filteredPaymentHistory.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-12 text-center text-gray-500">
+                          <div className="flex flex-col items-center">
+                            <ClockIcon className="w-12 h-12 text-gray-300 mb-4" />
+                            <p className="text-lg font-medium text-gray-600">No payment history found</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredPaymentHistory.map((payment, index) => (
+                        <motion.tr
+                        key={payment.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="py-4 px-4 lg:px-6">
+                          <span className="font-mono text-sm font-medium text-gray-800">{payment.saleNumber}</span>
+                        </td>
+                        <td className="py-4 px-4 lg:px-6">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center">
+                              <span className="text-white font-medium text-sm">
+                                {payment.customerName.split(' ').map(n => n[0]).join('')}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800">{payment.customerName}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 lg:px-6">
+                          <span className="text-gray-700">{payment.paymentDate}</span>
+                        </td>
+                        <td className="py-4 px-4 lg:px-6">
+                          <div className="space-y-1">
+                            <span className="font-semibold text-gray-800">{t.currency} {payment.amount.toLocaleString()}</span>
+                            <div className="text-xs text-gray-500">
+                              Balance: {t.currency} {payment.balanceAfter.toLocaleString()}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 lg:px-6">
+                          <span className="text-gray-700">{payment.paymentMethod}</span>
+                        </td>
+                        <td className="py-4 px-4 lg:px-6">
+                          <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(payment.status.toLowerCase())}`}>
+                            {payment.status}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 lg:px-6">
+                          <div className="flex items-center justify-center space-x-1">
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="View Payment Details"
+                            >
+                              <EyeIcon className="w-4 h-4" />
+                            </motion.button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Overdue Sales Tab */}
+          {activeTab === 'overdueSales' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
+            >
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.saleNumber}</th>
+                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.customer}</th>
+                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.totalAmount}</th>
+                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.outstandingBalance}</th>
+                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">Days Overdue</th>
+                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.status}</th>
+                      <th className="text-center py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.actions}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {isLoading ? (
+                      Array.from({ length: 5 }).map((_, index) => (
+                        <tr key={index} className="border-b border-gray-100">
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="w-24 h-4 bg-gray-200 rounded animate-pulse"></div>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
+                              <div className="w-32 h-4 bg-gray-200 rounded animate-pulse"></div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="w-24 h-4 bg-gray-200 rounded animate-pulse"></div>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="w-24 h-4 bg-gray-200 rounded animate-pulse"></div>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="w-16 h-6 bg-gray-200 rounded-full animate-pulse"></div>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="flex items-center justify-center space-x-1">
+                              <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
+                              <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    ) : overdueSales.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-12 text-center text-gray-500">
+                          <div className="flex flex-col items-center">
+                            <ShieldExclamationIcon className="w-12 h-12 text-gray-300 mb-4" />
+                            <p className="text-lg font-medium text-gray-600">No overdue sales found</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      overdueSales.map((sale, index) => (
+                        <motion.tr
+                          key={sale.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                        >
+                          <td className="py-4 px-4 lg:px-6">
+                            <span className="font-mono text-sm font-medium text-gray-800">{sale.saleNumber}</span>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center">
+                                <span className="text-white font-medium text-sm">
+                                  {sale.customerName.split(' ').map(n => n[0]).join('')}
+                                </span>
+                              </div>
+                              <div>
+                                <p className="font-medium text-gray-800">{sale.customerName}</p>
+                                <p className="text-sm text-gray-500">{sale.customerPhone}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <span className="font-semibold text-gray-800">{t.currency} {sale.totalAmount.toLocaleString()}</span>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="font-semibold text-red-600">
+                              {t.currency} {sale.outstandingBalance.toLocaleString()}
+                            </div>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <span className="text-red-600 font-medium">
+                              {Math.floor((new Date().getTime() - new Date(sale.dueDate || sale.saleDate).getTime()) / (1000 * 60 * 60 * 24))} days
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(sale.status)}`}>
+                              {t[sale.status as keyof typeof t]}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 lg:px-6">
+                            <div className="flex items-center justify-center space-x-1">
+                              <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                title={t.viewSaleDetails}
+                              >
+                                <EyeIcon className="w-4 h-4" />
+                              </motion.button>
+                              <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                className="p-2 text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                                title={t.sendReminder}
+                              >
+                                <BellIcon className="w-4 h-4" />
+                              </motion.button>
+                              <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                title={t.recordPayment}
+                              >
+                                <CheckIcon className="w-4 h-4" />
+                              </motion.button>
+                            </div>
+                          </td>
+                        </motion.tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -903,46 +1064,70 @@ export default function CreditSalesManagementPage() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600">{t.averageLoanAmount}:</span>
-                      <span className="font-semibold text-gray-800">{t.currency} {Math.round(averageOrderValue).toLocaleString()}</span>
+                      {isLoadingAnalytics ? (
+                        <div className="w-24 h-4 bg-gray-200 rounded animate-pulse"></div>
+                      ) : (
+                        <span className="font-semibold text-gray-800">{t.currency} {Math.round(analytics.averageSaleAmount).toLocaleString()}</span>
+                      )}
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600">{t.defaultRate}:</span>
+                      {isLoadingAnalytics ? (
+                        <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
+                      ) : (
                       <div className="flex items-center space-x-2">
-                        <span className="font-semibold text-red-600">{defaultRate.toFixed(1)}%</span>
+                          <span className="font-semibold text-red-600">{analytics.defaultRate.toFixed(1)}%</span>
                         <ArrowTrendingDownIcon className="w-4 h-4 text-red-500" />
                       </div>
+                      )}
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-gray-600">{t.collectionRate}:</span>
+                      {isLoadingAnalytics ? (
+                        <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
+                      ) : (
                       <div className="flex items-center space-x-2">
-                        <span className="font-semibold text-green-600">{collectionRate}%</span>
+                          <span className="font-semibold text-green-600">{analytics.collectionRate}%</span>
                         <ArrowTrendingUpIcon className="w-4 h-4 text-green-500" />
                       </div>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 {/* Risk Assessment */}
                 <div className="bg-gray-50 rounded-xl p-6">
-                  <h4 className="text-lg font-semibold text-gray-800 mb-4">{t.riskAssessment}</h4>
+                  <h4 className="text-lg font-semibold text-gray-800 mb-4">Payment Status Breakdown</h4>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-green-600">Low Risk:</span>
-                      <span className="font-semibold">
-                        {allApplications.filter(app => app.riskLevel === 'low').length}
-                      </span>
+                      <span className="text-green-600">Fully Paid:</span>
+                                            {isLoading ? (
+                        <div className="w-8 h-4 bg-gray-200 rounded animate-pulse"></div>
+                      ) : (
+                        <span className="font-semibold">
+                          {creditSales.filter(sale => sale.status === 'paid').length}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-yellow-600">Medium Risk:</span>
-                      <span className="font-semibold">
-                        {allApplications.filter(app => app.riskLevel === 'medium').length}
-                      </span>
+                      <span className="text-yellow-600">Partial Payments:</span>
+                      {isLoading ? (
+                        <div className="w-8 h-4 bg-gray-200 rounded animate-pulse"></div>
+                      ) : (
+                        <span className="font-semibold">
+                          {creditSales.filter(sale => sale.status === 'partial').length}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-red-600">High Risk:</span>
-                      <span className="font-semibold">
-                        {allApplications.filter(app => app.riskLevel === 'high').length}
-                      </span>
+                      <span className="text-red-600">Overdue Sales:</span>
+                      {isLoading ? (
+                        <div className="w-8 h-4 bg-gray-200 rounded animate-pulse"></div>
+                      ) : (
+                        <span className="font-semibold">
+                          {creditSales.filter(sale => sale.status === 'overdue').length}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -954,24 +1139,32 @@ export default function CreditSalesManagementPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="text-center">
                     <UserGroupIcon className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-                    <div className="text-2xl font-bold text-gray-800">{totalActiveSalesCount}</div>
+                    {isLoadingAnalytics ? (
+                      <div className="w-16 h-8 bg-gray-200 rounded animate-pulse mx-auto mb-2"></div>
+                    ) : (
+                      <div className="text-2xl font-bold text-gray-800">{analytics.totalActiveSales}</div>
+                    )}
                     <div className="text-sm text-gray-600">Active Customers</div>
                   </div>
                   <div className="text-center">
                     <BanknotesIcon className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                    <div className="text-2xl font-bold text-gray-800">{t.currency} {totalOutstanding.toLocaleString()}</div>
+                    {isLoadingAnalytics ? (
+                      <div className="w-24 h-8 bg-gray-200 rounded animate-pulse mx-auto mb-2"></div>
+                    ) : (
+                      <div className="text-2xl font-bold text-gray-800">{t.currency} {analytics.totalOutstanding.toLocaleString()}</div>
+                    )}
                     <div className="text-sm text-gray-600">Total Outstanding</div>
                   </div>
                   <div className="text-center">
                     <ShieldExclamationIcon className="w-8 h-8 text-red-500 mx-auto mb-2" />
-                    <div className="text-2xl font-bold text-gray-800">{overdueSalesCount}</div>
+                    {isLoadingAnalytics ? (
+                      <div className="w-16 h-8 bg-gray-200 rounded animate-pulse mx-auto mb-2"></div>
+                    ) : (
+                      <div className="text-2xl font-bold text-gray-800">{analytics.overdueSalesCount}</div>
+                    )}
                     <div className="text-sm text-gray-600">Overdue Payments</div>
                   </div>
-                  <div className="text-center">
-                    <ClockIcon className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
-                    <div className="text-2xl font-bold text-gray-800">{pendingApplicationsCount}</div>
-                    <div className="text-sm text-gray-600">Pending Credit Apps</div>
-                  </div>
+
                 </div>
               </div>
             </motion.div>

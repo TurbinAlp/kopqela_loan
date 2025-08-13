@@ -275,25 +275,7 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      // Create credit application if needed
-      if (paymentPlan === 'CREDIT' && creditSale) {
-        await tx.creditApplication.create({
-          data: {
-            businessId,
-            customerId,
-            orderId: order.id,
-            applicationNumber: `CRED-${orderNumber}`,
-            customerType: 'INDIVIDUAL',
-            requestedAmount: totalAmount,
-            approvedAmount: totalAmount,
-            interestRate: creditSale.interestRate,
-            termMonths: creditSale.termMonths,
-            status: 'APPROVED', // Auto-approve for POS sales
-            applicationDate: new Date(),
-            approvalDate: new Date()
-          }
-        })
-      }
+      // Note: Credit applications removed - now only tracking orders with credit payment plan
 
       return {
         order,
