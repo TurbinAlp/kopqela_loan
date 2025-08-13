@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { 
   ArrowUpIcon,
@@ -21,12 +21,63 @@ import {
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useRequireAdminAuth } from '../../hooks/useRequireAuth'
 import Spinner from '../../components/ui/Spinner'
+import { useBusiness } from '../../contexts/BusinessContext'
+import { useNotifications } from '../../contexts/NotificationContext'
+
+// Define interfaces for type safety
+interface DashboardStats {
+  totalSales: string
+  pendingCreditApps: string
+  lowStock: string
+  outstandingDebt: string
+  todaysSales: string
+  salesCount: string
+  cashPayments: string
+  creditSales: string
+  pendingPayments: string
+}
+
+interface RecentOrder {
+  id: string
+  customer: string
+  amount: number
+  status: string
+  date: string
+  paymentPlan?: string
+}
+
+interface RecentTransaction {
+  id: string
+  type: string
+  customer: string
+  amount: number
+  time: string
+  paymentMethod?: string
+  status?: string
+}
+
+interface SystemNotification {
+  id: number
+  message: string
+  time: string
+  type: string
+}
+
+interface DashboardData {
+  stats: DashboardStats
+  recentOrders: RecentOrder[]
+  recentTransactions: RecentTransaction[]
+  systemNotifications: SystemNotification[]
+  loading: boolean
+}
 
 export default function BusinessDashboard() {
   const { language } = useLanguage()
   const { isLoading, user } = useRequireAdminAuth()
+  const { currentBusiness } = useBusiness()
+  const { showError } = useNotifications()
   const [isVisible, setIsVisible] = useState(false)
-  const [dashboardData, setDashboardData] = useState({
+  const [dashboardData, setDashboardData] = useState<DashboardData>({
     stats: {
       totalSales: "0",
       pendingCreditApps: "0", 
@@ -38,39 +89,73 @@ export default function BusinessDashboard() {
       creditSales: "0",
       pendingPayments: "0"
     },
+    recentOrders: [],
+    recentTransactions: [],
+    systemNotifications: [],
     loading: true
   })
 
-  useEffect(() => {
-    setIsVisible(true)
-    fetchDashboardData()
-  }, [])
+  const fetchDashboardData = useCallback(async () => {
+    if (!currentBusiness?.id) {
+      setDashboardData(prev => ({ ...prev, loading: false }))
+      return
+    }
 
-  const fetchDashboardData = async () => {
     try {
-      // Simulate API call - In real implementation, this would fetch from your backend
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Mock data - replace with real API call
+      setDashboardData(prev => ({ ...prev, loading: true }))
+
+      // Fetch dashboard statistics and activities in parallel
+      const [statsResponse, activitiesResponse] = await Promise.all([
+        fetch(`/api/admin/dashboard/stats?businessId=${currentBusiness.id}`),
+        fetch(`/api/admin/dashboard/activities?businessId=${currentBusiness.id}&limit=5`)
+      ])
+
+      if (!statsResponse.ok) {
+        throw new Error('Failed to fetch dashboard statistics')
+      }
+
+      if (!activitiesResponse.ok) {
+        throw new Error('Failed to fetch dashboard activities')
+      }
+
+      const statsData = await statsResponse.json()
+      const activitiesData = await activitiesResponse.json()
+
+      if (!statsData.success) {
+        throw new Error(statsData.message || 'Failed to fetch statistics')
+      }
+
+      if (!activitiesData.success) {
+        throw new Error(activitiesData.message || 'Failed to fetch activities')
+      }
+
       setDashboardData({
-        stats: {
-          totalSales: "2,450,000",
-          pendingCreditApps: "15",
-          lowStock: "8", 
-          outstandingDebt: "1,200,000",
-          todaysSales: "85,000",
-          salesCount: "45",
-          cashPayments: "65,000",
-          creditSales: "20,000",
-          pendingPayments: "12,000"
-        },
+        stats: statsData.data.stats,
+        recentOrders: activitiesData.data.recentOrders || [],
+        recentTransactions: activitiesData.data.recentTransactions || [],
+        systemNotifications: activitiesData.data.systemNotifications || [],
         loading: false
       })
+
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
-      setDashboardData(prev => ({ ...prev, loading: false }))
+      showError(
+        'Data Loading Error',
+        error instanceof Error ? error.message : 'Failed to load dashboard data'
+      )
+      setDashboardData(prev => ({ 
+        ...prev, 
+        loading: false 
+      }))
     }
-  }
+  }, [currentBusiness?.id, showError])
+
+  useEffect(() => {
+    setIsVisible(true)
+    if (currentBusiness?.id) {
+      fetchDashboardData()
+    }
+  }, [currentBusiness?.id, fetchDashboardData])
 
   // Show loading while checking authentication
   if (isLoading) {
@@ -212,7 +297,7 @@ export default function BusinessDashboard() {
     }
   }
 
-  const t = translations[language]
+  const t = translations[language as keyof typeof translations] || translations.en
 
   // Admin Dashboard Data
   const adminDashboardStats = [
@@ -319,26 +404,10 @@ export default function BusinessDashboard() {
     }
   ]
 
-  const recentOrders = [
-    { id: "ORD-001", customer: "Maria Mwangi", amount: 150000, status: "completed", date: "2024-01-15" },
-    { id: "ORD-002", customer: "John Kimani", amount: 75000, status: "pending", date: "2024-01-15" },
-    { id: "ORD-003", customer: "Grace Moshi", amount: 200000, status: "processing", date: "2024-01-14" },
-    { id: "ORD-004", customer: "Peter Mlay", amount: 125000, status: "completed", date: "2024-01-14" }
-  ]
-
-  const recentTransactions = [
-    { id: "TXN-001", type: "sale", customer: "Maria Mwangi", amount: 25000, time: "10:30 AM" },
-    { id: "TXN-002", type: "payment", customer: "John Kimani", amount: 15000, time: "11:15 AM" },
-    { id: "TXN-003", type: "sale", customer: "Grace Moshi", amount: 35000, time: "12:45 PM" },
-    { id: "TXN-004", type: "refund", customer: "Peter Mlay", amount: -5000, time: "1:20 PM" }
-  ]
-
-  const systemNotifications = [
-    { id: 1, message: t.lowStockAlert, time: "2 min ago", type: "warning" },
-    { id: 2, message: t.newCreditApp, time: "1 hour ago", type: "info" },
-    { id: 3, message: t.paymentOverdue, time: "3 hours ago", type: "error" },
-    { id: 4, message: t.systemUpdate, time: "1 day ago", type: "success" }
-  ]
+  // Use real data from API instead of mock data
+  const recentOrders = dashboardData.recentOrders
+  const recentTransactions = dashboardData.recentTransactions
+  const systemNotifications = dashboardData.systemNotifications
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -604,7 +673,9 @@ export default function BusinessDashboard() {
               {(userRole === 'admin' ? recentOrders : recentTransactions).map((item) => (
                 <div key={item.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div>
-                    <p className="font-medium text-gray-900">{item.id}</p>
+                    <p className="font-medium text-gray-900">
+                      {userRole === 'admin' ? `ORD-${item.id}` : `TXN-${item.id}`}
+                    </p>
                     <p className="text-sm text-gray-600">{item.customer}</p>
                     {userRole === 'cashier' && 'time' in item && (
                       <p className="text-xs text-gray-500">{item.time}</p>
@@ -618,14 +689,14 @@ export default function BusinessDashboard() {
                       {t.currency} {Math.abs(item.amount).toLocaleString()}
                     </p>
                     {userRole === 'admin' && 'status' in item ? (
-                      <span className={`inline-block px-2 py-1 text-xs rounded-full ${getStatusColor(item.status)}`}>
-                        {item.status === 'completed' ? t.completed : 
-                         item.status === 'pending' ? t.pending : t.processing}
+                      <span className={`inline-block px-2 py-1 text-xs rounded-full ${getStatusColor((item as RecentOrder).status)}`}>
+                        {(item as RecentOrder).status === 'paid' || (item as RecentOrder).status === 'completed' ? t.completed : 
+                         (item as RecentOrder).status === 'pending' ? t.pending : t.processing}
                       </span>
                     ) : userRole === 'cashier' && 'type' in item && (
-                      <span className={`inline-block px-2 py-1 text-xs rounded-full ${getTransactionTypeColor(item.type)}`}>
-                        {item.type === 'sale' ? t.sale : 
-                         item.type === 'payment' ? t.payment : t.refund}
+                      <span className={`inline-block px-2 py-1 text-xs rounded-full ${getTransactionTypeColor((item as RecentTransaction).type)}`}>
+                        {(item as RecentTransaction).type === 'sale' ? t.sale : 
+                         (item as RecentTransaction).type === 'payment' ? t.payment : t.refund}
                       </span>
                     )}
                   </div>
@@ -694,7 +765,7 @@ export default function BusinessDashboard() {
                 {recentTransactions.map((item) => (
                   <div key={item.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <div>
-                      <p className="font-medium text-gray-900">{item.id}</p>
+                      <p className="font-medium text-gray-900">TXN-{item.id}</p>
                       <p className="text-sm text-gray-600">{item.customer}</p>
                       <p className="text-xs text-gray-500">{item.time}</p>
                     </div>
