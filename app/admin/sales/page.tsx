@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { 
   EyeIcon,
@@ -19,36 +19,264 @@ import {
   ChevronRightIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { useBusiness } from '../../contexts/BusinessContext'
+import { useNotifications } from '../../contexts/NotificationContext'
 
 interface Order {
   id: number
   orderNumber: string
-  customerName: string
-  customerId: number
-  items: number
-  total: number
-  orderStatus: 'pending' | 'processing' | 'completed' | 'cancelled'
-  paymentStatus: 'pending' | 'partial' | 'paid' | 'refunded'
-  paymentMethod: 'cash' | 'card' | 'mobile' | 'credit'
+  customer: {
+    id: number
+    fullName: string
+    phone: string
+  }
+  orderItems: Array<{
+    id: number
+    quantity: number
+    unitPrice: number
+    totalPrice: number
+    product: {
+      id: number
+      name: string
+      nameSwahili?: string
+    }
+  }>
+  subtotal: number
+  taxAmount: number
+  totalAmount: number
+  status: 'PENDING' | 'CONFIRMED' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED'
+  paymentStatus: 'PENDING' | 'PAID' | 'PARTIAL' | 'FAILED' | 'REFUNDED'
+  paymentMethod: 'CASH' | 'CARD' | 'MOBILE_MONEY' | 'BANK_TRANSFER' | 'CREDIT' | 'PARTIAL'
+  paymentPlan: 'FULL' | 'PARTIAL' | 'CREDIT'
   orderDate: string
-  dueDate?: string
+  payments: Array<{
+    id: number
+    amount: number
+    paymentMethod: string
+    paymentStatus: string
+    paidAt: string | null
+  }>
+}
+
+interface Customer {
+  id: number
+  fullName: string
+  phone: string
+  email?: string
+}
+
+
+
+interface Analytics {
+  todaysSales: number
+  todaysOrders: number
+  averageOrder: number
+  pendingPayments: number
 }
 
 export default function SalesManagementPage() {
   const { language } = useLanguage()
+  const { currentBusiness } = useBusiness()
+  const { showError } = useNotifications()
+  
   const [isVisible, setIsVisible] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedOrderStatus, setSelectedOrderStatus] = useState('all')
   const [selectedPaymentStatus, setSelectedPaymentStatus] = useState('all')
   const [selectedCustomer, setSelectedCustomer] = useState('all')
-  const [dateRange, setDateRange] = useState('all')
+  const [dateRange, setDateRange] = useState('today') // Default to today
+  const [customDateFrom, setCustomDateFrom] = useState('')
+  const [customDateTo, setCustomDateTo] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
+  
+  // API Data states
+  const [orders, setOrders] = useState<Order[]>([])
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [analytics, setAnalytics] = useState<Analytics>({
+    todaysSales: 0,
+    todaysOrders: 0,
+    averageOrder: 0,
+    pendingPayments: 0
+  })
+  const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(true)
+  const [totalCount, setTotalCount] = useState(0)
 
+  // Get date range for API calls
+  const getDateRange = useCallback(() => {
+    const today = new Date()
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+    
+    switch (dateRange) {
+      case 'today':
+        const todayStr = today.toISOString().split('T')[0]
+        return {
+          dateFrom: todayStr + 'T00:00:00.000Z',
+          dateTo: todayStr + 'T23:59:59.999Z'
+        }
+      case 'yesterday':
+        const yesterdayStr = yesterday.toISOString().split('T')[0]
+        return {
+          dateFrom: yesterdayStr + 'T00:00:00.000Z',
+          dateTo: yesterdayStr + 'T23:59:59.999Z'
+        }
+      case 'last7days':
+        const last7Days = new Date(today)
+        last7Days.setDate(last7Days.getDate() - 7)
+        return {
+          dateFrom: last7Days.toISOString().split('T')[0] + 'T00:00:00.000Z',
+          dateTo: today.toISOString().split('T')[0] + 'T23:59:59.999Z'
+        }
+      case 'last30days':
+        const last30Days = new Date(today)
+        last30Days.setDate(last30Days.getDate() - 30)
+        return {
+          dateFrom: last30Days.toISOString().split('T')[0],
+          dateTo: today.toISOString().split('T')[0]
+        }
+      case 'thismonth':
+        const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+        return {
+          dateFrom: thisMonthStart.toISOString().split('T')[0],
+          dateTo: today.toISOString().split('T')[0]
+        }
+      case 'lastmonth':
+        const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+        const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0)
+        return {
+          dateFrom: lastMonthStart.toISOString().split('T')[0],
+          dateTo: lastMonthEnd.toISOString().split('T')[0]
+        }
+      case 'custom':
+        return {
+          dateFrom: customDateFrom,
+          dateTo: customDateTo
+        }
+      case 'all':
+        return {} // No date filtering - get all data
+      default:
+        return {}
+    }
+  }, [dateRange, customDateFrom, customDateTo])
+
+  // Fetch sales data from API
+  const fetchSalesData = useCallback(async () => {
+    if (!currentBusiness?.id) return
+
+    setIsLoading(true)
+    try {
+      const { dateFrom, dateTo } = getDateRange()
+      const offset = (currentPage - 1) * itemsPerPage
+      
+      // Build API URL with filters
+      const params = new URLSearchParams({
+        businessId: currentBusiness.id.toString(),
+        limit: itemsPerPage.toString(),
+        offset: offset.toString()
+      })
+      
+      if (dateFrom) params.append('dateFrom', dateFrom)
+      if (dateTo) params.append('dateTo', dateTo)
+      
+      const response = await fetch(`/api/admin/pos/sales?${params}`)
+      const result = await response.json()
+      
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Failed to fetch sales data')
+      }
+      
+      setOrders(result.data.sales)
+      setTotalCount(result.data.pagination.total)
+      
+    } catch (error) {
+      showError('Error Loading Sales', `Failed to load sales data: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      setOrders([])
+      setTotalCount(0)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [currentBusiness?.id, currentPage, itemsPerPage, showError, getDateRange])
+
+  // Fetch customers for filter dropdown
+  const fetchCustomers = useCallback(async () => {
+    if (!currentBusiness?.id) return
+
+    try {
+      const response = await fetch(`/api/admin/customers?businessId=${currentBusiness.id}&limit=100`)
+      const result = await response.json()
+      
+      if (response.ok && result.success) {
+        setCustomers(result.data.customers || [])
+      }
+    } catch (error) {
+      console.error('Error fetching customers:', error)
+      setCustomers([])
+    }
+  }, [currentBusiness?.id])
+
+  // Calculate analytics from current data
+  const calculateAnalytics = useCallback(() => {
+    setIsLoadingAnalytics(true)
+    
+    const today = new Date().toISOString().split('T')[0]
+    const todaysOrders = orders.filter(order => 
+      order.orderDate.startsWith(today)
+    )
+    
+    const paidTodaysOrders = todaysOrders.filter(order => 
+      order.paymentStatus === 'PAID'
+    )
+    
+    const pendingOrders = orders.filter(order => 
+      order.paymentStatus === 'PENDING' || order.paymentStatus === 'PARTIAL'
+    )
+    
+    const todaysSales = paidTodaysOrders.reduce((sum, order) => sum + Number(order.totalAmount), 0)
+    const todaysOrdersCount = todaysOrders.length
+    const averageOrder = todaysOrdersCount > 0 ? todaysSales / todaysOrdersCount : 0
+    const pendingPayments = pendingOrders.reduce((sum, order) => sum + Number(order.totalAmount), 0)
+    
+    setAnalytics({
+      todaysSales,
+      todaysOrders: todaysOrdersCount,
+      averageOrder,
+      pendingPayments
+    })
+    
+    setIsLoadingAnalytics(false)
+  }, [orders])
+
+  // Initial load and business change
   useEffect(() => {
     setIsVisible(true)
-  }, [])
+    if (currentBusiness?.id) {
+      fetchCustomers()
+      fetchSalesData()
+    }
+  }, [currentBusiness?.id, fetchCustomers, fetchSalesData])
+
+  // Refetch when filters change
+  useEffect(() => {
+    if (currentBusiness?.id) {
+      setCurrentPage(1) // Reset to first page
+      fetchSalesData()
+    }
+  }, [dateRange, customDateFrom, customDateTo, currentBusiness?.id, fetchSalesData])
+
+  // Refetch when page changes
+  useEffect(() => {
+    if (currentBusiness?.id) {
+      fetchSalesData()
+    }
+  }, [currentPage, currentBusiness?.id, fetchSalesData])
+
+  // Recalculate analytics when orders change
+  useEffect(() => {
+    calculateAnalytics()
+  }, [orders, calculateAnalytics])
 
   const translations = {
     en: {
@@ -76,14 +304,17 @@ export default function SalesManagementPage() {
       // Order statuses
       allOrders: "All Orders",
       pending: "Pending",
+      confirmed: "Confirmed", 
       processing: "Processing",
-      completed: "Completed",
+      shipped: "Shipped",
+      delivered: "Delivered",
       cancelled: "Cancelled",
       
       // Payment statuses
       allPayments: "All Payments",
       paid: "Paid",
       partial: "Partial",
+      failed: "Failed",
       refunded: "Refunded",
       
       // Table headers
@@ -164,14 +395,17 @@ export default function SalesManagementPage() {
       // Order statuses
       allOrders: "Maagizo Yote",
       pending: "Inasubiri",
+      confirmed: "Imethibitishwa",
       processing: "Inashughulikiwa",
-      completed: "Imekamilika",
+      shipped: "Imetumwa",
+      delivered: "Imefika",
       cancelled: "Imeghairiwa",
       
       // Payment statuses
       allPayments: "Malipo Yote",
       paid: "Amelipa",
       partial: "Nusu",
+      failed: "Imeshindwa",
       refunded: "Imerudishwa",
       
       // Table headers
@@ -231,167 +465,108 @@ export default function SalesManagementPage() {
 
   const t = translations[language]
 
-  // Sample orders data
-  const allOrders: Order[] = [
-    {
-      id: 1,
-      orderNumber: "ORD-2024-001",
-      customerName: "John Mwangi",
-      customerId: 1,
-      items: 3,
-      total: 450000,
-      orderStatus: "completed",
-      paymentStatus: "paid",
-      paymentMethod: "cash",
-      orderDate: "2024-01-15",
-    },
-    {
-      id: 2,
-      orderNumber: "ORD-2024-002",
-      customerName: "Mary Wanjiku",
-      customerId: 2,
-      items: 1,
-      total: 85000,
-      orderStatus: "processing",
-      paymentStatus: "partial",
-      paymentMethod: "mobile",
-      orderDate: "2024-01-15",
-      dueDate: "2024-01-20"
-    },
-    {
-      id: 3,
-      orderNumber: "ORD-2024-003",
-      customerName: "Peter Kamau",
-      customerId: 3,
-      items: 5,
-      total: 1200000,
-      orderStatus: "pending",
-      paymentStatus: "pending",
-      paymentMethod: "credit",
-      orderDate: "2024-01-14",
-      dueDate: "2024-02-14"
-    },
-    {
-      id: 4,
-      orderNumber: "ORD-2024-004",
-      customerName: "Grace Achieng",
-      customerId: 4,
-      items: 2,
-      total: 320000,
-      orderStatus: "completed",
-      paymentStatus: "paid",
-      paymentMethod: "card",
-      orderDate: "2024-01-14",
-    },
-    {
-      id: 5,
-      orderNumber: "ORD-2024-005",
-      customerName: "James Ochieng",
-      customerId: 5,
-      items: 1,
-      total: 75000,
-      orderStatus: "cancelled",
-      paymentStatus: "refunded",
-      paymentMethod: "mobile",
-      orderDate: "2024-01-13",
-    },
-    {
-      id: 6,
-      orderNumber: "ORD-2024-006",
-      customerName: "Sarah Njeri",
-      customerId: 6,
-      items: 4,
-      total: 680000,
-      orderStatus: "processing",
-      paymentStatus: "paid",
-      paymentMethod: "cash",
-      orderDate: "2024-01-13",
-    }
-  ]
+  // Check if business is selected
+  if (!currentBusiness) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-xl text-gray-600">No business selected</p>
+          <p className="text-sm text-gray-500 mt-2">Please select a business to view sales data</p>
+        </div>
+      </div>
+    )
+  }
 
+
+  // Dropdown options
   const orderStatuses = [
     { value: 'all', label: t.allOrders },
-    { value: 'pending', label: t.pending },
-    { value: 'processing', label: t.processing },
-    { value: 'completed', label: t.completed },
-    { value: 'cancelled', label: t.cancelled }
+    { value: 'PENDING', label: t.pending },
+    { value: 'CONFIRMED', label: t.confirmed },
+    { value: 'PROCESSING', label: t.processing },
+    { value: 'SHIPPED', label: t.shipped },
+    { value: 'DELIVERED', label: t.delivered },
+    { value: 'CANCELLED', label: t.cancelled }
   ]
 
   const paymentStatuses = [
     { value: 'all', label: t.allPayments },
-    { value: 'pending', label: t.pending },
-    { value: 'partial', label: t.partial },
-    { value: 'paid', label: t.paid },
-    { value: 'refunded', label: t.refunded }
+    { value: 'PENDING', label: t.pending },
+    { value: 'PARTIAL', label: t.partial },
+    { value: 'PAID', label: t.paid },
+    { value: 'FAILED', label: t.failed },
+    { value: 'REFUNDED', label: t.refunded }
   ]
 
   const dateRanges = [
-    { value: 'all', label: t.all },
     { value: 'today', label: t.today },
     { value: 'yesterday', label: t.yesterday },
     { value: 'last7days', label: t.last7Days },
     { value: 'last30days', label: t.last30Days },
     { value: 'thismonth', label: t.thisMonth },
-    { value: 'lastmonth', label: t.lastMonth }
+    { value: 'lastmonth', label: t.lastMonth },
+    { value: 'all', label: t.all },
+    { value: 'custom', label: t.custom }
   ]
 
-  const customers = [
+  // Build customer dropdown options
+  const customerOptions = [
     { value: 'all', label: t.allCustomers },
-    { value: '1', label: 'John Mwangi' },
-    { value: '2', label: 'Mary Wanjiku' },
-    { value: '3', label: 'Peter Kamau' },
-    { value: '4', label: 'Grace Achieng' },
-    { value: '5', label: 'James Ochieng' },
-    { value: '6', label: 'Sarah Njeri' }
+    ...customers.map(customer => ({
+      value: customer.id.toString(),
+      label: customer.fullName
+    }))
   ]
 
-  // Filter orders
-  const filteredOrders = allOrders.filter(order => {
-    const matchesSearch = order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         order.customerName.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesOrderStatus = selectedOrderStatus === 'all' || order.orderStatus === selectedOrderStatus
+  // Frontend filtering (additional to API filtering)
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch = searchQuery === '' || 
+      order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.customer.fullName.toLowerCase().includes(searchQuery.toLowerCase())
+    
+    const matchesOrderStatus = selectedOrderStatus === 'all' || order.status === selectedOrderStatus
     const matchesPaymentStatus = selectedPaymentStatus === 'all' || order.paymentStatus === selectedPaymentStatus
-    const matchesCustomer = selectedCustomer === 'all' || order.customerId.toString() === selectedCustomer
+    const matchesCustomer = selectedCustomer === 'all' || order.customer.id.toString() === selectedCustomer
     
     return matchesSearch && matchesOrderStatus && matchesPaymentStatus && matchesCustomer
   })
 
-  // Pagination
-  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentOrders = filteredOrders.slice(startIndex, endIndex)
-
-  // Analytics data
-  const todaysSales = allOrders
-    .filter(order => order.orderDate === "2024-01-15" && order.paymentStatus === 'paid')
-    .reduce((sum, order) => sum + order.total, 0)
-
-  const todaysOrders = allOrders.filter(order => order.orderDate === "2024-01-15").length
-
-  const averageOrder = todaysSales / (todaysOrders || 1)
-
-  const pendingPayments = allOrders
-    .filter(order => order.paymentStatus === 'pending' || order.paymentStatus === 'partial')
-    .reduce((sum, order) => sum + order.total, 0)
+  // Pagination calculations
+  const totalPages = Math.ceil(totalCount / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage + 1
+  const endIndex = Math.min(startIndex + orders.length - 1, totalCount)
 
   const getOrderStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'text-green-600 bg-green-100'
-      case 'processing': return 'text-blue-600 bg-blue-100'
-      case 'pending': return 'text-yellow-600 bg-yellow-100'
-      case 'cancelled': return 'text-red-600 bg-red-100'
+      case 'DELIVERED': return 'text-green-600 bg-green-100'
+      case 'CONFIRMED': return 'text-green-600 bg-green-100'
+      case 'PROCESSING': return 'text-blue-600 bg-blue-100'
+      case 'SHIPPED': return 'text-blue-600 bg-blue-100'
+      case 'PENDING': return 'text-yellow-600 bg-yellow-100'
+      case 'CANCELLED': return 'text-red-600 bg-red-100'
       default: return 'text-gray-600 bg-gray-100'
     }
   }
 
   const getPaymentStatusColor = (status: string) => {
     switch (status) {
-      case 'paid': return 'text-green-600 bg-green-100'
-      case 'partial': return 'text-yellow-600 bg-yellow-100'
-      case 'pending': return 'text-red-600 bg-red-100'
-      case 'refunded': return 'text-gray-600 bg-gray-100'
+      case 'PAID': return 'text-green-600 bg-green-100'
+      case 'PARTIAL': return 'text-yellow-600 bg-yellow-100'
+      case 'PENDING': return 'text-red-600 bg-red-100'
+      case 'FAILED': return 'text-red-600 bg-red-100'
+      case 'REFUNDED': return 'text-gray-600 bg-gray-100'
       default: return 'text-gray-600 bg-gray-100'
+    }
+  }
+
+  const getPaymentMethodDisplay = (method: string) => {
+    switch (method) {
+      case 'CASH': return t.cash
+      case 'CARD': return t.card
+      case 'MOBILE_MONEY': return t.mobile
+      case 'BANK_TRANSFER': return 'Bank Transfer'
+      case 'CREDIT': return t.credit
+      default: return method
     }
   }
 
@@ -464,7 +639,11 @@ export default function SalesManagementPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">{t.todaysSales}</p>
-              <p className="text-xl lg:text-2xl font-bold text-gray-800">{t.currency} {todaysSales.toLocaleString()}</p>
+              {isLoadingAnalytics ? (
+                <div className="w-24 h-6 bg-gray-200 rounded animate-pulse"></div>
+              ) : (
+                <p className="text-xl lg:text-2xl font-bold text-gray-800">{t.currency} {analytics.todaysSales.toLocaleString()}</p>
+              )}
             </div>
             <div className="w-10 h-10 lg:w-12 lg:h-12 bg-green-100 rounded-xl flex items-center justify-center">
               <BanknotesIcon className="w-5 h-5 lg:w-6 lg:h-6 text-green-600" />
@@ -476,7 +655,11 @@ export default function SalesManagementPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">{t.ordersCount}</p>
-              <p className="text-xl lg:text-2xl font-bold text-gray-800">{todaysOrders}</p>
+              {isLoadingAnalytics ? (
+                <div className="w-16 h-6 bg-gray-200 rounded animate-pulse"></div>
+              ) : (
+                <p className="text-xl lg:text-2xl font-bold text-gray-800">{analytics.todaysOrders}</p>
+              )}
             </div>
             <div className="w-10 h-10 lg:w-12 lg:h-12 bg-blue-100 rounded-xl flex items-center justify-center">
               <ShoppingCartIcon className="w-5 h-5 lg:w-6 lg:h-6 text-blue-600" />
@@ -488,7 +671,11 @@ export default function SalesManagementPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">{t.averageOrder}</p>
-              <p className="text-xl lg:text-2xl font-bold text-gray-800">{t.currency} {Math.round(averageOrder).toLocaleString()}</p>
+              {isLoadingAnalytics ? (
+                <div className="w-20 h-6 bg-gray-200 rounded animate-pulse"></div>
+              ) : (
+                <p className="text-xl lg:text-2xl font-bold text-gray-800">{t.currency} {Math.round(analytics.averageOrder).toLocaleString()}</p>
+              )}
             </div>
             <div className="w-10 h-10 lg:w-12 lg:h-12 bg-teal-100 rounded-xl flex items-center justify-center">
               <CreditCardIcon className="w-5 h-5 lg:w-6 lg:h-6 text-teal-600" />
@@ -500,7 +687,11 @@ export default function SalesManagementPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">{t.pendingPayments}</p>
-              <p className="text-xl lg:text-2xl font-bold text-gray-800">{t.currency} {pendingPayments.toLocaleString()}</p>
+              {isLoadingAnalytics ? (
+                <div className="w-24 h-6 bg-gray-200 rounded animate-pulse"></div>
+              ) : (
+                <p className="text-xl lg:text-2xl font-bold text-gray-800">{t.currency} {analytics.pendingPayments.toLocaleString()}</p>
+              )}
             </div>
             <div className="w-10 h-10 lg:w-12 lg:h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
               <ClockIcon className="w-5 h-5 lg:w-6 lg:h-6 text-yellow-600" />
@@ -584,7 +775,7 @@ export default function SalesManagementPage() {
                   onChange={(e) => setSelectedCustomer(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
                 >
-                  {customers.map((customer) => (
+                  {customerOptions.map((customer) => (
                     <option key={customer.value} value={customer.value} className="text-gray-900">
                       {customer.label}
                     </option>
@@ -608,6 +799,30 @@ export default function SalesManagementPage() {
                 </select>
               </div>
             </div>
+
+            {/* Custom Date Range Inputs */}
+            {dateRange === 'custom' && (
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">From Date</label>
+                  <input
+                    type="date"
+                    value={customDateFrom}
+                    onChange={(e) => setCustomDateFrom(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">To Date</label>
+                  <input
+                    type="date"
+                    value={customDateTo}
+                    onChange={(e) => setCustomDateTo(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
+                  />
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </motion.div>
@@ -629,88 +844,143 @@ export default function SalesManagementPage() {
               </tr>
             </thead>
             <tbody>
-              {currentOrders.map((order, index) => (
-                <motion.tr
-                  key={order.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-                >
-                  <td className="py-4 px-4 lg:px-6">
-                    <span className="font-mono text-sm font-medium text-gray-800">{order.orderNumber}</span>
-                  </td>
-                  <td className="py-4 px-4 lg:px-6">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                        <UserIcon className="w-4 h-4 text-gray-500" />
+              {isLoading ? (
+                // Loading skeleton rows
+                Array.from({ length: itemsPerPage }).map((_, index) => (
+                  <tr key={index} className="border-b border-gray-100">
+                    <td className="py-4 px-4 lg:px-6">
+                      <div className="w-24 h-4 bg-gray-200 rounded animate-pulse"></div>
+                    </td>
+                    <td className="py-4 px-4 lg:px-6">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
+                        <div className="w-32 h-4 bg-gray-200 rounded animate-pulse"></div>
                       </div>
-                      <span className="text-gray-800">{order.customerName}</span>
+                    </td>
+                    <td className="py-4 px-4 lg:px-6">
+                      <div className="w-8 h-4 bg-gray-200 rounded animate-pulse"></div>
+                    </td>
+                    <td className="py-4 px-4 lg:px-6">
+                      <div className="w-20 h-4 bg-gray-200 rounded animate-pulse"></div>
+                    </td>
+                    <td className="py-4 px-4 lg:px-6">
+                      <div className="w-16 h-6 bg-gray-200 rounded-full animate-pulse"></div>
+                    </td>
+                    <td className="py-4 px-4 lg:px-6">
+                      <div className="w-16 h-6 bg-gray-200 rounded-full animate-pulse"></div>
+                    </td>
+                    <td className="py-4 px-4 lg:px-6">
+                      <div className="w-20 h-4 bg-gray-200 rounded animate-pulse"></div>
+                    </td>
+                    <td className="py-4 px-4 lg:px-6">
+                      <div className="flex items-center justify-center space-x-1">
+                        <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : filteredOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-gray-500">
+                    <div className="flex flex-col items-center">
+                      <ShoppingCartIcon className="w-12 h-12 text-gray-300 mb-4" />
+                      <p className="text-lg font-medium text-gray-600">No sales found</p>
+                      <p className="text-sm text-gray-500">Try adjusting your filters or date range</p>
                     </div>
                   </td>
-                  <td className="py-4 px-4 lg:px-6">
-                    <span className="text-gray-700">{order.items}</span>
-                  </td>
-                  <td className="py-4 px-4 lg:px-6">
-                    <span className="font-semibold text-gray-800">{t.currency} {order.total.toLocaleString()}</span>
-                  </td>
-                  <td className="py-4 px-4 lg:px-6">
-                    <span className={`px-2 py-1 text-xs rounded-full font-medium ${getOrderStatusColor(order.orderStatus)}`}>
-                      {t[order.orderStatus as keyof typeof t]}
-                    </span>
-                  </td>
-                  <td className="py-4 px-4 lg:px-6">
-                    <div className="flex flex-col space-y-1">
-                      <span className={`px-2 py-1 text-xs rounded-full font-medium ${getPaymentStatusColor(order.paymentStatus)}`}>
-                        {t[order.paymentStatus as keyof typeof t]}
+                </tr>
+              ) : (
+                filteredOrders.map((order, index) => (
+                  <motion.tr
+                    key={order.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="py-4 px-4 lg:px-6">
+                      <span className="font-mono text-sm font-medium text-gray-800">{order.orderNumber}</span>
+                    </td>
+                    <td className="py-4 px-4 lg:px-6">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                          <UserIcon className="w-4 h-4 text-gray-500" />
+                        </div>
+                        <div>
+                          <span className="text-gray-800 font-medium">{order.customer.fullName}</span>
+                          <div className="text-xs text-gray-500">{order.customer.phone}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 lg:px-6">
+                      <span className="text-gray-700">{order.orderItems.length}</span>
+                    </td>
+                    <td className="py-4 px-4 lg:px-6">
+                      <span className="font-semibold text-gray-800">{t.currency} {Number(order.totalAmount).toLocaleString()}</span>
+                    </td>
+                    <td className="py-4 px-4 lg:px-6">
+                      <span className={`px-2 py-1 text-xs rounded-full font-medium ${getOrderStatusColor(order.status)}`}>
+                        {t[order.status.toLowerCase() as keyof typeof t] || order.status}
                       </span>
-                      <span className="text-xs text-gray-500">{t[order.paymentMethod as keyof typeof t]}</span>
-                    </div>
-                  </td>
-                  <td className="py-4 px-4 lg:px-6">
-                    <span className="text-sm text-gray-700">{order.orderDate}</span>
-                    {order.dueDate && (
-                      <div className="text-xs text-red-600">Due: {order.dueDate}</div>
-                    )}
-                  </td>
-                  <td className="py-4 px-4 lg:px-6">
-                    <div className="flex items-center justify-center space-x-1">
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title={t.view}
-                      >
-                        <EyeIcon className="w-4 h-4" />
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                        title={t.processPayment}
-                      >
-                        <CreditCardIcon className="w-4 h-4" />
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                        title={t.printReceipt}
-                      >
-                        <PrinterIcon className="w-4 h-4" />
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="p-2 text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
-                        title={t.edit}
-                      >
-                        <PencilIcon className="w-4 h-4" />
-                      </motion.button>
-                    </div>
-                  </td>
-                </motion.tr>
-              ))}
+                    </td>
+                    <td className="py-4 px-4 lg:px-6">
+                      <div className="flex flex-col space-y-1">
+                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${getPaymentStatusColor(order.paymentStatus)}`}>
+                          {t[order.paymentStatus.toLowerCase() as keyof typeof t] || order.paymentStatus}
+                        </span>
+                        <span className="text-xs text-gray-500">{getPaymentMethodDisplay(order.paymentMethod)}</span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4 lg:px-6">
+                      <span className="text-sm text-gray-700">{new Date(order.orderDate).toLocaleDateString()}</span>
+                      {order.paymentPlan === 'PARTIAL' && order.payments.some(p => p.paymentStatus === 'PENDING') && (
+                        <div className="text-xs text-red-600">Partial Payment</div>
+                      )}
+                    </td>
+                    <td className="py-4 px-4 lg:px-6">
+                      <div className="flex items-center justify-center space-x-1">
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title={t.view}
+                        >
+                          <EyeIcon className="w-4 h-4" />
+                        </motion.button>
+                        {order.paymentStatus !== 'PAID' && (
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title={t.processPayment}
+                          >
+                            <CreditCardIcon className="w-4 h-4" />
+                          </motion.button>
+                        )}
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                          title={t.printReceipt}
+                        >
+                          <PrinterIcon className="w-4 h-4" />
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          className="p-2 text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                          title={t.edit}
+                        >
+                          <PencilIcon className="w-4 h-4" />
+                        </motion.button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -720,7 +990,7 @@ export default function SalesManagementPage() {
       {totalPages > 1 && (
         <motion.div variants={itemVariants} className="mt-6 lg:mt-8 flex items-center justify-between">
           <div className="text-sm text-gray-600">
-            {t.showing} {startIndex + 1}-{Math.min(endIndex, filteredOrders.length)} {t.of} {filteredOrders.length} {t.results}
+            {t.showing} {startIndex}-{endIndex} {t.of} {totalCount} {t.results}
           </div>
           
           <div className="flex items-center space-x-2">

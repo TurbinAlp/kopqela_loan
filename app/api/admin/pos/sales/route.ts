@@ -429,7 +429,6 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('POS Sales - Error fetching sales:', error)
     const prismaError = handlePrismaError(error)
     
     return NextResponse.json({
