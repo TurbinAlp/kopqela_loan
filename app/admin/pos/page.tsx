@@ -293,10 +293,6 @@ export default function POSSystem() {
     fetchData()
   }, [currentBusiness?.id, showError])
 
-  // Debug payment methods data format
-  if (currentBusiness?.businessSetting?.paymentMethods) {
-    console.log('POS - Payment methods from database:', currentBusiness.businessSetting.paymentMethods)
-  }
 
   // Check if business is selected
   if (!currentBusiness) {
@@ -382,7 +378,6 @@ export default function POSSystem() {
       return
     }
 
-
     if (!selectedCustomer){
       showError('Customer Required', 'Please select a customer before processing payment')
       return
@@ -401,26 +396,86 @@ export default function POSSystem() {
     setIsProcessing(true)
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
       // Store payment plan before clearing states
       const currentPaymentPlan = paymentMethod
       const currentDueDate = dueDate
       const currentPartialPercentage = partialPercentage
       const currentCreditPlan = creditPlan
       
+      // Prepare API data
+      const saleData = {
+        businessId: currentBusiness.id,
+        customerId: selectedCustomer.id,
+        items: cart.map(item => ({
+          productId: item.id,
+          quantity: item.quantity,
+          unitPrice: Number(item.price),
+          totalPrice: Number(item.subtotal)
+        })),
+        paymentMethod: paymentMethod === 'full' ? (
+          actualPaymentMethod === 'cash' ? 'CASH' :
+          actualPaymentMethod === 'card' ? 'CARD' :
+          actualPaymentMethod === 'mobile' ? 'MOBILE_MONEY' :
+          actualPaymentMethod === 'bank' ? 'BANK_TRANSFER' : 'CASH'
+        ) : paymentMethod === 'partial' ? (
+          partialPaymentMethod === 'cash' ? 'CASH' :
+          partialPaymentMethod === 'card' ? 'CARD' :
+          partialPaymentMethod === 'mobile' ? 'MOBILE_MONEY' :
+          partialPaymentMethod === 'bank' ? 'BANK_TRANSFER' : 'CASH'
+        ) : 'CREDIT',
+        paymentPlan: currentPaymentPlan.toUpperCase(),
+        subtotal: cartTotal,
+        taxAmount: taxAmount,
+        discountAmount: 0,
+        totalAmount: baseTotal,
+        cashReceived: paymentMethod === 'partial' ? partialCalculatedAmount : finalTotal,
+        changeAmount: 0,
+        ...(paymentMethod === 'partial' && {
+          partialPayment: {
+            amountPaid: partialCalculatedAmount,
+            dueDate: currentDueDate,
+            percentage: currentPartialPercentage
+          }
+        }),
+        ...(paymentMethod === 'credit' && {
+          creditSale: {
+            creditPlan: currentCreditPlan,
+            interestRate: currentCreditPlan === '3' ? 5 : currentCreditPlan === '6' ? 8 : currentCreditPlan === '12' ? 12 : 15,
+            termMonths: parseInt(currentCreditPlan)
+          }
+        }),
+        transactionId: `TXN-${Date.now()}`,
+        notes: paymentMethod === 'partial' ? `Partial payment: ${currentPartialPercentage}%` : undefined,
+        includeTax: includeTax
+      }
+
+      // Call POS Sales API
+      const response = await fetch('/api/admin/pos/sales', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(saleData)
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Failed to process payment')
+      }
+      
+      // Create transaction object for receipt
       const transaction: Transaction = {
-        id: `TXN-${Date.now()}`,
+        id: result.data.transactionId,
         items: cart,
         customer: selectedCustomer?.name || 'Walk-in Customer',
         total: finalTotal,
-        originalTotal: baseTotal, // Store original total
+        originalTotal: baseTotal,
         paymentMethod: paymentMethod === 'full' ? actualPaymentMethod : 
                       paymentMethod === 'partial' ? partialPaymentMethod : 'credit',
-        paymentPlan: currentPaymentPlan, // Store payment plan
+        paymentPlan: currentPaymentPlan,
         cashReceived: paymentMethod === 'partial' ? partialCalculatedAmount : finalTotal,
-        change: 0,
+        change: result.data.changeAmount || 0,
         date: new Date().toLocaleString(),
         businessId: currentBusiness.id,
         partialPercentage: currentPaymentPlan === 'partial' ? currentPartialPercentage : undefined,
@@ -437,11 +492,13 @@ export default function POSSystem() {
       }
       
       setShowReceipt(true)
-      showSuccess('Payment Successful', t.paymentSuccessful)
+      showSuccess('Payment Successful', `${t.paymentSuccessful} - Order #${result.data.orderNumber}`)
       clearCart()
       
-    } catch {
-      showError('Payment Failed', 'Payment could not be processed. Please try again.')
+    } catch (error) {
+      console.error('POS - Payment processing error:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Payment could not be processed. Please try again.'
+      showError('Payment Failed', errorMessage)
     } finally {
       setIsProcessing(false)
     }

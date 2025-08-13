@@ -1,6 +1,7 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../app/generated/prisma"
+  provider      = "prisma-client-js"
+  output        = "../app/generated/prisma"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -9,28 +10,28 @@ datasource db {
 }
 
 model User {
-  id                    Int                 @id @default(autoincrement())
-  firstName             String              @map("first_name") @db.VarChar(100)
-  lastName              String              @map("last_name") @db.VarChar(100)
-  email                 String              @unique @db.VarChar(255)
-  phone                 String?             @db.VarChar(20)
-  passwordHash          String?             @map("password_hash") @db.VarChar(255)
-  role                  UserRole            @default(CUSTOMER)
-  isVerified            Boolean             @default(false) @map("is_verified")
-  verificationCode      String?             @map("verification_code") @db.VarChar(10)
-  verificationExpiresAt DateTime?           @map("verification_expires_at")
-  resetToken            String?             @map("reset_token") @db.VarChar(255)
-  resetTokenExpiresAt   DateTime?           @map("reset_token_expires_at")
-  googleId              String?             @unique @map("google_id") @db.VarChar(255)
-  picture               String?             @map("picture") @db.VarChar(500)
-  provider              String?             @default("email") @db.VarChar(50)
-  lastLoginAt           DateTime?           @map("last_login_at")
-  isActive              Boolean             @default(true) @map("is_active")
-  createdAt             DateTime            @default(now()) @map("created_at")
-  updatedAt             DateTime            @updatedAt @map("updated_at")
-  ownedBusinesses       Business[]          @relation("BusinessOwner")
-  customers             Customer[]          // Customers who linked their account
-  grantedPermissions    UserPermission[]    @relation("PermissionGrantedBy")
+  id                    Int              @id @default(autoincrement())
+  firstName             String           @map("first_name") @db.VarChar(100)
+  lastName              String           @map("last_name") @db.VarChar(100)
+  email                 String           @unique @db.VarChar(255)
+  phone                 String?          @db.VarChar(20)
+  passwordHash          String?          @map("password_hash") @db.VarChar(255)
+  role                  UserRole         @default(CUSTOMER)
+  isVerified            Boolean          @default(false) @map("is_verified")
+  verificationCode      String?          @map("verification_code") @db.VarChar(10)
+  verificationExpiresAt DateTime?        @map("verification_expires_at")
+  resetToken            String?          @map("reset_token") @db.VarChar(255)
+  resetTokenExpiresAt   DateTime?        @map("reset_token_expires_at")
+  googleId              String?          @unique @map("google_id") @db.VarChar(255)
+  picture               String?          @map("picture") @db.VarChar(500)
+  provider              String?          @default("email") @db.VarChar(50)
+  lastLoginAt           DateTime?        @map("last_login_at")
+  isActive              Boolean          @default(true) @map("is_active")
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+  ownedBusinesses       Business[]       @relation("BusinessOwner")
+  customers             Customer[]
+  grantedPermissions    UserPermission[] @relation("PermissionGrantedBy")
   userPermissions       UserPermission[]
   sessions              UserSession[]
 
@@ -89,18 +90,18 @@ model UserPermission {
 }
 
 model UserSession {
-  id           String    @id @default(cuid())
-  userId       Int       @map("user_id")
-  sessionToken String    @unique @map("session_token") @db.VarChar(255)
-  deviceInfo   Json?     @map("device_info")
-  ipAddress    String?   @map("ip_address") @db.VarChar(45)
-  userAgent    String?   @map("user_agent")
-  isActive     Boolean   @default(true) @map("is_active")
-  lastUsed     DateTime  @default(now()) @map("last_used")
-  expiresAt    DateTime  @map("expires_at")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  userId       Int      @map("user_id")
+  sessionToken String   @unique @map("session_token") @db.VarChar(255)
+  deviceInfo   Json?    @map("device_info")
+  ipAddress    String?  @map("ip_address") @db.VarChar(45)
+  userAgent    String?  @map("user_agent")
+  isActive     Boolean  @default(true) @map("is_active")
+  lastUsed     DateTime @default(now()) @map("last_used")
+  expiresAt    DateTime @map("expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_sessions")
 }
@@ -131,113 +132,100 @@ model Business {
 }
 
 model BusinessSetting {
-  id                        Int      @id @default(autoincrement())
-  businessId                Int      @unique @map("business_id")
-  // Contact Information
-  description               String?
-  email                     String?  @db.VarChar(255)
-  phone                     String?  @db.VarChar(20)
-  website                   String?  @db.VarChar(255)
-  // Address Information
-  address                   String?
-  city                      String?  @db.VarChar(100)
-  region                    String?  @db.VarChar(100)
-  country                   String?  @default("Tanzania") @db.VarChar(100)
-  postalCode                String?  @map("postal_code") @db.VarChar(20)
-  // Business Details
-  registrationNumber        String?  @map("registration_number") @db.VarChar(100)
-  currency                  String   @default("TZS") @db.VarChar(3)
-  timezone                  String   @default("Africa/Dar_es_Salaam") @db.VarChar(50)
-  language                  String   @default("en") @db.VarChar(2)
-  // Financial Settings
-  wholesaleMargin           Decimal? @default(30) @map("wholesale_margin") @db.Decimal(5, 2)
-  retailMargin              Decimal? @default(50) @map("retail_margin") @db.Decimal(5, 2)
-  taxRate                   Decimal? @default(18) @map("tax_rate") @db.Decimal(5, 2)
-  financialYearStart        String?  @default("01-01") @map("financial_year_start") @db.VarChar(5)
-  // Visual Settings
-  logoUrl                   String?  @map("logo_url") @db.VarChar(500)
-  primaryColor              String?  @map("primary_color") @db.VarChar(7)
-  secondaryColor            String?  @map("secondary_color") @db.VarChar(7)
-  // Feature Toggles
-  enableMultiCurrency       Boolean? @default(false) @map("enable_multi_currency")
-  enableTaxCalculation      Boolean? @default(true) @map("enable_tax_calculation")
-  enableInventoryTracking   Boolean? @default(true) @map("enable_inventory_tracking")
-  enableCreditSales         Boolean? @default(false) @map("enable_credit_sales")
-  enableLoyaltyProgram      Boolean? @default(false) @map("enable_loyalty_program")
-  enableMultiLocation       Boolean? @default(false) @map("enable_multi_location")
-  // Operational Settings
-  defaultPaymentMethod      String?  @default("CASH") @map("default_payment_method") @db.VarChar(20)
-  invoicePrefix             String?  @default("INV") @map("invoice_prefix") @db.VarChar(10)
-  orderPrefix               String?  @default("ORD") @map("order_prefix") @db.VarChar(10)
-  receiptFooterMessage      String?  @map("receipt_footer_message")
-  // Why Choose Us Features (4 customizable features)
-  feature1Title             String?  @map("feature1_title") @db.VarChar(100)
-  feature1TitleSwahili      String?  @map("feature1_title_swahili") @db.VarChar(100)
-  feature1Description       String?  @map("feature1_description") @db.VarChar(255)
-  feature1DescriptionSwahili String? @map("feature1_description_swahili") @db.VarChar(255)
-  feature1Icon              String?  @map("feature1_icon") @db.VarChar(50)
-  feature2Title             String?  @map("feature2_title") @db.VarChar(100)
-  feature2TitleSwahili      String?  @map("feature2_title_swahili") @db.VarChar(100)
-  feature2Description       String?  @map("feature2_description") @db.VarChar(255)
-  feature2DescriptionSwahili String? @map("feature2_description_swahili") @db.VarChar(255)
-  feature2Icon              String?  @map("feature2_icon") @db.VarChar(50)
-  feature3Title             String?  @map("feature3_title") @db.VarChar(100)
-  feature3TitleSwahili      String?  @map("feature3_title_swahili") @db.VarChar(100)
-  feature3Description       String?  @map("feature3_description") @db.VarChar(255)
-  feature3DescriptionSwahili String? @map("feature3_description_swahili") @db.VarChar(255)
-  feature3Icon              String?  @map("feature3_icon") @db.VarChar(50)
-  feature4Title             String?  @map("feature4_title") @db.VarChar(100)
-  feature4TitleSwahili      String?  @map("feature4_title_swahili") @db.VarChar(100)
-  feature4Description       String?  @map("feature4_description") @db.VarChar(255)
-  feature4DescriptionSwahili String? @map("feature4_description_swahili") @db.VarChar(255)
-  feature4Icon              String?  @map("feature4_icon") @db.VarChar(50)
-  // Business Hours & Operations
-  businessHours             Json?    @map("business_hours") // JSON array of {day, open, close, isOpen}
-  paymentMethods            Json?    @map("payment_methods") // JSON array of payment methods
-  deliveryAreas             Json?    @map("delivery_areas") // JSON array of delivery areas
-  // Credit Terms Settings
-  creditTerms               Json?    @map("credit_terms") // JSON array of {months, interestRate, isPopular, enabled}
-  deliveryFee               Decimal? @map("delivery_fee") @db.Decimal(10, 2)
-  freeDeliveryMinimum       Decimal? @map("free_delivery_minimum") @db.Decimal(10, 2)
-  estimatedDeliveryTime     String?  @map("estimated_delivery_time") @db.VarChar(100)
-  // Display Settings
-  showAboutSection          Boolean? @default(false) @map("show_about_section")
-  // Timestamps
-  createdAt                 DateTime @default(now()) @map("created_at")
-  updatedAt                 DateTime @updatedAt @map("updated_at")
-  // Relations
-  business                  Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  id                         Int      @id @default(autoincrement())
+  businessId                 Int      @unique @map("business_id")
+  createdAt                  DateTime @default(now()) @map("created_at")
+  updatedAt                  DateTime @updatedAt @map("updated_at")
+  address                    String?
+  city                       String?  @db.VarChar(100)
+  country                    String?  @default("Tanzania") @db.VarChar(100)
+  currency                   String   @default("TZS") @db.VarChar(3)
+  defaultPaymentMethod       String?  @default("CASH") @map("default_payment_method") @db.VarChar(20)
+  description                String?
+  email                      String?  @db.VarChar(255)
+  enableCreditSales          Boolean? @default(false) @map("enable_credit_sales")
+  enableInventoryTracking    Boolean? @default(true) @map("enable_inventory_tracking")
+  enableLoyaltyProgram       Boolean? @default(false) @map("enable_loyalty_program")
+  enableMultiCurrency        Boolean? @default(false) @map("enable_multi_currency")
+  enableMultiLocation        Boolean? @default(false) @map("enable_multi_location")
+  enableTaxCalculation       Boolean? @default(true) @map("enable_tax_calculation")
+  financialYearStart         String?  @default("01-01") @map("financial_year_start") @db.VarChar(5)
+  invoicePrefix              String?  @default("INV") @map("invoice_prefix") @db.VarChar(10)
+  language                   String   @default("en") @db.VarChar(2)
+  logoUrl                    String?  @map("logo_url") @db.VarChar(500)
+  orderPrefix                String?  @default("ORD") @map("order_prefix") @db.VarChar(10)
+  phone                      String?  @db.VarChar(20)
+  postalCode                 String?  @map("postal_code") @db.VarChar(20)
+  primaryColor               String?  @map("primary_color") @db.VarChar(7)
+  receiptFooterMessage       String?  @map("receipt_footer_message")
+  region                     String?  @db.VarChar(100)
+  registrationNumber         String?  @map("registration_number") @db.VarChar(100)
+  retailMargin               Decimal? @default(50) @map("retail_margin") @db.Decimal(5, 2)
+  secondaryColor             String?  @map("secondary_color") @db.VarChar(7)
+  taxRate                    Decimal? @default(18) @map("tax_rate") @db.Decimal(5, 2)
+  timezone                   String   @default("Africa/Dar_es_Salaam") @db.VarChar(50)
+  website                    String?  @db.VarChar(255)
+  wholesaleMargin            Decimal? @default(30) @map("wholesale_margin") @db.Decimal(5, 2)
+  feature1Description        String?  @map("feature1_description") @db.VarChar(255)
+  feature1DescriptionSwahili String?  @map("feature1_description_swahili") @db.VarChar(255)
+  feature1Icon               String?  @map("feature1_icon") @db.VarChar(50)
+  feature1Title              String?  @map("feature1_title") @db.VarChar(100)
+  feature1TitleSwahili       String?  @map("feature1_title_swahili") @db.VarChar(100)
+  feature2Description        String?  @map("feature2_description") @db.VarChar(255)
+  feature2DescriptionSwahili String?  @map("feature2_description_swahili") @db.VarChar(255)
+  feature2Icon               String?  @map("feature2_icon") @db.VarChar(50)
+  feature2Title              String?  @map("feature2_title") @db.VarChar(100)
+  feature2TitleSwahili       String?  @map("feature2_title_swahili") @db.VarChar(100)
+  feature3Description        String?  @map("feature3_description") @db.VarChar(255)
+  feature3DescriptionSwahili String?  @map("feature3_description_swahili") @db.VarChar(255)
+  feature3Icon               String?  @map("feature3_icon") @db.VarChar(50)
+  feature3Title              String?  @map("feature3_title") @db.VarChar(100)
+  feature3TitleSwahili       String?  @map("feature3_title_swahili") @db.VarChar(100)
+  feature4Description        String?  @map("feature4_description") @db.VarChar(255)
+  feature4DescriptionSwahili String?  @map("feature4_description_swahili") @db.VarChar(255)
+  feature4Icon               String?  @map("feature4_icon") @db.VarChar(50)
+  feature4Title              String?  @map("feature4_title") @db.VarChar(100)
+  feature4TitleSwahili       String?  @map("feature4_title_swahili") @db.VarChar(100)
+  businessHours              Json?    @map("business_hours")
+  deliveryAreas              Json?    @map("delivery_areas")
+  deliveryFee                Decimal? @map("delivery_fee") @db.Decimal(10, 2)
+  estimatedDeliveryTime      String?  @map("estimated_delivery_time") @db.VarChar(100)
+  freeDeliveryMinimum        Decimal? @map("free_delivery_minimum") @db.Decimal(10, 2)
+  paymentMethods             Json?    @map("payment_methods")
+  creditTerms                Json?    @map("credit_terms")
+  showAboutSection           Boolean? @default(false) @map("show_about_section")
+  business                   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@map("business_settings")
 }
 
 model Customer {
-  id           Int          @id @default(autoincrement())
-  businessId   Int          @map("business_id")
-  fullName     String       @map("full_name") @db.VarChar(255)
-  firstName    String?      @map("first_name") @db.VarChar(100)
-  lastName     String?      @map("last_name") @db.VarChar(100)
-  email        String?      @db.VarChar(255)
-  phone        String       @db.VarChar(20)
-  address      String?      @db.VarChar(500)
-  idNumber     String?      @map("id_number") @db.VarChar(50)
-  dateOfBirth  DateTime?    @map("date_of_birth")
-  occupation   String?      @db.VarChar(255)
-  customerType CustomerType @default(INDIVIDUAL) @map("customer_type")
-  userId       Int?         @map("user_id") // Optional - for customers who register accounts
-  joinDate     DateTime     @default(now()) @map("join_date")
-  notes        String?
-  creditLimit  Decimal?     @map("credit_limit") @db.Decimal(10, 2)
-  isActive     Boolean      @default(true) @map("is_active")
-  createdAt    DateTime     @default(now()) @map("created_at")
-  updatedAt    DateTime     @updatedAt @map("updated_at")
-  business     Business     @relation(fields: [businessId], references: [id])
-  user         User?        @relation(fields: [userId], references: [id])
-  orders       Order[]
-  payments     Payment[]
+  id                 Int                 @id @default(autoincrement())
+  businessId         Int                 @map("business_id")
+  fullName           String              @map("full_name") @db.VarChar(255)
+  firstName          String?             @map("first_name") @db.VarChar(100)
+  lastName           String?             @map("last_name") @db.VarChar(100)
+  email              String?             @db.VarChar(255)
+  phone              String              @db.VarChar(20)
+  customerType       CustomerType        @default(INDIVIDUAL) @map("customer_type")
+  userId             Int?                @map("user_id")
+  joinDate           DateTime            @default(now()) @map("join_date")
+  notes              String?
+  creditLimit        Decimal?            @map("credit_limit") @db.Decimal(10, 2)
+  isActive           Boolean             @default(true) @map("is_active")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  address            String?             @db.VarChar(500)
+  dateOfBirth        DateTime?           @map("date_of_birth")
+  idNumber           String?             @map("id_number") @db.VarChar(50)
+  occupation         String?             @db.VarChar(255)
   creditApplications CreditApplication[]
+  business           Business            @relation(fields: [businessId], references: [id])
+  user               User?               @relation(fields: [userId], references: [id])
+  orders             Order[]
+  payments           Payment[]
 
-  @@unique([businessId, phone]) // Each customer has unique phone per business
+  @@unique([businessId, phone])
   @@map("customers")
 }
 
@@ -333,7 +321,6 @@ model Order {
   discountAmount    Decimal            @default(0) @map("discount_amount") @db.Decimal(10, 2)
   totalAmount       Decimal            @map("total_amount") @db.Decimal(10, 2)
   paymentMethod     PaymentMethod      @map("payment_method")
-  paymentPlan       PaymentPlan        @default(FULL) @map("payment_plan")
   paymentStatus     PaymentStatus      @default(PENDING) @map("payment_status")
   notes             String?
   deliveryAddress   String?            @map("delivery_address")
@@ -341,6 +328,7 @@ model Order {
   deliveryDate      DateTime?          @map("delivery_date")
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @updatedAt @map("updated_at")
+  paymentPlan       PaymentPlan        @default(FULL) @map("payment_plan")
   creditApplication CreditApplication?
   orderItems        OrderItem[]
   business          Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
