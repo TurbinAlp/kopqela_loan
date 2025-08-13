@@ -5,7 +5,6 @@ import { motion } from 'framer-motion'
 import { 
   Bars3Icon,
   XMarkIcon,
-  MagnifyingGlassIcon,
   HomeIcon,
   ShoppingBagIcon,
   UserGroupIcon,
@@ -15,7 +14,6 @@ import {
   DocumentChartBarIcon,
   LanguageIcon,
   ComputerDesktopIcon,
-  BanknotesIcon,
   ChevronDownIcon,
   BuildingOfficeIcon
 } from '@heroicons/react/24/outline'
@@ -58,8 +56,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       sales: "Sales",
       pos: "Point of Sale",
       customers: "Customers",
-      customerLookup: "Customer Lookup",
-      paymentCollection: "Payment Collection",
       credit: "Credit Sales",
       reports: "Reports",
       settings: "Settings",
@@ -83,8 +79,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       sales: "Mauzo",
       pos: "Mahali pa Mauzo",
       customers: "Wateja",
-      customerLookup: "Utafutaji wa Wateja",
-      paymentCollection: "Ukusanyaji wa Malipo",
       credit: "Mauzo ya Mikopo",
       reports: "Ripoti",
       settings: "Mipangilio",
@@ -118,8 +112,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { name: t.sales, icon: DocumentChartBarIcon, href: "/admin/sales" },
     { name: t.pos, icon: ComputerDesktopIcon, href: "/admin/pos" },
     { name: t.customers, icon: UserGroupIcon, href: "/admin/customers" },
-    { name: t.customerLookup, icon: MagnifyingGlassIcon, href: "/admin/customers/lookup" },
-    { name: t.paymentCollection, icon: BanknotesIcon, href: "/admin/payments" },
     { name: t.credit, icon: CreditCardIcon, href: "/admin/credit" },
     { name: t.reports, icon: DocumentTextIcon, href: "/admin/reports" },
     { name: t.userManagement, icon: UserGroupIcon, href: "/admin/users" },

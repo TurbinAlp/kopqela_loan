@@ -164,7 +164,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         type: 'payment',
         title: 'Payment Received',
         message: 'Payment of TZS 750,000 received for Order #ORD-2024-002',
-        actionUrl: '/admin/payments',
+        actionUrl: '/admin/sales',
         metadata: { orderId: 'ORD-2024-002', amount: 750000 }
       },
       {

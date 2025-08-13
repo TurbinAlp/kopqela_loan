@@ -315,7 +315,7 @@ export default function BusinessDashboard() {
       title: t.collectPayment,
       icon: BanknotesIcon,
       color: "bg-green-500 hover:bg-green-600",
-      href: "/admin/payments"
+      href: "/admin/sales"
     }
   ]
 

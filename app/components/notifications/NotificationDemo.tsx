@@ -183,7 +183,7 @@ export default function NotificationDemo() {
         message: t.paymentMsg
           .replace('{amount:,}', data.amount.toLocaleString())
           .replace('{id}', data.orderId),
-        actionUrl: '/admin/payments',
+        actionUrl: '/admin/sales',
         metadata: { orderId: `ORD-${data.orderId}`, amount: data.amount }
       },
       stock: {
