@@ -592,46 +592,50 @@ export default function SalesManagementPage() {
       variants={containerVariants}
       initial="hidden"
       animate={isVisible ? "visible" : "hidden"}
-      className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+      className="min-h-screen bg-gray-50"
     >
-      {/* Page Header */}
-      <motion.div variants={itemVariants} className="mb-6 lg:mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2 className="text-xl lg:text-2xl font-bold text-gray-800 mb-2">{t.pageTitle}</h2>
-            <p className="text-gray-600">{t.pageSubtitle}</p>
-          </div>
-          
-          {/* Export Dropdown */}
-          <div className="relative group">
-            <button className="flex items-center space-x-2 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors">
-              <DocumentArrowDownIcon className="w-5 h-5" />
-              <span>{t.exportData}</span>
-              <ChevronDownIcon className="w-4 h-4" />
-            </button>
-            <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-              <button
-                onClick={() => handleExport('csv')}
-                className="w-full text-left px-4 py-2 hover:bg-gray-50 first:rounded-t-lg text-gray-900 hover:text-gray-900"
-              >
-                {t.exportCSV}
+      {/* Header */}
+      <motion.div variants={itemVariants} className="bg-white shadow-sm border-b border-gray-200 mb-6">
+        <div className="px-4 py-6 sm:px-6 lg:px-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{t.pageTitle}</h1>
+              <p className="text-gray-600">{t.pageSubtitle}</p>
+            </div>
+            
+            {/* Export Dropdown */}
+            <div className="relative group">
+              <button className="flex items-center space-x-2 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors">
+                <DocumentArrowDownIcon className="w-5 h-5" />
+                <span>{t.exportData}</span>
+                <ChevronDownIcon className="w-4 h-4" />
               </button>
-              <button
-                onClick={() => handleExport('excel')}
-                className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-900 hover:text-gray-900"
-              >
-                {t.exportExcel}
-              </button>
-              <button
-                onClick={() => handleExport('pdf')}
-                className="w-full text-left px-4 py-2 hover:bg-gray-50 last:rounded-b-lg text-gray-900 hover:text-gray-900"
-              >
-                {t.exportPDF}
-              </button>
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                <button
+                  onClick={() => handleExport('csv')}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50 first:rounded-t-lg text-gray-900 hover:text-gray-900"
+                >
+                  {t.exportCSV}
+                </button>
+                <button
+                  onClick={() => handleExport('excel')}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-900 hover:text-gray-900"
+                >
+                  {t.exportExcel}
+                </button>
+                <button
+                  onClick={() => handleExport('pdf')}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50 last:rounded-b-lg text-gray-900 hover:text-gray-900"
+                >
+                  {t.exportPDF}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </motion.div>
+
+      <div className="px-4 sm:px-6 lg:px-8 max-w-full mx-auto">
 
       {/* Sales Analytics Cards */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8">
@@ -1030,6 +1034,7 @@ export default function SalesManagementPage() {
           </div>
         </motion.div>
       )}
+      </div>
     </motion.div>
   )
 } 

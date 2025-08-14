@@ -514,7 +514,7 @@ export default function ReportsAnalyticsPage() {
         </div>
       </motion.div>
 
-      <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <div className="px-4 sm:px-6 lg:px-8 max-w-full mx-auto">
         {/* Tabs */}
         <motion.div variants={itemVariants} className="mb-8">
           <div className="border-b border-gray-200">

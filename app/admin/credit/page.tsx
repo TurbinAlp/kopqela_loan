@@ -453,25 +453,28 @@ export default function CreditSalesManagementPage() {
       variants={containerVariants}
       initial="hidden"
       animate={isVisible ? "visible" : "hidden"}
-      className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+      className="min-h-screen bg-gray-50"
     >
-      {/* Page Header */}
-      <motion.div variants={itemVariants} className="mb-6 lg:mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2 className="text-xl lg:text-2xl font-bold text-gray-800 mb-2">{t.pageTitle}</h2>
-            <p className="text-gray-600">{t.pageSubtitle}</p>
-          </div>
-          
-          <div className="flex items-center space-x-3">
-            <button className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-              <DocumentArrowDownIcon className="w-5 h-5" />
-              <span>Export</span>
-            </button>
-
+      {/* Header */}
+      <motion.div variants={itemVariants} className="bg-white shadow-sm border-b border-gray-200 mb-6 rounded-2xl">
+        <div className="px-4 py-6 sm:px-6 lg:px-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{t.pageTitle}</h1>
+              <p className="text-gray-600">{t.pageSubtitle}</p>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              <button className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                <DocumentArrowDownIcon className="w-5 h-5" />
+                <span>Export</span>
+              </button>
+            </div>
           </div>
         </div>
       </motion.div>
+
+      <div className="px-0 ">
 
       {/* Tabs Navigation */}
       <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6">
@@ -1171,6 +1174,7 @@ export default function CreditSalesManagementPage() {
           )}
         </div>
       </motion.div>
+      </div>
     </motion.div>
   )
 } 

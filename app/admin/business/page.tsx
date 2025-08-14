@@ -90,7 +90,7 @@ export default function BusinessPage() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+      className="w-full max-w-full mx-auto px-4 sm:px-6 lg:px-8"
     >
       {/* Header */}
       <div className="mb-8">
