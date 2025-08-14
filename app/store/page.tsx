@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useStores } from '../hooks/useStores'
-// import ClientOnlyToolbar from '../components/ClientOnlyToolbar'
+
 import Image from 'next/image'
 import {
   MagnifyingGlassIcon,
@@ -269,7 +269,7 @@ export default function StoreListingPage() {
           </div>
         )}
       </div>
-      {/* <ClientOnlyToolbar /> */}
+
     </div>
   )
 } 

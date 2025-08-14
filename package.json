@@ -17,8 +17,6 @@
     "@headlessui/react": "^2.2.4",
     "@heroicons/react": "^2.2.0",
     "@prisma/client": "^6.9.0",
-    "@stagewise-plugins/react": "^0.4.9",
-    "@stagewise/toolbar-next": "^0.4.9",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/nodemailer": "^6.4.17",

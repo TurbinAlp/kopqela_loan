@@ -23,7 +23,7 @@ import { usePathname } from 'next/navigation'
 import NotificationCenter from '../components/notifications/NotificationCenter'
 import GlobalSearch from '../components/search/GlobalSearch'
 import UserDropdown from '../components/ui/UserDropdown'
-import ClientOnlyToolbar from '../components/ClientOnlyToolbar'
+
 
 
 interface AdminLayoutProps {
@@ -383,7 +383,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         />
       )}
       
-      <ClientOnlyToolbar />
+
     </div>
     </BusinessProvider>
   )
