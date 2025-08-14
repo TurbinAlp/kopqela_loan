@@ -201,7 +201,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">K</span>
             </div>
-            <span className="text-xl font-bold text-gray-800">Kopqela</span>
+            <span className="text-xl font-bold text-gray-800">Koppela</span>
           </div>
           <button
             onClick={() => setSidebarOpen(false)}

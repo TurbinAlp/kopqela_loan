@@ -67,7 +67,7 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Verify Your Email - Kopqela</title>
+        <title>Verify Your Email - Koppela</title>
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -93,13 +93,13 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
       <body>
         <div class="container">
           <div class="header">
-            <div class="logo">KOPQELA</div>
+            <div class="logo">KOPPELA</div>
             <h1>Verify Your Email Address</h1>
           </div>
           
           <p>Hi ${data.name},</p>
           
-          <p>Thank you for registering ${data.businessName ? `your business "${data.businessName}"` : ''} with Kopqela! To complete your registration, please verify your email address using the code below:</p>
+          <p>Thank you for registering ${data.businessName ? `your business "${data.businessName}"` : ''} with Koppela! To complete your registration, please verify your email address using the code below:</p>
           
           <div class="verification-code">
             <p><strong>Your Verification Code:</strong></p>
@@ -108,10 +108,10 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
           
           <p>This code will expire in 15 minutes for security reasons.</p>
           
-          <p>If you didn't create an account with Kopqela, please ignore this email.</p>
+          <p>If you didn't create an account with Koppela, please ignore this email.</p>
           
           <div class="footer">
-            <p>© 2024 Kopqela. All rights reserved.</p>
+            <p>© 2025 Koppela. All rights reserved.</p>
             <p>This is an automated email, please do not reply.</p>
           </div>
         </div>
@@ -122,21 +122,21 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
     const textContent = `
       Hi ${data.name},
       
-      Thank you for registering ${data.businessName ? `your business "${data.businessName}"` : ''} with Kopqela!
+      Thank you for registering ${data.businessName ? `your business "${data.businessName}"` : ''} with Koppela!
       
       Your verification code is: ${data.code}
       
       This code will expire in 15 minutes.
       
-      If you didn't create an account with Kopqela, please ignore this email.
+      If you didn't create an account with Koppela, please ignore this email.
       
-      © 2024 Kopqela. All rights reserved.
+      © 2025 Koppela. All rights reserved.
     `
 
     const mailOptions = {
-      from: `"Kopqela" <${emailConfig.auth.user}>`,
+      from: `"Koppela" <${emailConfig.auth.user}>`,
       to: data.email,
-      subject: 'Verify Your Email - Kopqela',
+      subject: 'Verify Your Email - Koppela',
       text: textContent,
       html: htmlContent
     }
@@ -159,7 +159,7 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<boolean>
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Welcome to Kopqela!</title>
+        <title>Welcome to Koppela!</title>
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -180,13 +180,13 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<boolean>
       <body>
         <div class="container">
           <div class="header">
-            <div class="logo">KOPQELA</div>
-            <h1>Welcome to Kopqela!</h1>
+            <div class="logo">KOPPELA</div>
+            <h1>Welcome to Koppela!</h1>
           </div>
           
           <p>Hi ${data.name},</p>
           
-          <p>Congratulations! Your business "<strong>${data.businessName}</strong>" has been successfully registered with Kopqela.</p>
+          <p>Congratulations! Your business "<strong>${data.businessName}</strong>" has been successfully registered with Koppela.</p>
           
           <p>You can now access your business dashboard and start managing your sales and credit operations:</p>
           
@@ -209,7 +209,7 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<boolean>
           <p>Welcome aboard!</p>
           
           <div class="footer">
-            <p>© 2024 Kopqela. All rights reserved.</p>
+            <p>© 2025 Koppela. All rights reserved.</p>
             <p>This is an automated email, please do not reply.</p>
           </div>
         </div>
@@ -218,9 +218,9 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<boolean>
     `
 
     const mailOptions = {
-      from: `"Kopqela" <${emailConfig.auth.user}>`,
+      from: `"Koppela" <${emailConfig.auth.user}>`,
       to: data.email,
-      subject: `Welcome to Kopqela - ${data.businessName}`,
+      subject: `Welcome to Koppela - ${data.businessName}`,
       html: htmlContent
     }
 
@@ -242,7 +242,7 @@ export async function sendPasswordResetEmail(data: PasswordResetEmailData): Prom
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Reset Your Password - Kopqela</title>
+        <title>Reset Your Password - Koppela</title>
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -268,7 +268,7 @@ export async function sendPasswordResetEmail(data: PasswordResetEmailData): Prom
       <body>
         <div class="container">
           <div class="header">
-            <div class="logo">KOPQELA</div>
+            <div class="logo">KOPPELA</div>
             <h1>Reset Your Password</h1>
           </div>
           
@@ -286,7 +286,7 @@ export async function sendPasswordResetEmail(data: PasswordResetEmailData): Prom
           <p>If you didn't request a password reset, please ignore this email. Your password will remain unchanged.</p>
           
           <div class="footer">
-            <p>© 2024 Kopqela. All rights reserved.</p>
+            <p>© 2025 Koppela. All rights reserved.</p>
             <p>This is an automated email, please do not reply.</p>
           </div>
         </div>
@@ -305,13 +305,13 @@ export async function sendPasswordResetEmail(data: PasswordResetEmailData): Prom
       
       If you didn't request a password reset, please ignore this email.
       
-      © 2024 Kopqela. All rights reserved.
+      © 2025 Koppela. All rights reserved.
     `
 
     const mailOptions = {
-      from: `"Kopqela" <${emailConfig.auth.user}>`,
+      from: `"Koppela" <${emailConfig.auth.user}>`,
       to: data.email,
-      subject: 'Reset Your Password - Kopqela',
+      subject: 'Reset Your Password - Koppela',
       text: textContent,
       html: htmlContent
     }

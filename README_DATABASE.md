@@ -1,4 +1,4 @@
-# Kopqela Sales & Credit Management System Database Schema
+# Koppela Sales & Credit Management System Database Schema
 
 ## Overview
 Hii ni comprehensive PostgreSQL database schema kwa Sales & Credit Management System inayosupport multi-store business model pamoja na advanced credit management features.
@@ -81,24 +81,24 @@ sudo -u postgres psql
 ### 1. Create Database and User
 ```sql
 -- Create database
-CREATE DATABASE kopqela_db;
+CREATE DATABASE koppela_db;
 
 -- Create user with password
-CREATE USER kopqela_user WITH PASSWORD 'your_strong_password';
+CREATE USER koppela_user WITH PASSWORD 'your_strong_password';
 
 -- Grant privileges
-GRANT ALL PRIVILEGES ON DATABASE kopqela_db TO kopqela_user;
-GRANT ALL ON SCHEMA public TO kopqela_user;
+GRANT ALL PRIVILEGES ON DATABASE koppela_db TO koppela_user;
+GRANT ALL ON SCHEMA public TO koppela_user;
 ```
 
 ### 2. Run Schema Creation
 ```bash
 # Connect to database and run schema
-psql -U kopqela_user -d kopqela_db -f database_schema.sql
+psql -U koppela_user -d koppela_db -f database_schema.sql
 
 # Alternative: if you have issues with extensions, run as superuser first
-sudo -u postgres psql -d kopqela_db -c "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";"
-sudo -u postgres psql -d kopqela_db -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+sudo -u postgres psql -d koppela_db -c "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";"
+sudo -u postgres psql -d koppela_db -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
 ```
 
 ### 3. Verify Installation
@@ -107,7 +107,7 @@ sudo -u postgres psql -d kopqela_db -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;
 SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
 
 -- Check default admin user was created
-SELECT id, email, full_name FROM users WHERE email = 'admin@kopqela.com';
+SELECT id, email, full_name FROM users WHERE email = 'admin@koppela.com';
 
 -- Check views were created
 SELECT viewname FROM pg_views WHERE schemaname = 'public';
@@ -118,11 +118,11 @@ SELECT viewname FROM pg_views WHERE schemaname = 'public';
 ### Environment Variables (.env)
 ```env
 # Database Configuration
-DATABASE_URL=postgresql://kopqela_user:your_password@localhost:5432/kopqela_db
+DATABASE_URL=postgresql://koppela_user:your_password@localhost:5432/koppela_db
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=kopqela_db
-DB_USER=kopqela_user
+DB_NAME=koppela_db
+DB_USER=koppela_user
 DB_PASSWORD=your_strong_password
 
 # Security
@@ -243,10 +243,10 @@ SELECT pg_reload_conf();
 # Daily backup script
 #!/bin/bash
 DATE=$(date +%Y%m%d_%H%M%S)
-pg_dump -U kopqela_user -h localhost kopqela_db > backup_kopqela_$DATE.sql
+pg_dump -U koppela_user -h localhost koppela_db > backup_koppela_$DATE.sql
 
 # Keep only last 7 days of backups
-find /path/to/backups -name "backup_kopqela_*.sql" -mtime +7 -delete
+find /path/to/backups -name "backup_koppela_*.sql" -mtime +7 -delete
 ```
 
 ## Data Migration
@@ -256,13 +256,13 @@ find /path/to/backups -name "backup_kopqela_*.sql" -mtime +7 -delete
 -- Insert sample business
 INSERT INTO businesses (name, slug, business_type, owner_id, status) VALUES
 ('Duka la Mama', 'duka-la-mama', 'retail', 
- (SELECT id FROM users WHERE email = 'admin@kopqela.com'), 'active');
+ (SELECT id FROM users WHERE email = 'admin@koppela.com'), 'active');
 
 -- Insert sample products
 INSERT INTO products (business_id, name, name_sw, retail_price, status, created_by) VALUES
 ((SELECT id FROM businesses WHERE slug = 'duka-la-mama'), 
  'Rice 5kg', 'Mchele Kilo 5', 12000.00, 'active',
- (SELECT id FROM users WHERE email = 'admin@kopqela.com'));
+ (SELECT id FROM users WHERE email = 'admin@koppela.com'));
 
 -- Initialize inventory
 INSERT INTO inventory (product_id, quantity_available, reorder_point) VALUES
@@ -300,7 +300,7 @@ sudo systemctl status postgresql
 ### Useful Commands
 ```sql
 -- Check database size
-SELECT pg_size_pretty(pg_database_size('kopqela_db'));
+SELECT pg_size_pretty(pg_database_size('koppela_db'));
 
 -- Check table sizes
 SELECT 
@@ -312,7 +312,7 @@ WHERE schemaname = 'public'
 ORDER BY pg_total_relation_size(tablename::text) DESC;
 
 -- Active connections
-SELECT * FROM pg_stat_activity WHERE datname = 'kopqela_db';
+SELECT * FROM pg_stat_activity WHERE datname = 'koppela_db';
 ```
 
 ## Support

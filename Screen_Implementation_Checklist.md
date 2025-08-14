@@ -12,12 +12,12 @@
 - **Role Hierarchy:** Admin > Manager > Cashier > Customer (permissions decrease down the hierarchy)
 
 **Customer Portal URL Structure:**
-- **Path-Based Approach:** `https://kopqela.com/store/[business-slug]`
+- **Path-Based Approach:** `https://koppela.com/store/[business-slug]`
 - **Multi-Business Support:** Each business gets unique store accessible via URL path
 - **Examples:**
-  - `https://kopqela.com/store/duka-la-mama`
-  - `https://kopqela.com/store/electronics-shop`
-  - `https://kopqela.com/store/fashion-boutique`
+  - `https://koppela.com/store/duka-la-mama`
+  - `https://koppela.com/store/electronics-shop`
+  - `https://koppela.com/store/fashion-boutique`
 
 ---
 
@@ -430,7 +430,7 @@
 
 ## Customer Portal (Independent Interface - Path-Based Multi-Store)
 
-**URL Structure:** `https://kopqela.com/store/[business-slug]/[page]`  
+**URL Structure:** `https://koppela.com/store/[business-slug]/[page]`  
 **Access Model:** Public access per business store  
 **Technical Implementation:**
 - **Dynamic Routes:** `app/store/[slug]/page.tsx`
@@ -946,7 +946,7 @@
 **Architecture:** 
 - **Admin/Cashier:** Unified Dashboard with Role-Based Conditional Rendering
 - **Customer:** Independent Portal Interface (Path-Based Multi-Store)
-- **URL Structure:** `https://kopqela.com/store/[business-slug]/[page]`
+- **URL Structure:** `https://koppela.com/store/[business-slug]/[page]`
 
 **Multi-Store Implementation:**
 - **Business Isolation:** Each store operates independently

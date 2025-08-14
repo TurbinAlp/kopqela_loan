@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { useIsClient } from '../hooks/useIsClient'
 
 type Language = 'en' | 'sw'
 
@@ -86,10 +87,14 @@ interface LanguageProviderProps {
 
 export const LanguageProvider = ({ children }: LanguageProviderProps) => {
   const [language, setLanguageState] = useState<Language>('en')
+  const isClient = useIsClient()
 
   useEffect(() => {
+    // Only run on client side to prevent hydration errors
+    if (!isClient) return
+
     // Load language from localStorage on mount
-    const savedLanguage = localStorage.getItem('kopqela-language') as Language
+    const savedLanguage = localStorage.getItem('koppela-language') as Language
     if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'sw')) {
       setLanguageState(savedLanguage)
     } else {
@@ -99,11 +104,14 @@ export const LanguageProvider = ({ children }: LanguageProviderProps) => {
         setLanguageState('sw')
       }
     }
-  }, [])
+  }, [isClient])
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang)
-    localStorage.setItem('kopqela-language', lang)
+    // Only access localStorage on client side
+    if (isClient) {
+      localStorage.setItem('koppela-language', lang)
+    }
   }
 
   const t = (key: string): string => {

@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Kopqela - Sales & Credit Management",
+  title: "Koppela - Sales & Credit Management",
   description: "Modern sales and credit management system for wholesale and retail businesses",
 };
 

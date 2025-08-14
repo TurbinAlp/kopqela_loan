@@ -84,7 +84,7 @@ export default function StoreListingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <Link href="/" className="text-2xl font-bold text-teal-600">
-              Kopqela
+              Koppela
             </Link>
             <button
               onClick={() => setLanguage(language === 'en' ? 'sw' : 'en')}

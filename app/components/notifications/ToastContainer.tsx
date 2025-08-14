@@ -3,6 +3,7 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNotifications } from '../../contexts/NotificationContext'
+import { useIsClient } from '../../hooks/useIsClient'
 import {
   CheckCircleIcon,
   ExclamationTriangleIcon,
@@ -13,6 +14,12 @@ import {
 
 export default function ToastContainer() {
   const { toasts, removeToast } = useNotifications()
+  const isClient = useIsClient()
+
+  // Don't render on server to prevent hydration errors with framer-motion
+  if (!isClient) {
+    return null
+  }
 
   const getToastIcon = (type: string) => {
     switch (type) {

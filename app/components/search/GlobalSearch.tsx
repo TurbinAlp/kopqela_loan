@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { useIsClient } from '../../hooks/useIsClient'
 import {
   MagnifyingGlassIcon,
   XMarkIcon,
@@ -89,6 +90,7 @@ export default function GlobalSearch({
   showCategories = true 
 }: GlobalSearchProps) {
   const { language } = useLanguage()
+  const isClient = useIsClient()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [isOpen, setIsOpen] = useState(false)
@@ -146,8 +148,10 @@ export default function GlobalSearch({
     return () => clearTimeout(timer)
   }, [query])
 
-  // Handle click outside
+  // Handle click outside - only on client
   useEffect(() => {
+    if (!isClient) return
+
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setIsOpen(false)
@@ -157,7 +161,7 @@ export default function GlobalSearch({
 
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  }, [isClient])
 
   // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {

@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
 
     // Set HTTP-only cookie for token
     const response = NextResponse.json(responseData)
-    response.cookies.set('kopqela-token', token, {
+    response.cookies.set('koppela', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

@@ -111,7 +111,7 @@ export default function Home() {
               <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center">
                 <span className="text-xl font-bold text-white">K</span>
               </div>
-              <span className="ml-3 text-2xl font-bold text-gray-900">Kopqela</span>
+              <span className="ml-3 text-2xl font-bold text-gray-900">Koppela</span>
             </div>
             <div className="flex space-x-4">
               <Link href="/login" className="px-4 py-2 text-teal-600 hover:text-teal-700 font-medium">
@@ -135,7 +135,7 @@ export default function Home() {
               transition={{ duration: 0.6 }}
             >
               <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6">
-                <span className="text-teal-600">Kopqela</span> Sales
+                <span className="text-teal-600">Koppela</span> Sales
                 <br />& Credit Management
               </h1>
               <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
@@ -272,7 +272,7 @@ export default function Home() {
       <section className="py-20 bg-teal-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Why Choose Kopqela?</h2>
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">Why Choose Koppela?</h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Designed specifically for Tanzanian businesses with local needs in mind
             </p>
@@ -303,7 +303,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">Trusted by Businesses</h2>
-            <p className="text-xl text-gray-600">See what our customers say about Kopqela</p>
+            <p className="text-xl text-gray-600">See what our customers say about Koppela</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -319,7 +319,7 @@ export default function Home() {
                 ))}
               </div>
                              <p className="text-gray-700 mb-6 italic">
-                 &ldquo;Kopqela has transformed how we manage our electronics store. The credit management system 
+                 &ldquo;Koppela has transformed how we manage our electronics store. The credit management system 
                  alone has increased our sales by 40%. The multilingual support makes it easy for all our staff.&rdquo;
                </p>
               <div className="flex items-center">
@@ -374,7 +374,7 @@ export default function Home() {
               Ready to Transform Your Business?
             </h2>
             <p className="text-xl text-teal-100 mb-8 max-w-2xl mx-auto">
-              Join hundreds of Tanzanian businesses already using Kopqela to streamline 
+              Join hundreds of Tanzanian businesses already using Koppela to streamline 
               their operations and increase revenue.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -410,14 +410,14 @@ export default function Home() {
                 <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center">
                   <span className="text-xl font-bold text-white">K</span>
                 </div>
-                <span className="ml-3 text-2xl font-bold">Kopqela</span>
+                <span className="ml-3 text-2xl font-bold">Koppela</span>
               </div>
               <p className="text-gray-300 mb-6 max-w-md">
                 Empowering Tanzanian businesses with modern sales and credit management solutions. 
                 Built locally, designed globally.
               </p>
               <div className="text-sm text-gray-400">
-                © 2024 Kopqela. All rights reserved.
+                © 2025 Koppela. All rights reserved.
               </div>
             </div>
 
@@ -434,7 +434,7 @@ export default function Home() {
             <div>
               <h3 className="text-lg font-semibold mb-4">Support</h3>
               <ul className="space-y-2 text-gray-300">
-                <li>Email: support@kopqela.com</li>
+                <li>Email: support@koppela.com</li>
                 <li>Phone: +255 123 456 789</li>
                 <li>Address: Dar es Salaam, Tanzania</li>
                 <li className="mt-4">

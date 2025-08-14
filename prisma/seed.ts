@@ -8,19 +8,19 @@ async function main() {
 
   // Create sample business
   const business = await prisma.business.upsert({
-    where: { slug: 'kopqela-demo' },
+    where: { slug: 'koppela-demo' },
     update: {},
     create: {
-      name: 'Kopqela Demo Store',
+      name: 'Koppela Demo Store',
       businessType: 'RETAIL',
-      slug: 'kopqela-demo',
+      slug: 'koppela-demo',
       isActive: true,
       businessSetting: {
         create: {
           description: 'Demo business for testing',
           address: 'Dar es Salaam, Tanzania',
           phone: '+255123456789',
-          email: 'demo@kopqela.com',
+          email: 'demo@koppela.com',
           currency: 'TZS',
           timezone: 'Africa/Dar_es_Salaam',
           language: 'sw',
@@ -42,12 +42,12 @@ async function main() {
   const hashedPassword = await bcrypt.hash('admin123', 10)
   
   const user = await prisma.user.upsert({
-    where: { email: 'admin@kopqela.com' },
+    where: { email: 'admin@koppela.com' },
     update: {},
     create: {
       firstName: 'Demo',
       lastName: 'Admin',
-      email: 'admin@kopqela.com',
+      email: 'admin@koppela.com',
       phone: '+255123456789',
       passwordHash: hashedPassword,
       role: 'ADMIN',

@@ -26,10 +26,10 @@ export default function SettingsPage() {
   const [emailSettings, setEmailSettings] = useState({
     smtpHost: 'smtp.gmail.com',
     smtpPort: '587',
-    smtpUser: 'noreply@kopqela.com',
+    smtpUser: 'noreply@koppela.com',
     smtpPassword: '',
-    fromName: 'Kopqela System',
-    fromEmail: 'noreply@kopqela.com'
+    fromName: 'Koppela System',
+    fromEmail: 'noreply@koppela.com'
   })
 
   const [notificationSettings, setNotificationSettings] = useState({

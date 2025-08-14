@@ -1,6 +1,7 @@
 'use client'
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
+import { useIsClient } from '../hooks/useIsClient'
 
 export interface ToastNotification {
   id: string
@@ -56,11 +57,14 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastNotification[]>([])
   const [notifications, setNotifications] = useState<PersistentNotification[]>([])
+  const isClient = useIsClient()
+  const idCounterRef = useRef(0)
 
-  // Generate unique ID
+  // Generate consistent unique ID that works on both server and client
   const generateId = useCallback(() => {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2, 9)
-  }, [])
+    idCounterRef.current += 1
+    return `${isClient ? 'client' : 'server'}-${idCounterRef.current}-${Date.now()}`
+  }, [isClient])
 
   // Toast notification methods
   const removeToast = useCallback((id: string) => {
@@ -77,13 +81,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     
     setToasts(prev => [...prev, newToast])
 
-    // Auto remove toast after duration (unless persistent)
-    if (!notification.persistent) {
+    // Auto remove toast after duration (unless persistent) - only on client
+    if (!notification.persistent && isClient) {
       setTimeout(() => {
         removeToast(newToast.id)
       }, newToast.duration)
     }
-  }, [generateId, removeToast])
+  }, [generateId, removeToast, isClient])
 
   const clearAllToasts = useCallback(() => {
     setToasts([])
@@ -143,8 +147,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   // Calculate unread count
   const unreadCount = notifications.filter(notif => !notif.isRead).length
 
-  // Load sample notifications on mount (simulate real data)
+  // Load sample notifications on mount (simulate real data) - only on client
   useEffect(() => {
+    if (!isClient) return
+
     const sampleNotifications: Omit<PersistentNotification, 'id' | 'createdAt' | 'isRead'>[] = [
       {
         type: 'order',
@@ -182,7 +188,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       }
     ]
 
-    // Add sample notifications with delay
+    // Add sample notifications with delay - only on client
     const timeouts = sampleNotifications.map((notif, index) => 
       setTimeout(() => addNotification(notif), index * 1000)
     )
@@ -190,7 +196,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     return () => {
       timeouts.forEach(timeout => clearTimeout(timeout))
     }
-  }, [addNotification])
+  }, [addNotification, isClient])
 
   const value: NotificationContextType = {
     toasts,

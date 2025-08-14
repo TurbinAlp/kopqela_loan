@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
+import { useIsClient } from '../hooks/useIsClient'
 
 interface PaymentMethod {
   value: string
@@ -46,6 +47,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
   const [currentBusiness, setCurrentBusinessState] = useState<Business | null>(null)
   const [businesses, setBusinesses] = useState<Business[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const isClient = useIsClient()
 
   // Switch current business (localStorage only)
   const setCurrentBusiness = (business: Business | null) => {
@@ -53,7 +55,10 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     
     console.log('Switching to business:', business.name)
     setCurrentBusinessState(business)
-    localStorage.setItem('currentBusinessId', business.id.toString())
+    // Only access localStorage on client
+    if (isClient) {
+      localStorage.setItem('currentBusinessId', business.id.toString())
+    }
   }
 
   // Load business settings including taxRate
@@ -92,13 +97,15 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
         
         // Set default business if none selected
         if (!currentBusiness && data.data.length > 0) {
-          // Try to get from localStorage first
-          const savedBusinessId = localStorage.getItem('currentBusinessId')
-          if (savedBusinessId) {
-            const savedBusiness = data.data.find((b: Business) => b.id === parseInt(savedBusinessId))
-            if (savedBusiness) {
-              setCurrentBusinessState(savedBusiness)
-              return
+          // Try to get from localStorage first (only on client)
+          if (isClient) {
+            const savedBusinessId = localStorage.getItem('currentBusinessId')
+            if (savedBusinessId) {
+              const savedBusiness = data.data.find((b: Business) => b.id === parseInt(savedBusinessId))
+              if (savedBusiness) {
+                setCurrentBusinessState(savedBusiness)
+                return
+              }
             }
           }
           
@@ -111,7 +118,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false)
     }
-  }, [currentBusiness])
+  }, [currentBusiness, isClient])
 
   // Load businesses on mount
   useEffect(() => {

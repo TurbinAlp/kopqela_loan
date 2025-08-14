@@ -19,9 +19,9 @@ export default function UserManagementPage() {
   const [selectedUser, setSelectedUser] = useState<{ id: number; name: string; email: string; role: 'Admin' | 'Manager' | 'Cashier'; status: 'Active' | 'Inactive'; lastLogin: string } | null>(null)
 
   const [users, setUsers] = useState<{ id: number; name: string; email: string; role: 'Admin' | 'Manager' | 'Cashier'; status: 'Active' | 'Inactive'; lastLogin: string }[]>([
-    { id: 1, name: 'John Admin', email: 'john@kopqela.com', role: 'Admin' as const, status: 'Active' as const, lastLogin: '2024-01-15' },
-    { id: 2, name: 'Mary Cashier', email: 'mary@kopqela.com', role: 'Cashier' as const, status: 'Active' as const, lastLogin: '2024-01-14' },
-    { id: 3, name: 'Peter Manager', email: 'peter@kopqela.com', role: 'Manager' as const, status: 'Inactive' as const, lastLogin: '2024-01-10' }
+    { id: 1, name: 'John Admin', email: 'john@koppela.com', role: 'Admin' as const, status: 'Active' as const, lastLogin: '2024-01-15' },
+    { id: 2, name: 'Mary Cashier', email: 'mary@koppela.com', role: 'Cashier' as const, status: 'Active' as const, lastLogin: '2024-01-14' },
+    { id: 3, name: 'Peter Manager', email: 'peter@koppela.com', role: 'Manager' as const, status: 'Inactive' as const, lastLogin: '2024-01-10' }
   ])
 
   useEffect(() => {

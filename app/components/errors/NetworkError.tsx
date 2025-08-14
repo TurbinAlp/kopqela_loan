@@ -3,6 +3,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { useIsClient } from '../../hooks/useIsClient'
 import {
   WifiIcon,
   ArrowPathIcon,
@@ -25,6 +26,7 @@ export default function NetworkError({
   variant = 'full' 
 }: NetworkErrorProps) {
   const { language } = useLanguage()
+  const isClient = useIsClient()
 
   const translations = {
     en: {
@@ -67,8 +69,10 @@ export default function NetworkError({
   const [isRetrying, setIsRetrying] = React.useState(false)
   const [networkStatus, setNetworkStatus] = React.useState<'online' | 'offline' | 'weak'>('online')
 
-  // Check network status
+  // Check network status - only on client
   React.useEffect(() => {
+    if (!isClient) return
+
     const updateNetworkStatus = () => {
       if (!navigator.onLine) {
         setNetworkStatus('offline')
@@ -86,7 +90,7 @@ export default function NetworkError({
       window.removeEventListener('online', updateNetworkStatus)
       window.removeEventListener('offline', updateNetworkStatus)
     }
-  }, [])
+  }, [isClient])
 
   const handleRetry = async () => {
     if (!onRetry) return
@@ -229,7 +233,7 @@ export default function NetworkError({
               )}
               
               <button
-                onClick={() => window.location.reload()}
+                onClick={() => isClient && window.location.reload()}
                 className="inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-base font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 shadow-md hover:shadow-lg"
               >
                 <ArrowPathIcon className="w-5 h-5 mr-2" />
