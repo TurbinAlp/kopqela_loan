@@ -91,8 +91,47 @@ export const authOptions: NextAuthOptions = {
             }
             return true
           } else {
-            // For new Google users who don't exist in database, 
-            // we still allow sign in but they'll need to complete registration
+            // Create new user from Google profile
+            // Handle name parsing - Google can provide various name formats
+            let firstName = 'User'
+            let lastName = ''
+            
+            if (user.name && user.name.trim()) {
+              const nameParts = user.name.trim().split(' ').filter(part => part.length > 0)
+              if (nameParts.length === 1) {
+                // Only one name provided (e.g., "John")
+                firstName = nameParts[0]
+                lastName = ''
+              } else if (nameParts.length >= 2) {
+                // Multiple names provided (e.g., "John Doe" or "John Peter Doe")
+                firstName = nameParts[0]
+                lastName = nameParts.slice(1).join(' ')
+              }
+            }
+
+            const newUser = await prisma.user.create({
+              data: {
+                firstName,
+                lastName,
+                email: user.email!,
+                googleId: profile?.sub,
+                picture: user.image,
+                provider: 'google',
+                isVerified: true,
+                role: 'ADMIN',
+                lastLoginAt: new Date()
+              }
+            })
+
+            console.log('New Google user created:', {
+              id: newUser.id,
+              email: newUser.email,
+              originalGoogleName: user.name,
+              parsedFirstName: newUser.firstName,
+              parsedLastName: newUser.lastName,
+              fullName: `${newUser.firstName} ${newUser.lastName}`.trim()
+            })
+
             return true
           }
         } catch (error) {
@@ -119,7 +158,7 @@ export const authOptions: NextAuthOptions = {
       // Initial sign in
       if (user) {
         if (account?.provider === 'google') {
-          // Handle Google OAuth
+          // Handle Google OAuth - fetch user from database
           const dbUser = await prisma.user.findUnique({
             where: { email: user.email! }
           })
@@ -130,6 +169,9 @@ export const authOptions: NextAuthOptions = {
             token.firstName = dbUser.firstName
             token.lastName = dbUser.lastName
             token.picture = dbUser.picture || user.image
+          } else {
+            // This should not happen since we create user in signIn callback
+            console.error('Google user not found in database after sign in')
           }
         } else {
           // Handle credentials login
@@ -202,4 +244,4 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 }
 
-export default authOptions 
+export default authOptions
