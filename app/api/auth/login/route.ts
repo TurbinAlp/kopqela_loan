@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import { prisma } from '../../../lib/prisma'
+import { createEastAfricaTimestamp } from '../../../lib/timezone'
 import { z } from 'zod'
 
 const loginSchema = z.object({
@@ -64,10 +65,10 @@ export async function POST(request: NextRequest) {
       }, { status: 401 })
     }
 
-    // Update last login
+    // Update last login with East Africa timezone
     await prisma.user.update({
       where: { id: user.id },
-      data: { lastLoginAt: new Date() }
+      data: { lastLoginAt: createEastAfricaTimestamp() }
     })
 
     // Create JWT token

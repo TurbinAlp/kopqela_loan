@@ -97,7 +97,6 @@ export async function POST(request: NextRequest) {
       cashReceived,
       changeAmount,
       partialPayment,
-      creditSale,
       transactionId,
       notes,
     } = validationResult.data
@@ -198,34 +197,82 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Generate order number
+    // Generate unique order number using timestamp-based approach
     const orderPrefix = business.businessSetting?.orderPrefix || 'ORD'
-    const orderCount = await prisma.order.count({
-      where: { businessId: businessId }
-    })
-    const orderNumber = `${orderPrefix}-${String(orderCount + 1).padStart(6, '0')}`
+    
+    const generateUniqueOrderNumber = (): string => {
+      // Use high precision timestamp + random to ensure uniqueness even in concurrent requests
+      const now = new Date()
+      const timestamp = now.getTime().toString()
+      const microseconds = now.getMilliseconds().toString().padStart(3, '0')
+      const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
+      
+      // Format: PREFIX-YYYYMMDD-TIMESTAMP-RANDOM
+      const dateStr = now.getFullYear().toString() + 
+                     (now.getMonth() + 1).toString().padStart(2, '0') + 
+                     now.getDate().toString().padStart(2, '0')
+      
+      return `${orderPrefix}-${dateStr}-${timestamp.slice(-6)}${microseconds}${random}`
+    }
+
+    const orderNumber = generateUniqueOrderNumber()
+    
+    console.log('POS Sales - Generated order number:', orderNumber)
 
     // Create order, order items, and payment in transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Create the order
-      const order = await tx.order.create({
-        data: {
-          businessId,
-          customerId,
-          orderNumber,
-          status: 'CONFIRMED',
-          orderType: 'RETAIL',
-          subtotal,
-          taxAmount,
-          discountAmount,
-          totalAmount,
-          paymentMethod,
-          paymentStatus: paymentPlan === 'FULL' ? 'PAID' : paymentPlan === 'PARTIAL' ? 'PARTIAL' : 'PENDING',
-          paymentPlan,
-          notes,
-          orderDate: new Date()
+      // Create the order with error handling for potential duplicates
+      let order
+      try {
+        order = await tx.order.create({
+          data: {
+            businessId,
+            customerId,
+            orderNumber,
+            status: 'CONFIRMED',
+            orderType: 'RETAIL',
+            subtotal,
+            taxAmount,
+            discountAmount,
+            totalAmount,
+            paymentMethod,
+            paymentStatus: paymentPlan === 'FULL' ? 'PAID' : paymentPlan === 'PARTIAL' ? 'PARTIAL' : 'PENDING',
+            paymentPlan,
+            notes,
+            orderDate: new Date()
+          }
+        })
+      } catch (error: unknown) {
+        // If we get a unique constraint error, generate a new order number with extra randomness
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002' && 
+            'meta' in error && error.meta && typeof error.meta === 'object' && 
+            'target' in error.meta && Array.isArray(error.meta.target) && 
+            error.meta.target.includes('order_number')) {
+          const fallbackOrderNumber = `${orderPrefix}-${Date.now()}-${Math.floor(Math.random() * 1000000)}`
+          console.log('POS Sales - Order number collision detected, using fallback:', fallbackOrderNumber)
+          
+          order = await tx.order.create({
+            data: {
+              businessId,
+              customerId,
+              orderNumber: fallbackOrderNumber,
+              status: 'CONFIRMED',
+              orderType: 'RETAIL',
+              subtotal,
+              taxAmount,
+              discountAmount,
+              totalAmount,
+              paymentMethod,
+              paymentStatus: paymentPlan === 'FULL' ? 'PAID' : paymentPlan === 'PARTIAL' ? 'PARTIAL' : 'PENDING',
+              paymentPlan,
+              notes,
+              orderDate: new Date()
+            }
+          })
+        } else {
+          throw error // Re-throw if it's not a unique constraint error
         }
-      })
+      }
 
       // Create order items
       const orderItemsData = items.map(item => ({

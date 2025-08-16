@@ -4,6 +4,7 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { prisma } from './prisma'
 import { getUserPermissions } from './rbac/middleware'
+import { createEastAfricaTimestamp } from './timezone'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -79,14 +80,14 @@ export const authOptions: NextAuthOptions = {
                   picture: user.image,
                   provider: 'google', 
                   isVerified: true,
-                  lastLoginAt: new Date()
+                  lastLoginAt: createEastAfricaTimestamp()
                 }
               })
             } else {
               // Update last login
               await prisma.user.update({
                 where: { id: existingUser.id },
-                data: { lastLoginAt: new Date() }
+                data: { lastLoginAt: createEastAfricaTimestamp() }
               })
             }
             return true
@@ -119,7 +120,7 @@ export const authOptions: NextAuthOptions = {
                 provider: 'google',
                 isVerified: true,
                 role: 'ADMIN',
-                lastLoginAt: new Date()
+                lastLoginAt: createEastAfricaTimestamp()
               }
             })
 
@@ -145,7 +146,7 @@ export const authOptions: NextAuthOptions = {
         try {
           await prisma.user.update({
             where: { id: parseInt(user.id) },
-            data: { lastLoginAt: new Date() }
+            data: { lastLoginAt: createEastAfricaTimestamp() }
           })
         } catch (error) {
           console.error('Error updating last login:', error)

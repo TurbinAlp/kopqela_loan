@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthContext } from '../../../../lib/rbac/middleware'
 import { prisma } from '../../../../lib/prisma'
+import { toEastAfricaTime } from '../../../../lib/timezone'
 
 export async function GET(request: NextRequest) {
   try {
@@ -166,8 +167,8 @@ async function generateSystemNotifications(businessId: number) {
       })
     }
 
-    // Check for new credit applications
-    const now = new Date()
+    // Check for new credit applications with East Africa timezone
+    const now = toEastAfricaTime()
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
     
     const newCreditApps = await prisma.order.count({

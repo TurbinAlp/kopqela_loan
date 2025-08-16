@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import { prisma } from '../../../../lib/prisma'
 import { z } from 'zod'
 import crypto from 'crypto'
+import { createEastAfricaTimestamp } from '../../../../lib/timezone'
 
 const customerRegisterSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -44,9 +45,10 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12)
     
-    // Generate verification code
+    // Generate verification code with East Africa timezone
     const verificationCode = crypto.randomInt(100000, 999999).toString()
-    const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+    const now = createEastAfricaTimestamp()
+    const verificationExpiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000) // 24 hours from East Africa time
 
     // Create customer user
     const user = await prisma.user.create({

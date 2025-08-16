@@ -12,6 +12,7 @@ import {
   AuthError
 } from '../../../../lib/auth'
 import { sendVerificationEmail } from '../../../../lib/email'
+import { createEastAfricaTimestamp } from '../../../../lib/timezone'
 
 interface BusinessOwnerRegistrationData {
   // Owner information
@@ -95,9 +96,10 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await hashPassword(body.password)
     
-    // Generate verification code
+    // Generate verification code with East Africa timezone
     const verificationCode = generateVerificationCode()
-    const verificationExpiry = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
+    const now = createEastAfricaTimestamp()
+    const verificationExpiry = new Date(now.getTime() + 15 * 60 * 1000) // 15 minutes from East Africa time
     
     // Use Prisma transaction to create user and business
     const result = await withTransaction(async (tx) => {
