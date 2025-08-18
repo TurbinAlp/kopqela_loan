@@ -18,6 +18,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Koppela - Sales & Credit Management",
   description: "Modern sales and credit management system for wholesale and retail businesses",
+  icons: {
+    icon: [
+      { url: '/favicon.png', type: 'image/png' }
+    ],
+    apple: '/favicon.png',
+  },
 };
 
 export default function RootLayout({
@@ -27,6 +33,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon.png" />
+        <link rel="shortcut icon" href="/favicon.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/favicon.png" />
+        <meta name="theme-color" content="#0891b2" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
