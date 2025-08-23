@@ -13,6 +13,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Copy files to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "."
+          target: "/home/${{ secrets.VPS_USER }}/kopqela_loan"
+          overwrite: true
+
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -25,19 +36,7 @@ jobs:
             set -e
             echo "🚀 Starting deployment..."
             
-            # Create app directory if it doesn't exist
-            mkdir -p /home/${{ secrets.VPS_USER }}/kopqela_loan
             cd /home/${{ secrets.VPS_USER }}/kopqela_loan
-            
-            # Clone or pull latest code
-            if [ ! -d ".git" ]; then
-              echo "📥 Cloning repository for the first time..."
-              git clone https://${{ github.token }}@github.com/${{ github.repository }}.git .
-            else
-              echo "📥 Pulling latest changes..."
-              git fetch --all
-              git reset --hard origin/${{ github.ref_name }}
-            fi
             
             # Create production environment file
             echo "🔧 Setting up environment variables..."
