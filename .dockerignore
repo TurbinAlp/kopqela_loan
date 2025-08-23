@@ -70,7 +70,8 @@ jspm_packages/
 
 # Gatsby files
 .cache/
-public
+# public folder needed for Next.js
+# public
 
 # Vuepress build output
 .vuepress/dist
