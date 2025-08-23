@@ -1,0 +1,97 @@
+name: Deploy Kopqela Loan to VPS
+
+on:
+  push:
+    branches: [ "main", "master" ]  # Deploy when pushing to main/master
+  workflow_dispatch:  # Allow manual deployment
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: true
+          script: |
+            set -e
+            echo "🚀 Starting deployment..."
+            
+            # Create app directory if it doesn't exist
+            mkdir -p /home/${{ secrets.VPS_USER }}/kopqela_loan
+            cd /home/${{ secrets.VPS_USER }}/kopqela_loan
+            
+            # Clone or pull latest code
+            if [ ! -d ".git" ]; then
+              echo "📥 Cloning repository for the first time..."
+              git clone https://github.com/${{ github.repository }} .
+            else
+              echo "📥 Pulling latest changes..."
+              git fetch --all
+              git reset --hard origin/${{ github.ref_name }}
+            fi
+            
+            # Create production environment file
+            echo "🔧 Setting up environment variables..."
+            cat > .env.production <<'EOF'
+            NODE_ENV=production
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}
+            NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
+            EMAIL_SERVER_USER=${{ secrets.EMAIL_SERVER_USER }}
+            EMAIL_SERVER_PASSWORD=${{ secrets.EMAIL_SERVER_PASSWORD }}
+            EMAIL_SERVER_HOST=${{ secrets.EMAIL_SERVER_HOST }}
+            EMAIL_SERVER_PORT=${{ secrets.EMAIL_SERVER_PORT }}
+            EMAIL_FROM=${{ secrets.EMAIL_FROM }}
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            NEXT_TELEMETRY_DISABLED=1
+            EOF
+            
+            # Build new Docker image
+            echo "🔨 Building Docker image..."
+            docker build -t kopqela-loan:latest .
+            
+            # Stop and remove old container if exists
+            echo "🛑 Stopping old container..."
+            docker stop kopqela-loan || true
+            docker rm kopqela-loan || true
+            
+            # Run database migrations (if needed)
+            echo "🗃️ Running database migrations..."
+            docker run --rm --env-file .env.production \
+              kopqela-loan:latest npx prisma migrate deploy || true
+            
+            # Start new container
+            echo "🚀 Starting new container..."
+            docker run -d \
+              --name kopqela-loan \
+              --restart unless-stopped \
+              -p 3000:3000 \
+              --env-file .env.production \
+              -v /home/${{ secrets.VPS_USER }}/kopqela_loan/public/uploads:/app/public/uploads \
+              kopqela-loan:latest
+            
+            # Clean up old images (keep last 3)
+            echo "🧹 Cleaning up old images..."
+            docker image prune -f
+            
+            # Wait for container to start
+            sleep 10
+            
+            # Check if container is running
+            if docker ps | grep kopqela-loan; then
+              echo "✅ Deployment successful! App is running on http://${{ secrets.VPS_HOST }}:3000"
+            else
+              echo "❌ Deployment failed! Container is not running."
+              docker logs kopqela-loan
+              exit 1
+            fi

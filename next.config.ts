@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   serverExternalPackages: ['bcryptjs'],
   typescript: {
     // Temporarily ignore type checking errors during build
