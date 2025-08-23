@@ -38,22 +38,30 @@ jobs:
             
             cd /home/${{ secrets.VPS_USER }}/kopqela_loan
             
-            # Create production environment file
+            # Create production environment file with safety checks
             echo "🔧 Setting up environment variables..."
-            cat > .env.production <<'EOF'
-            NODE_ENV=production
-            DATABASE_URL=${{ secrets.DATABASE_URL }}
-            NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}
-            NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
-            EMAIL_SERVER_USER=${{ secrets.EMAIL_SERVER_USER }}
-            EMAIL_SERVER_PASSWORD=${{ secrets.EMAIL_SERVER_PASSWORD }}
-            EMAIL_SERVER_HOST=${{ secrets.EMAIL_SERVER_HOST }}
-            EMAIL_SERVER_PORT=${{ secrets.EMAIL_SERVER_PORT }}
-            EMAIL_FROM=${{ secrets.EMAIL_FROM }}
-            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
-            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
-            NEXT_TELEMETRY_DISABLED=1
-            EOF
+            {
+              echo "NODE_ENV=production"
+              echo "DATABASE_URL=${{ secrets.DATABASE_URL }}"
+              echo "NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}"
+              echo "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}"
+              echo "NEXT_TELEMETRY_DISABLED=1"
+              
+              # Optional email settings
+              if [ -n "${{ secrets.EMAIL_SERVER_USER }}" ]; then
+                echo "EMAIL_SERVER_USER=${{ secrets.EMAIL_SERVER_USER }}"
+                echo "EMAIL_SERVER_PASSWORD=${{ secrets.EMAIL_SERVER_PASSWORD }}"
+                echo "EMAIL_SERVER_HOST=${{ secrets.EMAIL_SERVER_HOST }}"
+                echo "EMAIL_SERVER_PORT=${{ secrets.EMAIL_SERVER_PORT }}"
+                echo "EMAIL_FROM=${{ secrets.EMAIL_FROM }}"
+              fi
+              
+              # Optional Google OAuth
+              if [ -n "${{ secrets.GOOGLE_CLIENT_ID }}" ]; then
+                echo "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}"
+                echo "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}"
+              fi
+            } > .env.production
             
             # Build new Docker image
             echo "🔨 Building Docker image..."
