@@ -32,7 +32,7 @@ jobs:
             # Clone or pull latest code
             if [ ! -d ".git" ]; then
               echo "📥 Cloning repository for the first time..."
-              git clone https://github.com/${{ github.repository }} .
+              git clone https://${{ github.token }}@github.com/${{ github.repository }}.git .
             else
               echo "📥 Pulling latest changes..."
               git fetch --all
