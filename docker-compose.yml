@@ -15,5 +15,5 @@ services:
       - NEXTAUTH_URL=${NEXTAUTH_URL}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
     volumes:
-      # Mount uploads directory for persistent storage
+      # Mount uploads directory for persistent storage 
       - ./public/uploads:/app/public/uploads
