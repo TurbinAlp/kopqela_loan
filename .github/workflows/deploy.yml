@@ -82,7 +82,7 @@ jobs:
             docker run -d \
               --name kopqela-loan \
               --restart unless-stopped \
-              -p 3000:3000 \
+              -p 80:3000 \
               --env-file .env.production \
               -v /home/${{ secrets.VPS_USER }}/kopqela_loan/public/uploads:/app/public/uploads \
               kopqela-loan:latest
