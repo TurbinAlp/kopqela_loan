@@ -13,6 +13,7 @@ const nextConfig = {
   images: {
     domains: [
       'localhost',
+      'koppela.com',
       'lh3.googleusercontent.com',
       'lh4.googleusercontent.com',
       'lh5.googleusercontent.com',
@@ -27,6 +28,11 @@ const nextConfig = {
         protocol: 'http',
         hostname: 'localhost',
         port: '3000',
+        pathname: '/uploads/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'koppela.com',
         pathname: '/uploads/**',
       },
       {
