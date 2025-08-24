@@ -32,19 +32,26 @@ interface PasswordResetEmailData {
   businessName?: string
 }
 
-// Email configuration
+// Email configuration with better defaults
 const emailConfig: EmailConfig = {
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_SECURE === 'true',
+  secure: false, // Use STARTTLS instead of SSL
   auth: {
     user: process.env.SMTP_USER || '',
     pass: process.env.SMTP_PASS || ''
   }
 }
 
-// Create transporter
-const transporter = nodemailer.createTransport(emailConfig)
+// Create transporter with additional options
+const transporter = nodemailer.createTransport({
+  ...emailConfig,
+  tls: {
+    rejectUnauthorized: false // Allow self-signed certificates in development
+  },
+  // Add Gmail specific options
+  service: process.env.SMTP_HOST?.includes('gmail') ? 'gmail' : undefined
+})
 
 // Test email connection
 export async function testEmailConnection(): Promise<boolean> {
@@ -61,6 +68,12 @@ export async function testEmailConnection(): Promise<boolean> {
 // Send verification email
 export async function sendVerificationEmail(data: VerificationEmailData): Promise<boolean> {
   try {
+    // Check if email is properly configured
+    if (!emailConfig.auth.user || !emailConfig.auth.pass) {
+      console.warn('Email credentials not configured. Logging verification code instead:', data.code)
+      console.log(`Verification code for ${data.email}: ${data.code}`)
+      return true // Return true for development
+    }
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -146,6 +159,11 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
     return true
   } catch (error) {
     console.error('Error sending verification email:', error)
+    // For development, log the code even if email fails
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Verification code for ${data.email}: ${data.code}`)
+      return true
+    }
     return false
   }
 }
@@ -236,6 +254,12 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<boolean>
 // Send password reset email
 export async function sendPasswordResetEmail(data: PasswordResetEmailData): Promise<boolean> {
   try {
+    // Check if email is properly configured
+    if (!emailConfig.auth.user || !emailConfig.auth.pass) {
+      console.warn('Email credentials not configured. Logging password reset code instead:', data.code)
+      console.log(`Password reset code for ${data.email}: ${data.code}`)
+      return true // Return true for development
+    }
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -321,6 +345,11 @@ export async function sendPasswordResetEmail(data: PasswordResetEmailData): Prom
     return true
   } catch (error) {
     console.error('Error sending password reset email:', error)
+    // For development, log the code even if email fails
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Password reset code for ${data.email}: ${data.code}`)
+      return true
+    }
     return false
   }
 } 

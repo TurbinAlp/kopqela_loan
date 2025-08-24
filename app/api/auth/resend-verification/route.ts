@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     const user = await prisma.user.findUnique({
       where: { email: body.email.toLowerCase() },
       include: {
-        business: {
+        ownedBusinesses: {
           select: {
             name: true
           }
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       name: `${user.firstName} ${user.lastName}`,
       email: user.email,
       code: verificationCode,
-      businessName: user.business?.name
+      businessName: user.ownedBusinesses?.[0]?.name
     })
     
     if (!emailSent) {
