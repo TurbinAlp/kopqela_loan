@@ -79,12 +79,21 @@ jobs:
             
             # Start new container
             echo "🚀 Starting new container..."
+            # Create uploads directory if it doesn't exist
+            mkdir -p /home/${{ secrets.VPS_USER }}/kopqela_loan/public/uploads/products
+            mkdir -p /home/${{ secrets.VPS_USER }}/kopqela_loan/public/uploads/logos
+            
+            # Set correct permissions
+            sudo chown -R 1001:1001 /home/${{ secrets.VPS_USER }}/kopqela_loan/public/uploads/
+            sudo chmod -R 755 /home/${{ secrets.VPS_USER }}/kopqela_loan/public/uploads/
+            
             docker run -d \
               --name kopqela-loan \
               --restart unless-stopped \
               -p 80:3000 \
               --env-file .env.production \
-              -v /home/${{ secrets.VPS_USER }}/kopqela_loan/public/uploads:/app/public/uploads \
+              -v /home/${{ secrets.VPS_USER }}/kopqela_loan/public/uploads:/app/public/uploads:rw \
+              --user 1001:1001 \
               kopqela-loan:latest
             
             # Clean up old images (keep last 3)
