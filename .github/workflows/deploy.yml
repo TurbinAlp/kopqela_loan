@@ -48,11 +48,11 @@ jobs:
               echo "NEXT_TELEMETRY_DISABLED=1"
               
               # Optional email settings
-              if [ -n "${{ secrets.EMAIL_SERVER_USER }}" ]; then
-                echo "EMAIL_SERVER_USER=${{ secrets.EMAIL_SERVER_USER }}"
-                echo "EMAIL_SERVER_PASSWORD=${{ secrets.EMAIL_SERVER_PASSWORD }}"
-                echo "EMAIL_SERVER_HOST=${{ secrets.EMAIL_SERVER_HOST }}"
-                echo "EMAIL_SERVER_PORT=${{ secrets.EMAIL_SERVER_PORT }}"
+              if [ -n "${{ secrets.SMTP_USER }}" ]; then
+                echo "SMTP_USER=${{ secrets.SMTP_USER }}"
+                echo "SMTP_PASS=${{ secrets.SMTP_PASS }}"
+                echo "SMTP_HOST=${{ secrets.SMTP_HOST }}"
+                echo "SMTP_PORT=${{ secrets.SMTP_PORT }}"
                 echo "EMAIL_FROM=${{ secrets.EMAIL_FROM }}"
               fi
               
