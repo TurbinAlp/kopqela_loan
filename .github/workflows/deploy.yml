@@ -85,7 +85,7 @@ jobs:
               -p 80:3000 \
               --env-file .env.production \
               -v /home/${{ secrets.VPS_USER }}/kopqela_loan/public/uploads:/app/public/uploads \
-              --user ${{ secrets.VPS_USER }} \
+              --user $(id -u ${{ secrets.VPS_USER }}):$(id -g ${{ secrets.VPS_USER }}) \
               kopqela-loan:latest
             
             # Clean up old images (keep last 3)
