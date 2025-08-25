@@ -125,9 +125,20 @@ export default function ProductsPage() {
   useEffect(() => {
     if (!mounted || !currentBusiness) return
     
-    setLoading(true)
+    // Only set loading if we don't have products yet
+    if (products.length === 0) {
+      setLoading(true)
+    }
     
-    fetch(`/api/admin/products?businessId=${currentBusiness.id}`)
+    // Add pagination and optimization parameters
+    const params = new URLSearchParams({
+      businessId: currentBusiness.id.toString(),
+      page: '1',
+      limit: '50', // Fetch more initially to reduce subsequent calls
+      drafts: 'false' // Only active products for better performance
+    })
+    
+    fetch(`/api/admin/products?${params}`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -144,13 +155,18 @@ export default function ProductsPage() {
       .finally(() => setLoading(false))
   }, [mounted, currentBusiness, showError])
 
-  // Fetch categories
+  // Fetch categories - parallel with products for better performance
   useEffect(() => {
     if (!mounted || !currentBusiness) return
     
     setLoadingCategories(true)
     
-    fetch(`/api/admin/categories?businessId=${currentBusiness.id}`)
+    const params = new URLSearchParams({
+      businessId: currentBusiness.id.toString(),
+      limit: '100' // Categories are usually few, fetch all at once
+    })
+    
+    fetch(`/api/admin/categories?${params}`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -544,17 +560,19 @@ export default function ProductsPage() {
 
   // Don't render anything until mounted to prevent hydration mismatch
   if (!mounted) {
-      // Show loading spinner
-  if (authLoading || loading) {
+    return null
+  }
+
+  // Show loading spinner while auth or initial data is loading
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Spinner size="lg" color="teal" className="mx-auto mb-4" />
-          <p className="text-gray-600">{t.loadingMessage}</p>
+          <p className="text-gray-600">{language === 'sw' ? 'Inakagua uhakiki...' : 'Checking authentication...'}</p>
         </div>
       </div>
     )
-  }
   }
 
   return (
@@ -735,7 +753,95 @@ export default function ProductsPage() {
       )}
 
       {/* Products Display */}
-      {filteredProducts.length === 0 ? (
+      {loading ? (
+        /* Skeleton Loader */
+        <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm border border-gray-100">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="py-4 px-6">
+                    <div className="w-4 h-4 bg-gray-200 rounded animate-pulse"></div>
+                  </th>
+                  <th className="text-left py-4 px-6">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
+                  </th>
+                  <th className="text-left py-4 px-6">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
+                  </th>
+                  <th className="text-left py-4 px-6">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
+                  </th>
+                  <th className="text-left py-4 px-6">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-12"></div>
+                  </th>
+                  <th className="text-left py-4 px-6">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
+                  </th>
+                  <th className="text-left py-4 px-6">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
+                  </th>
+                  <th className="text-left py-4 px-6">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
+                  </th>
+                  <th className="text-left py-4 px-6">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
+                  </th>
+                  <th className="text-center py-4 px-6">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-20 mx-auto"></div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...Array(5)].map((_, i) => (
+                  <tr key={i} className="border-b border-gray-100">
+                    <td className="py-4 px-6">
+                      <div className="w-4 h-4 bg-gray-200 rounded animate-pulse"></div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-12 h-12 bg-gray-200 rounded-lg animate-pulse"></div>
+                        <div>
+                          <div className="h-4 bg-gray-200 rounded animate-pulse w-32 mb-2"></div>
+                          <div className="h-3 bg-gray-200 rounded animate-pulse w-24"></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="h-4 bg-gray-200 rounded animate-pulse w-12"></div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="h-6 bg-gray-200 rounded-full animate-pulse w-16"></div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </motion.div>
+      ) : filteredProducts.length === 0 ? (
         /* No Products Found */
         <motion.div 
           variants={itemVariants} 
