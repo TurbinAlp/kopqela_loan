@@ -28,7 +28,13 @@ export const authOptions: NextAuthOptions = {
             where: { email: credentials.email }
           })
 
-          if (!user || !user.passwordHash) {
+          if (!user) {
+            console.log('User not found:', credentials.email)
+            return null
+          }
+
+          if (!user.passwordHash) {
+            console.log('User has no password hash (Google-only user):', credentials.email)
             return null
           }
 

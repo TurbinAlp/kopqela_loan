@@ -2,6 +2,12 @@
 const nextConfig = {
   output: 'standalone',
   serverExternalPackages: ['bcryptjs'],
+  env: {
+    // Set environment variables for development if not already set
+    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'dev-secret-key-change-in-production',
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+    JWT_SECRET: process.env.JWT_SECRET || 'jwt-dev-secret-key-change-in-production',
+  },
   typescript: {
     // Temporarily ignore type checking errors during build
     ignoreBuildErrors: true,

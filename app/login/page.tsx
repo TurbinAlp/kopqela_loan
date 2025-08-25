@@ -101,16 +101,15 @@ export default function LoginPage() {
         email,
         password,
         callbackUrl: '/admin/dashboard',
-        redirect: true // Let NextAuth handle the redirect
+        redirect: false // Handle redirect manually for better error handling
       })
 
-      // If redirect is false and there's an error, handle it
       if (result?.error) {
         // Handle different error types
         if (result.error === 'CredentialsSignin') {
           showError(
             language === 'en' ? 'Login Failed' : 'Kuingia Kumeshindwa',
-            language === 'en' ? 'Invalid email or password' : 'Email au nenosiri sio sahihi'
+            language === 'en' ? 'Invalid email or password. Please check your credentials.' : 'Email au nenosiri sio sahihi. Angalia taarifa zako.'
           )
         } else {
           showError(
@@ -118,6 +117,9 @@ export default function LoginPage() {
             result.error
           )
         }
+      } else if (result?.ok) {
+        // Login successful, redirect manually
+        window.location.href = result.url || '/admin/dashboard'
       }
 
     } catch (error) {
