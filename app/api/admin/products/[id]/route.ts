@@ -343,7 +343,21 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ success: false, message: 'Product not found' }, { status: 404 });
     }
 
-    // Delete product and related data in transaction
+    // Check if product is used in any orders before deletion
+    const orderItemsCount = await prisma.orderItem.count({
+      where: { productId }
+    });
+
+    if (orderItemsCount > 0) {
+      return NextResponse.json({
+        success: false,
+        message: 'Bidhaa hii haiwezi kufutwa kwa sababu imetumika kwenye mauzo. Unaweza kuifanya isiwe hai (inactive) badala yake.',
+        englishMessage: 'This product cannot be deleted because it has been used in sales. You can make it inactive instead.',
+        canDeactivate: true
+      }, { status: 400 });
+    }
+
+    // If no order dependencies, proceed with deletion
     await prisma.$transaction(async (tx) => {
       // Delete product images first
       await tx.productImage.deleteMany({
@@ -368,9 +382,92 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
   } catch (error) {
     console.error('Error deleting product:', error);
+    
+    // Check if it's a foreign key constraint error
+    if (error instanceof Error && error.message.includes('Foreign key constraint')) {
+      return NextResponse.json({
+        success: false,
+        message: 'Bidhaa hii haiwezi kufutwa kwa sababu imetumika kwenye mauzo. Unaweza kuifanya isiwe hai (inactive) badala yake.',
+        englishMessage: 'This product cannot be deleted because it has been used in sales. You can make it inactive instead.',
+        canDeactivate: true
+      }, { status: 400 });
+    }
+    
     return NextResponse.json({ 
       success: false, 
-      message: 'Failed to delete product' 
+      message: 'Imeshindwa kufuta bidhaa. Jaribu tena.' 
+    }, { status: 500 });
+  }
+}
+
+// PATCH endpoint for deactivating product
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const resolvedParams = await params;
+    const productId = parseInt(resolvedParams.id);
+    if (isNaN(productId)) {
+      return NextResponse.json({ success: false, message: 'Invalid product ID' }, { status: 400 });
+    }
+
+    const authContext = await getAuthContext(request);
+    if (!authContext) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { action } = body;
+
+    if (action === 'deactivate') {
+      // First get the product to check business ownership
+      const existingProduct = await prisma.product.findUnique({
+        where: { id: productId }
+      });
+
+      if (!existingProduct) {
+        return NextResponse.json({ success: false, message: 'Product not found' }, { status: 404 });
+      }
+
+      // Verify business ownership
+      const isOwner = await prisma.business.findFirst({
+        where: {
+          id: existingProduct.businessId,
+          ownerId: authContext.userId,
+          isActive: true
+        }
+      });
+      
+      const userPermission = await prisma.userPermission.findFirst({
+        where: {
+          userId: authContext.userId,
+          businessId: existingProduct.businessId,
+          isActive: true
+        }
+      });
+      
+      if (!isOwner && !userPermission) {
+        return NextResponse.json({ success: false, message: 'Access denied' }, { status: 403 });
+      }
+
+      // Deactivate the product
+      await prisma.product.update({
+        where: { id: productId },
+        data: { isActive: false }
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Bidhaa imefanikiwa kuwa inactive',
+        englishMessage: 'Product has been successfully deactivated'
+      });
+    }
+
+    return NextResponse.json({ success: false, message: 'Invalid action' }, { status: 400 });
+
+  } catch (error) {
+    console.error('Error updating product:', error);
+    return NextResponse.json({ 
+      success: false, 
+      message: 'Imeshindwa kubadilisha bidhaa. Jaribu tena.' 
     }, { status: 500 });
   }
 } 

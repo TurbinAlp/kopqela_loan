@@ -502,10 +502,25 @@ export default function ProductsPage() {
         })
       } else {
         console.error('Failed to delete product:', data.message || 'Unknown error')
-        const errorMessage = language === 'sw' 
-          ? 'Imeshindwa kufuta bidhaa. Jaribu tena.'
-          : 'Failed to delete product. Please try again.'
-        showError(t.error || 'Error', data.message || errorMessage)
+        
+        // Check if it's a foreign key constraint error that suggests deactivation
+        if (data.canDeactivate && response.status === 400) {
+          // Show custom error with deactivate option
+          showError(
+            language === 'sw' ? 'Haiwezi Kufutwa' : 'Cannot Delete',
+            data.message || (language === 'sw' 
+              ? 'Bidhaa hii haiwezi kufutwa kwa sababu imetumika kwenye mauzo. Unaweza kuifanya isiwe hai (inactive) badala yake.'
+              : 'This product cannot be deleted because it has been used in sales. You can make it inactive instead.')
+          )
+          
+          // Optionally, you could show a confirm dialog here to deactivate instead
+          // For now, just show the error message with explanation
+        } else {
+          const errorMessage = language === 'sw' 
+            ? 'Imeshindwa kufuta bidhaa. Jaribu tena.'
+            : 'Failed to delete product. Please try again.'
+          showError(t.error || 'Error', data.message || errorMessage)
+        }
       }
     } catch (error) {
       console.error('Error deleting product:', error)
