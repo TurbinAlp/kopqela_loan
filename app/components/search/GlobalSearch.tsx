@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useIsClient } from '../../hooks/useIsClient'
 import {
@@ -90,6 +91,7 @@ export default function GlobalSearch({
   showCategories = true 
 }: GlobalSearchProps) {
   const { language } = useLanguage()
+  const router = useRouter()
   const isClient = useIsClient()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
@@ -391,7 +393,7 @@ export default function GlobalSearch({
                     <button
                       onClick={() => {
                         // Navigate to full search page with current query
-                        window.location.href = `/admin/search?q=${encodeURIComponent(query)}`
+                        router.push(`/admin/search?q=${encodeURIComponent(query)}`)
                       }}
                       className="w-full px-3 py-2 text-sm text-teal-600 hover:bg-teal-50 rounded-md transition-colors"
                     >

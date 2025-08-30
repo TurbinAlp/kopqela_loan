@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import { 
@@ -22,6 +23,7 @@ export default function UserDropdown({ className = '' }: UserDropdownProps) {
   const { language } = useLanguage()
   const { data: session } = useSession()
   const { currentBusiness, businesses, setCurrentBusiness } = useBusiness()
+  const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -111,13 +113,13 @@ export default function UserDropdown({ className = '' }: UserDropdownProps) {
   const handleProfile = () => {
     setIsOpen(false)
     // Navigate to profile page
-    window.location.href = '/admin/profile'
+    router.push('/admin/profile')
   }
 
   const handleSettings = () => {
     setIsOpen(false)
     // Navigate to settings page  
-    window.location.href = '/admin/settings'
+    router.push('/admin/settings')
   }
 
   const dropdownVariants = {

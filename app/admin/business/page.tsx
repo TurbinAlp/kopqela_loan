@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 import { 
   BuildingOfficeIcon,
   PlusIcon,
@@ -19,6 +20,7 @@ import { useBusiness } from '../../contexts/BusinessContext'
 export default function BusinessPage() {
   const { language } = useLanguage()
   const { businesses, isLoading } = useBusiness()
+  const router = useRouter()
 
   const translations = {
     en: {
@@ -68,7 +70,7 @@ export default function BusinessPage() {
   // Businesses are loaded automatically by BusinessContext
 
   const handleAddBusiness = () => {
-    window.location.href = '/admin/business/add'
+    router.push('/admin/business/add')
   }
 
   const handleViewBusiness = (business: { id: number; slug: string }) => {
@@ -78,7 +80,7 @@ export default function BusinessPage() {
 
   const handleEditBusiness = (business: { id: number }) => {
     // Navigate to edit business form  
-    window.location.href = `/admin/business/edit?id=${business.id}`
+    router.push(`/admin/business/edit?id=${business.id}`)
   }
 
   const handleDeleteBusiness = (business: { id: number; slug: string }) => {

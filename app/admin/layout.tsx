@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { 
   Bars3Icon,
   XMarkIcon,
@@ -33,6 +35,7 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const { language, setLanguage } = useLanguage()
   const pathname = usePathname()
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [expandedItems, setExpandedItems] = useState<string[]>(() => {
     // Auto-expand items based on current route
@@ -242,40 +245,44 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   {(isItemExpanded(item.name) || pathname.startsWith(item.href)) && (
                     <div className="ml-8 mb-2">
                       {item.subItems.map((subItem, subIndex) => (
-                        <motion.a
+                        <Link
                           key={subItem.name}
                           href={subItem.href}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: subIndex * 0.05 }}
-                          className={`block px-3 py-2 mb-1 rounded-lg text-sm font-medium transition-all duration-200 ${
-                            isActiveRoute(subItem.href)
-                              ? 'bg-teal-100 text-teal-700 border-l-3 border-teal-600 font-semibold' 
-                              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                          }`}
                         >
-                          {subItem.name}
-                        </motion.a>
+                          <motion.div
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: subIndex * 0.05 }}
+                            className={`block px-3 py-2 mb-1 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer ${
+                              isActiveRoute(subItem.href)
+                                ? 'bg-teal-100 text-teal-700 border-l-3 border-teal-600 font-semibold' 
+                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                            }`}
+                          >
+                            {subItem.name}
+                          </motion.div>
+                        </Link>
                       ))}
                     </div>
                   )}
                 </>
               ) : (
                 // Regular menu item
-                <motion.a
-                  href={item.href}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className={`flex items-center space-x-3 px-3 py-3 mb-1 rounded-xl text-sm font-medium transition-all duration-200 ${
-                    isActiveRoute(item.href)
-                      ? 'bg-teal-50 text-teal-600 border-r-4 border-teal-600' 
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                >
-                  <item.icon className="w-5 h-5" />
-                  <span>{item.name}</span>
-                </motion.a>
+                <Link href={item.href}>
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className={`flex items-center space-x-3 px-3 py-3 mb-1 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
+                      isActiveRoute(item.href)
+                        ? 'bg-teal-50 text-teal-600 border-r-4 border-teal-600' 
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    }`}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    <span>{item.name}</span>
+                  </motion.div>
+                </Link>
               )}
             </div>
           ))}
@@ -314,13 +321,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   // Navigate based on result type
                   switch (result.type) {
                     case 'product':
-                      window.location.href = `/admin/products/${result.id}`
+                      router.push(`/admin/products/${result.id}`)
                       break
                     case 'customer':
-                      window.location.href = `/admin/customers/${result.id}`
+                      router.push(`/admin/customers/${result.id}`)
                       break
                     case 'order':
-                      window.location.href = `/admin/sales/orders/${result.id}`
+                      router.push(`/admin/sales/orders/${result.id}`)
                       break
                   }
                 }}
@@ -351,13 +358,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 // Navigate based on result type
                 switch (result.type) {
                   case 'product':
-                    window.location.href = `/admin/products/${result.id}`
+                    router.push(`/admin/products/${result.id}`)
                     break
                   case 'customer':
-                    window.location.href = `/admin/customers/${result.id}`
+                    router.push(`/admin/customers/${result.id}`)
                     break
                   case 'order':
-                    window.location.href = `/admin/sales/orders/${result.id}`
+                    router.push(`/admin/sales/orders/${result.id}`)
                     break
                 }
               }}
