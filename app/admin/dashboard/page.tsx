@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   ArrowUpIcon,
@@ -16,146 +16,37 @@ import {
   UserGroupIcon,
   CreditCardIcon,
   BanknotesIcon,
-  PlusIcon
+  PlusIcon,
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useRequireAdminAuth } from '../../hooks/useRequireAuth'
 import Spinner from '../../components/ui/Spinner'
 import { useBusiness } from '../../contexts/BusinessContext'
-import { useNotifications } from '../../contexts/NotificationContext'
+import { useDashboardData } from '../../hooks/useDashboardData'
 
-// Define interfaces for type safety
-interface DashboardStats {
-  totalSales: string
-  pendingCreditApps: string
-  lowStock: string
-  outstandingDebt: string
-  todaysSales: string
-  salesCount: string
-  cashPayments: string
-  creditSales: string
-  pendingPayments: string
-}
-
-interface RecentOrder {
-  id: string
-  customer: string
-  amount: number
-  status: string
-  date: string
-  paymentPlan?: string
-}
-
-interface RecentTransaction {
-  id: string
-  type: string
-  customer: string
-  amount: number
-  time: string
-  paymentMethod?: string
-  status?: string
-}
-
-interface SystemNotification {
-  id: number
-  message: string
-  time: string
-  type: string
-}
-
-interface DashboardData {
-  stats: DashboardStats
-  recentOrders: RecentOrder[]
-  recentTransactions: RecentTransaction[]
-  systemNotifications: SystemNotification[]
-  loading: boolean
-}
+// Import types from the hook
+import type { 
+  RecentOrder, 
+  RecentTransaction
+} from '../../hooks/useDashboardData'
 
 export default function BusinessDashboard() {
   const { language } = useLanguage()
   const { isLoading, user } = useRequireAdminAuth()
   const { currentBusiness } = useBusiness()
-  const { showError } = useNotifications()
   const [isVisible, setIsVisible] = useState(false)
-  const [dashboardData, setDashboardData] = useState<DashboardData>({
-    stats: {
-      totalSales: "0",
-      pendingCreditApps: "0", 
-      lowStock: "0",
-      outstandingDebt: "0",
-      todaysSales: "0",
-      salesCount: "0",
-      cashPayments: "0",
-      creditSales: "0",
-      pendingPayments: "0"
-    },
-    recentOrders: [],
-    recentTransactions: [],
-    systemNotifications: [],
-    loading: true
-  })
-
-  const fetchDashboardData = useCallback(async () => {
-    if (!currentBusiness?.id) {
-      setDashboardData(prev => ({ ...prev, loading: false }))
-      return
-    }
-
-    try {
-      setDashboardData(prev => ({ ...prev, loading: true }))
-
-      // Fetch dashboard statistics and activities in parallel
-      const [statsResponse, activitiesResponse] = await Promise.all([
-        fetch(`/api/admin/dashboard/stats?businessId=${currentBusiness.id}`),
-        fetch(`/api/admin/dashboard/activities?businessId=${currentBusiness.id}&limit=5`)
-      ])
-
-      if (!statsResponse.ok) {
-        throw new Error('Failed to fetch dashboard statistics')
-      }
-
-      if (!activitiesResponse.ok) {
-        throw new Error('Failed to fetch dashboard activities')
-      }
-
-      const statsData = await statsResponse.json()
-      const activitiesData = await activitiesResponse.json()
-
-      if (!statsData.success) {
-        throw new Error(statsData.message || 'Failed to fetch statistics')
-      }
-
-      if (!activitiesData.success) {
-        throw new Error(activitiesData.message || 'Failed to fetch activities')
-      }
-
-      setDashboardData({
-        stats: statsData.data.stats,
-        recentOrders: activitiesData.data.recentOrders || [],
-        recentTransactions: activitiesData.data.recentTransactions || [],
-        systemNotifications: activitiesData.data.systemNotifications || [],
-        loading: false
-      })
-
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error)
-      showError(
-        'Data Loading Error',
-        error instanceof Error ? error.message : 'Failed to load dashboard data'
-      )
-      setDashboardData(prev => ({ 
-        ...prev, 
-        loading: false 
-      }))
-    }
-  }, [currentBusiness?.id, showError])
+  
+  // Use our optimized dashboard hook
+  const { 
+    dashboardData, 
+    isLoading: isDashboardLoading, 
+    lastFetched, 
+    cacheStatus
+  } = useDashboardData(currentBusiness?.id)
 
   useEffect(() => {
     setIsVisible(true)
-    if (currentBusiness?.id) {
-      fetchDashboardData()
-    }
-  }, [currentBusiness?.id, fetchDashboardData])
+  }, [])
 
   // Show loading while checking authentication
   if (isLoading) {
@@ -459,12 +350,30 @@ export default function BusinessDashboard() {
     >
       {/* Welcome Section */}
       <motion.div variants={itemVariants} className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">
-          {t.welcome}, {userName}!
-        </h2>
-        <p className="text-gray-600">
-          {userRole === 'admin' ? t.businessSummary : t.todaySummary}
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              {t.welcome}, {userName}!
+            </h2>
+            <p className="text-gray-600">
+              {userRole === 'admin' ? t.businessSummary : t.todaySummary}
+            </p>
+            {lastFetched && (
+              <p className="text-xs text-gray-500 mt-1">
+                Last updated: {lastFetched.toLocaleTimeString()} 
+                <span className={`ml-2 ${
+                  cacheStatus === 'fresh' ? 'text-green-600' :
+                  cacheStatus === 'stale' ? 'text-yellow-600' : 'text-gray-600'
+                }`}>
+                  {cacheStatus === 'fresh' && '🟢 Fresh'} 
+                  {cacheStatus === 'stale' && '🟡 Stale (auto-refreshing)'}
+                  {cacheStatus === 'empty' && '⚪ No cache'}
+                </span>
+              </p>
+            )}
+          </div>
+
+        </div>
       </motion.div>
 
       {/* Quick Actions for Cashier */}
@@ -520,7 +429,7 @@ export default function BusinessDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                {dashboardData.loading ? (
+                {isDashboardLoading ? (
                   <div className="mt-1">
                     <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
                   </div>
