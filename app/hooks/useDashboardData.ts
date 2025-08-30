@@ -54,16 +54,25 @@ interface DashboardData {
 // In-memory cache for dashboard data
 const dashboardCache = new Map<number, { data: DashboardData; timestamp: number }>()
 
-// Cache duration in milliseconds
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes - data is considered fresh
-const STALE_TIME = 30 * 1000 // 30 seconds - after this, revalidate in background
-
-// Cache configuration constants
+// Industry-standard cache configuration (based on Shopify/Amazon patterns)
 const CACHE_CONFIG = {
-  STALE_TIME,
-  CACHE_DURATION,
-  AUTO_REFRESH_INTERVAL: 2 * 60 * 1000
+  // Fresh data duration (industry standard: 1-2 minutes for e-commerce)
+  FRESH_TIME: 90 * 1000, // 90 seconds - data is considered fresh
+  
+  // Stale time before background refresh (industry standard: 30-60 seconds)
+  STALE_TIME: 30 * 1000, // 30 seconds - trigger background revalidation
+  
+  // Maximum cache duration before forced refresh (industry standard: 5-10 minutes)
+  MAX_CACHE_TIME: 5 * 60 * 1000, // 5 minutes - absolute maximum
+  
+  // Background refresh interval (industry standard: 15-60 seconds)
+  REFRESH_INTERVAL: 45 * 1000, // 45 seconds
+  
+  // Deduplication interval (prevent duplicate requests)
+  DEDUPE_INTERVAL: 5 * 1000, // 5 seconds
 }
+
+
 
 // Event listener for cache invalidation
 const eventListeners: (() => void)[] = []
@@ -112,7 +121,7 @@ export function useDashboardData(businessId?: number) {
     if (!cached) return false
     
     const now = Date.now()
-    return (now - cached.timestamp) < CACHE_DURATION
+    return (now - cached.timestamp) < CACHE_CONFIG.FRESH_TIME
   }, [])
 
   // Function to check if data is stale (needs background revalidation)
@@ -121,7 +130,7 @@ export function useDashboardData(businessId?: number) {
     if (!cached) return true
     
     const now = Date.now()
-    return (now - cached.timestamp) > STALE_TIME
+    return (now - cached.timestamp) > CACHE_CONFIG.STALE_TIME
   }, [])
 
   // Function to get cached data
@@ -144,16 +153,25 @@ export function useDashboardData(businessId?: number) {
   const clearExpiredCache = useCallback(() => {
     const now = Date.now()
     for (const [businessId, cached] of dashboardCache.entries()) {
-      if ((now - cached.timestamp) > CACHE_DURATION) {
+      if ((now - cached.timestamp) > CACHE_CONFIG.MAX_CACHE_TIME) {
         dashboardCache.delete(businessId)
       }
     }
   }, [])
 
   const fetchDashboardData = useCallback(async (businessId: number, forceRefresh = false, backgroundRevalidation = false) => {
-    // Prevent duplicate requests
+    // Industry standard: Request deduplication
     if (isFetchingRef.current && !forceRefresh && !backgroundRevalidation) {
       return
+    }
+
+    // Industry standard: Check for recent requests (deduplication)
+    const cached = dashboardCache.get(businessId)
+    if (cached && !forceRefresh && !backgroundRevalidation) {
+      const timeSinceLastFetch = Date.now() - cached.timestamp
+      if (timeSinceLastFetch < CACHE_CONFIG.DEDUPE_INTERVAL) {
+        return // Too soon, skip this request
+      }
     }
 
     // Check cache first (unless force refresh)
@@ -277,7 +295,7 @@ export function useDashboardData(businessId?: number) {
         if (isCacheStale(businessId)) {
           fetchDashboardData(businessId, false, true) // Background revalidation
         }
-      }, CACHE_CONFIG.AUTO_REFRESH_INTERVAL)
+      }, CACHE_CONFIG.REFRESH_INTERVAL)
 
       // Set up cache invalidation listener
       const invalidationListener = () => {
