@@ -1,38 +1,67 @@
 'use client'
 
 import { invalidateDashboardCache } from '../hooks/useDashboardData'
+import { ProductsCacheInvalidator } from '../hooks/useProductsData'
+import { CustomersCacheInvalidator } from '../hooks/useCustomersData'
+import { OrdersCacheInvalidator } from '../hooks/useOrdersData'
 
-// Cache invalidation utilities
+// Master Cache invalidation utilities - coordinates all cache invalidation
 export class CacheInvalidator {
-  // Invalidate dashboard cache when new data is created
+  
+  // When new order is created
   static onOrderCreated(businessId: number) {
     invalidateDashboardCache(businessId)
+    OrdersCacheInvalidator.onOrderChanged(businessId)
+    CustomersCacheInvalidator.onCustomerOrderPlaced(businessId)
   }
 
+  // When payment is received
   static onPaymentReceived(businessId: number) {
     invalidateDashboardCache(businessId)
+    OrdersCacheInvalidator.onPaymentReceived(businessId)
+    CustomersCacheInvalidator.onCustomerPaymentReceived(businessId)
   }
 
-  static onProductUpdated(businessId: number) {
+  // When product is created/updated/deleted
+  static onProductChanged(businessId: number) {
     invalidateDashboardCache(businessId)
+    ProductsCacheInvalidator.onProductChanged(businessId)
   }
 
-  static onCustomerAdded(businessId: number) {
+  // When customer is added/updated
+  static onCustomerChanged(businessId: number) {
     invalidateDashboardCache(businessId)
+    CustomersCacheInvalidator.onCustomerChanged(businessId)
   }
 
+  // When inventory/stock changes
   static onInventoryChanged(businessId: number) {
     invalidateDashboardCache(businessId)
+    ProductsCacheInvalidator.onStockChanged(businessId)
   }
 
-  // Generic cache invalidation
-  static invalidateAll() {
-    invalidateDashboardCache()
+  // When product category changes
+  static onCategoryChanged(businessId: number) {
+    ProductsCacheInvalidator.onCategoryChanged(businessId)
+  }
+
+  // When order status changes
+  static onOrderStatusChanged(businessId: number) {
+    invalidateDashboardCache(businessId)
+    OrdersCacheInvalidator.onOrderStatusChanged(businessId)
+  }
+
+  // Generic cache invalidation - clears ALL caches
+  static invalidateAll(businessId?: number) {
+    invalidateDashboardCache(businessId)
+    ProductsCacheInvalidator.invalidateAll(businessId)
+    CustomersCacheInvalidator.invalidateAll(businessId)
+    OrdersCacheInvalidator.invalidateAll(businessId)
   }
 
   // Invalidate specific business cache
   static invalidateBusiness(businessId: number) {
-    invalidateDashboardCache(businessId)
+    this.invalidateAll(businessId)
   }
 }
 
@@ -68,8 +97,8 @@ export const useCacheInvalidation = () => {
     invalidateAll: () => invalidateDashboardCache(),
     onOrderCreated: CacheInvalidator.onOrderCreated,
     onPaymentReceived: CacheInvalidator.onPaymentReceived,
-    onProductUpdated: CacheInvalidator.onProductUpdated,
-    onCustomerAdded: CacheInvalidator.onCustomerAdded,
+    onProductChanged: CacheInvalidator.onProductChanged,
+    onCustomerChanged: CacheInvalidator.onCustomerChanged,
     onInventoryChanged: CacheInvalidator.onInventoryChanged
   }
 }

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useSearchParams, useParams } from 'next/navigation'
 import { useCustomerBusiness } from '../../../hooks/useCustomerBusiness'
 import { useLanguage } from '../../../contexts/LanguageContext'
-import { useProducts } from '../../../hooks/useProducts'
+import { useStoreProducts } from '../../../hooks/useProductsWithCache'
 import Image from 'next/image'
 import {
   MagnifyingGlassIcon,
@@ -43,8 +43,8 @@ export default function ProductCatalogPage() {
     lang: language as 'en' | 'sw'
   }), [searchQuery, selectedCategory, priceRange, sortBy, inStockOnly, currentPage, itemsPerPage, language])
 
-  // Fetch products using API
-  const { products, pagination, loading, error } = useProducts(
+  // 🚀 IMPROVED: Fetch products using cached API
+  const { products, pagination, loading, error, cacheStatus, isStale } = useStoreProducts(
     business?.slug || '', 
     apiFilters
   )
@@ -277,9 +277,25 @@ export default function ProductCatalogPage() {
           <div className="lg:w-3/4">
             {/* Results Header */}
             <div className="flex justify-between items-center mb-6">
-              <p className="text-sm text-gray-600">
-                {loading ? t.loading : `${pagination.totalCount} ${t.productsFound}`}
-              </p>
+              <div className="flex items-center gap-3">
+                <p className="text-sm text-gray-600">
+                  {loading ? t.loading : `${pagination.totalCount} ${t.productsFound}`}
+                </p>
+                {/* 🚀 IMPROVED: Cache status indicator */}
+                {cacheStatus && !loading && (
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                    cacheStatus === 'fresh' 
+                      ? 'bg-green-100 text-green-800' 
+                      : cacheStatus === 'stale'
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {cacheStatus === 'fresh' && '✓ Fresh Data'}
+                    {cacheStatus === 'stale' && '⟳ Updating...'}
+                    {cacheStatus === 'empty' && '○ Loading'}
+                  </span>
+                )}
+              </div>
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className="lg:hidden flex items-center text-sm text-gray-600"

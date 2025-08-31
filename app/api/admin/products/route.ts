@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma, handlePrismaError } from '../../../lib/prisma'
 import { getAuthContext, hasPermission } from '../../../lib/rbac/middleware'
 import { Resource, Action } from '../../../lib/rbac/permissions'
+import { CacheInvalidator } from '../../../lib/cache-invalidation'
 
 // Product creation schema
 const createProductSchema = z.object({
@@ -146,7 +147,7 @@ export async function GET(request: NextRequest) {
     const hasNextPage = page < totalPages
     const hasPreviousPage = page > 1
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       data: {
         products: products.map(product => ({
@@ -177,7 +178,20 @@ export async function GET(request: NextRequest) {
           hasPreviousPage
         }
       }
-    })
+    }
+
+    // 🚀 IMPROVED: Add HTTP cache headers for better performance
+    const response = NextResponse.json(responseData)
+    
+    // Cache for 2 minutes, allow stale for 1 minute while revalidating
+    response.headers.set('Cache-Control', 'max-age=120, stale-while-revalidate=60, must-revalidate')
+    response.headers.set('Vary', 'Accept-Encoding, businessId')
+    
+    // Generate ETag based on content for conditional requests
+    const etag = `"products-${businessIdNum}-${totalCount}-${new Date().getTime()}"`
+    response.headers.set('ETag', etag)
+    
+    return response
 
   } catch (error) {
     console.error('Error fetching admin products:', error)
@@ -370,6 +384,9 @@ export async function POST(request: NextRequest) {
 
       return product
     })
+
+    // 🚀 Invalidate cache after successful product creation
+    CacheInvalidator.onProductChanged(businessIdNum)
 
     return NextResponse.json({
       success: true,

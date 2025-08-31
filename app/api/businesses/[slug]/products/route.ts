@@ -249,7 +249,36 @@ export async function GET(
           hasPreviousPage
         }
       }
+    }
+
+    // 🚀 IMPROVED: Add HTTP cache headers for customer store API
+    const response = NextResponse.json({
+      success: true,
+      data: {
+        products: transformedProducts,
+        pagination: {
+          page,
+          limit,
+          totalCount,
+          totalPages,
+          hasNextPage,
+          hasPreviousPage
+        }
+      }
     })
+    
+    // Cache for 5 minutes for customer-facing pages, allow stale for 2 minutes
+    response.headers.set('Cache-Control', 'max-age=300, stale-while-revalidate=120, public')
+    response.headers.set('Vary', 'Accept-Encoding, Accept-Language')
+    
+    // Generate ETag based on business and content for conditional requests
+    const etag = `"store-products-${business.id}-${totalCount}-${lang}-${Date.now()}"`
+    response.headers.set('ETag', etag)
+    
+    // Add Last-Modified header
+    response.headers.set('Last-Modified', new Date().toUTCString())
+    
+    return response
 
   } catch (error) {
     console.error('Error fetching products:', error)

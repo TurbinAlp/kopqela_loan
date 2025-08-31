@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       data: {
         categories: categories.map(category => ({
@@ -72,7 +72,20 @@ export async function GET(request: NextRequest) {
           productCount: category._count.products
         }))
       }
-    })
+    }
+
+    // 🚀 IMPROVED: Add HTTP cache headers for categories
+    const response = NextResponse.json(responseData)
+    
+    // Cache for 5 minutes (categories change less frequently), allow stale for 2 minutes
+    response.headers.set('Cache-Control', 'max-age=300, stale-while-revalidate=120, must-revalidate')
+    response.headers.set('Vary', 'Accept-Encoding, businessId')
+    
+    // Generate ETag based on content for conditional requests
+    const etag = `"categories-${businessId}-${categories.length}-${Date.now()}"`
+    response.headers.set('ETag', etag)
+    
+    return response
 
   } catch (error) {
     console.error('Error fetching categories:', error)

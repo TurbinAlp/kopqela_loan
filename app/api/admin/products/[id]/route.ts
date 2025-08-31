@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../../../../lib/prisma';
 import { getAuthContext, hasPermission } from '../../../../lib/rbac/middleware';
 import { Resource, Action } from '../../../../lib/rbac/permissions';
+import { CacheInvalidator } from '../../../../lib/cache-invalidation';
 
 const updateProductSchema = z.object({
   nameEn: z.string().min(1).max(255).optional(),
@@ -283,6 +284,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return product;
     });
     
+    // 🚀 Invalidate cache after successful product update
+    CacheInvalidator.onProductChanged(existingProduct.businessId)
+    
     return NextResponse.json({ success: true, message: 'Product updated', data: updatedProduct });
   } catch (error) {
     console.error('Error updating product:', error);
@@ -453,6 +457,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         where: { id: productId },
         data: { isActive: false }
       });
+
+      // 🚀 Invalidate cache after successful product deactivation
+      CacheInvalidator.onProductChanged(existingProduct.businessId)
 
       return NextResponse.json({
         success: true,

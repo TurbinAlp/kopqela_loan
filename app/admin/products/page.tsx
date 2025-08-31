@@ -20,6 +20,7 @@ import {
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useBusiness } from '../../contexts/BusinessContext'
 import { useRequireAdminAuth } from '../../hooks/useRequireAuth'
+import { useProductsData, ProductsCacheInvalidator, type Product } from '../../hooks/useProductsData'
 import Link from 'next/link'
 import Image from 'next/image'
 import DeleteConfirmModal from '../../components/ui/DeleteConfirmModal'
@@ -27,46 +28,24 @@ import SuccessModal from '../../components/ui/SuccessModal'
 import Spinner from '../../components/ui/Spinner'
 import { useNotifications } from '../../contexts/NotificationContext'
 
-interface Product {
-  id: number
-  name: string
-  nameSwahili?: string
-  description?: string
-  category: { id: number; name: string; nameSwahili?: string } | string
-  price: number
-  wholesalePrice?: number
-  costPrice?: number
-  sku?: string
-  barcode?: string
-  unit?: string
-  images?: Array<{
-    id: number
-    url: string
-    filename: string
-    originalName: string
-    size: number
-    mimeType: string
-    isPrimary: boolean
-    sortOrder: number
-  }>
-  isActive: boolean
-  isDraft: boolean
-  inventory?: {
-    quantity: number;
-    reservedQuantity?: number;
-    reorderPoint?: number;
-    maxStock?: number;
-    location?: string;
-  }
-  createdAt: string
-  updatedAt: string
-}
+// Use Product type from useProductsData hook
 
 export default function ProductsPage() {
   const { language } = useLanguage()
-  const { showError } = useNotifications()
+  const { showError, showSuccess } = useNotifications()
   const { isLoading: authLoading } = useRequireAdminAuth()
   const { currentBusiness } = useBusiness()
+  
+  // 🚀 IMPROVED: Use caching hook with enhanced features
+  const { 
+    data: productsData, 
+    isLoading, 
+    lastFetched, 
+    cacheStatus,
+    refreshData,
+    isStale
+  } = useProductsData(currentBusiness?.id, !!currentBusiness)
+  
   const [mounted, setMounted] = useState(false)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
   const [searchQuery, setSearchQuery] = useState('')
@@ -76,12 +55,6 @@ export default function ProductsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [showFilters, setShowFilters] = useState(false)
   const [itemsPerPage] = useState(10)
-
-  // NEW: State for products and loading
-  const [products, setProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(true)
-  const [categories, setCategories] = useState<Array<{id: number; name: string; nameSwahili?: string}>>([])
-  const [loadingCategories, setLoadingCategories] = useState(true)
   const [bulkDeleting, setBulkDeleting] = useState(false)
   
   // Delete modal state
@@ -121,69 +94,12 @@ export default function ProductsPage() {
     setMounted(true)
   }, [])
 
-  // NEW: Fetch products from API - only after component mounts
-  useEffect(() => {
-    if (!mounted || !currentBusiness) return
-    
-    // Only set loading if we don't have products yet
-    if (products.length === 0) {
-      setLoading(true)
-    }
-    
-    // Add pagination and optimization parameters
-    const params = new URLSearchParams({
-      businessId: currentBusiness.id.toString(),
-      page: '1',
-      limit: '50', // Fetch more initially to reduce subsequent calls
-      drafts: 'false' // Only active products for better performance
-    })
-    
-    fetch(`/api/admin/products?${params}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setProducts(data.data.products)
-        } else {
-          const errorMessage = data.message || 'Failed to fetch products'
-          showError('Error', errorMessage)
-        }
-      })
-      .catch(err => {
-        const errorMessage = err.message || 'Failed to fetch products'
-        showError('Error', errorMessage)
-      })
-      .finally(() => setLoading(false))
-  }, [mounted, currentBusiness, showError])
-
-  // Fetch categories - parallel with products for better performance
-  useEffect(() => {
-    if (!mounted || !currentBusiness) return
-    
-    setLoadingCategories(true)
-    
-    const params = new URLSearchParams({
-      businessId: currentBusiness.id.toString(),
-      limit: '100' // Categories are usually few, fetch all at once
-    })
-    
-    fetch(`/api/admin/categories?${params}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          // Handle different API response structures
-          const categoriesData = data.data?.categories || data.data || []
-          setCategories(Array.isArray(categoriesData) ? categoriesData : [])
-        } else {
-          console.error('Failed to fetch categories:', data.message)
-          setCategories([])
-        }
-      })
-      .catch(err => {
-        console.error('Error fetching categories:', err)
-        setCategories([])
-      })
-      .finally(() => setLoadingCategories(false))
-  }, [mounted, currentBusiness])
+  // 🚀 IMPROVED: Process cached data with optimistic updates state
+  const [optimisticDeletedIds, setOptimisticDeletedIds] = useState<number[]>([])
+  const products = (productsData?.products || []).filter(p => !optimisticDeletedIds.includes(p.id))
+  const categories = productsData?.categories || []
+  const loading = isLoading
+  const loadingCategories = isLoading
 
   const translations = {
     en: {
@@ -492,11 +408,24 @@ export default function ProductsPage() {
     })
   }
 
+  // 🚀 IMPROVED: Optimistic delete with rollback on failure
   const handleDeleteConfirm = async () => {
-    if (!deleteModal.productId) return
+    if (!deleteModal.productId || !currentBusiness) return
+    
+    const productId = deleteModal.productId
+    
+    // 1. Optimistic update - immediately hide the product
+    setOptimisticDeletedIds(prev => [...prev, productId])
+    setDeleteModal({ isOpen: false, productId: null, productName: '' })
+    
+    // 2. Show optimistic success notification
+    showSuccess(
+      t.deleteSuccess,
+      t.deleteSuccessMessage
+    )
     
     try {
-      const response = await fetch(`/api/admin/products/${deleteModal.productId}`, {
+      const response = await fetch(`/api/admin/products/${productId}?businessId=${currentBusiness.id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -506,18 +435,14 @@ export default function ProductsPage() {
       const data = await response.json()
       
       if (response.ok && data.success) {
-        // Remove product from local state
-        setProducts(prev => prev.filter(p => p.id !== deleteModal.productId))
-        setDeleteModal({ isOpen: false, productId: null, productName: '' })
-        
-        // Show success modal
-        setSuccessModal({
-          isOpen: true,
-          title: t.deleteSuccess,
-          message: t.deleteSuccessMessage
-        })
+        // 3. Success - invalidate cache and remove from optimistic state
+        ProductsCacheInvalidator.onProductChanged(currentBusiness.id)
+        setOptimisticDeletedIds(prev => prev.filter(id => id !== productId))
       } else {
         console.error('Failed to delete product:', data.message || 'Unknown error')
+        
+        // 4. Failure - rollback optimistic update
+        setOptimisticDeletedIds(prev => prev.filter(id => id !== productId))
         
         // Check if it's a foreign key constraint error that suggests deactivation
         if (data.canDeactivate && response.status === 400) {
@@ -528,9 +453,6 @@ export default function ProductsPage() {
               ? 'Bidhaa hii haiwezi kufutwa kwa sababu imetumika kwenye mauzo. Unaweza kuifanya isiwe hai (inactive) badala yake.'
               : 'This product cannot be deleted because it has been used in sales. You can make it inactive instead.')
           )
-          
-          // Optionally, you could show a confirm dialog here to deactivate instead
-          // For now, just show the error message with explanation
         } else {
           const errorMessage = language === 'sw' 
             ? 'Imeshindwa kufuta bidhaa. Jaribu tena.'
@@ -540,6 +462,10 @@ export default function ProductsPage() {
       }
     } catch (error) {
       console.error('Error deleting product:', error)
+      
+      // 5. Network error - rollback optimistic update
+      setOptimisticDeletedIds(prev => prev.filter(id => id !== productId))
+      
       const errorMessage = language === 'sw'
         ? 'Hitilafu ya mtandao: Imeshindwa kufuta bidhaa'
         : 'Network error: Failed to delete product'
@@ -583,14 +509,42 @@ export default function ProductsPage() {
           <div>
             <h2 className="text-2xl font-bold text-gray-800 mb-2">{t.pageTitle}</h2>
             <p className="text-gray-600">{t.pageSubtitle}</p>
+            {lastFetched && (
+              <p className="text-xs text-gray-500 mt-1">
+                Last updated: {lastFetched.toLocaleTimeString()}
+                <span className={`ml-2 ${
+                  cacheStatus === 'fresh' ? 'text-green-600' :
+                  cacheStatus === 'stale' ? 'text-yellow-600' : 'text-gray-600'
+                }`}>
+                  {cacheStatus === 'fresh' && '🟢 Fresh'}
+                  {cacheStatus === 'stale' && '🟡 Updating...'}
+                  {cacheStatus === 'empty' && '⚪ Loading...'}
+                </span>
+              </p>
+            )}
           </div>
-          <Link
-            href="/admin/products/add"
-            className="flex items-center space-x-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-semibold py-2.5 px-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl"
-          >
-            <PlusIcon className="w-5 h-5" />
-            <span>{t.addProduct}</span>
-          </Link>
+          <div className="flex items-center space-x-3">
+            {/* 🚀 IMPROVED: Manual refresh button */}
+            <button
+              onClick={refreshData}
+              disabled={isLoading}
+              className="flex items-center space-x-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Refresh data"
+            >
+              <svg className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span className="hidden sm:inline">{isLoading ? 'Refreshing...' : 'Refresh'}</span>
+            </button>
+            
+            <Link
+              href="/admin/products/add"
+              className="flex items-center space-x-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-semibold py-2.5 px-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl"
+            >
+              <PlusIcon className="w-5 h-5" />
+              <span>{t.addProduct}</span>
+            </Link>
+          </div>
         </div>
       </motion.div>
 

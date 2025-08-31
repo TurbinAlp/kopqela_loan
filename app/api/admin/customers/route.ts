@@ -177,7 +177,7 @@ export async function GET(request: NextRequest) {
 
     const averageSpent = totalCustomers > 0 ? totalSpentSum / totalCustomers : 0
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       data: {
         customers: transformedCustomers,
@@ -194,7 +194,20 @@ export async function GET(request: NextRequest) {
           averageSpent
         }
       }
-    })
+    }
+
+    // 🚀 IMPROVED: Add HTTP cache headers for better performance
+    const response = NextResponse.json(responseData)
+    
+    // Cache for 3 minutes (customers change less frequently), allow stale for 90 seconds
+    response.headers.set('Cache-Control', 'max-age=180, stale-while-revalidate=90, must-revalidate')
+    response.headers.set('Vary', 'Accept-Encoding, businessId')
+    
+    // Generate ETag based on content for conditional requests
+    const etag = `"customers-${businessId}-${totalCount}-${new Date().getTime()}"`
+    response.headers.set('ETag', etag)
+    
+    return response
 
   } catch (error) {
     console.error('Error fetching customers:', error)
