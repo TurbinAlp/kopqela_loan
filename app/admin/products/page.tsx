@@ -20,7 +20,7 @@ import {
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useBusiness } from '../../contexts/BusinessContext'
 import { useRequireAdminAuth } from '../../hooks/useRequireAuth'
-import { useProductsData, ProductsCacheInvalidator, type Product } from '../../hooks/useProductsData'
+import { useProductsData, ProductsCacheInvalidator } from '../../hooks/useProductsData'
 import Link from 'next/link'
 import Image from 'next/image'
 import DeleteConfirmModal from '../../components/ui/DeleteConfirmModal'
@@ -42,8 +42,7 @@ export default function ProductsPage() {
     isLoading, 
     lastFetched, 
     cacheStatus,
-    refreshData,
-    isStale
+    refreshData
   } = useProductsData(currentBusiness?.id, !!currentBusiness)
   
   const [mounted, setMounted] = useState(false)
@@ -103,8 +102,6 @@ export default function ProductsPage() {
 
   const translations = {
     en: {
-      pageTitle: "Products Management",
-      pageSubtitle: "Manage your inventory and product catalog",
       addProduct: "Add Product",
       searchProducts: "Search products...",
       filters: "Filters",
@@ -181,8 +178,6 @@ export default function ProductsPage() {
       loadingMessage: "Please wait while we fetch your products..."
     },
     sw: {
-      pageTitle: "Usimamizi wa Bidhaa",
-      pageSubtitle: "Simamia hisa na katalogi ya bidhaa zako",
       addProduct: "Ongeza Bidhaa",
       searchProducts: "Tafuta bidhaa...",
       filters: "Vichujio",
@@ -353,8 +348,8 @@ export default function ProductsPage() {
       const failedCount = results.length - successCount
       
       if (successCount > 0) {
-        // Remove deleted products from local state
-        setProducts(prev => prev.filter(p => !selectedProducts.includes(p.id)))
+        // Invalidate cache to trigger re-fetch
+        ProductsCacheInvalidator.onProductChanged(currentBusiness?.id || 0)
         setSelectedProducts([])
         
         // Show success message
@@ -503,97 +498,176 @@ export default function ProductsPage() {
 
   return (
     <div>
-      {/* Page Header */}
-      <motion.div variants={itemVariants} className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">{t.pageTitle}</h2>
-            <p className="text-gray-600">{t.pageSubtitle}</p>
-            {lastFetched && (
-              <p className="text-xs text-gray-500 mt-1">
-                Last updated: {lastFetched.toLocaleTimeString()}
-                <span className={`ml-2 ${
-                  cacheStatus === 'fresh' ? 'text-green-600' :
-                  cacheStatus === 'stale' ? 'text-yellow-600' : 'text-gray-600'
-                }`}>
-                  {cacheStatus === 'fresh' && '🟢 Fresh'}
-                  {cacheStatus === 'stale' && '🟡 Updating...'}
-                  {cacheStatus === 'empty' && '⚪ Loading...'}
-                </span>
-              </p>
-            )}
-          </div>
-          <div className="flex items-center space-x-3">
-            {/* 🚀 IMPROVED: Manual refresh button */}
-            <button
-              onClick={refreshData}
-              disabled={isLoading}
-              className="flex items-center space-x-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Refresh data"
-            >
-              <svg className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              <span className="hidden sm:inline">{isLoading ? 'Refreshing...' : 'Refresh'}</span>
-            </button>
-            
-            <Link
-              href="/admin/products/add"
-              className="flex items-center space-x-2 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-semibold py-2.5 px-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl"
-            >
-              <PlusIcon className="w-5 h-5" />
-              <span>{t.addProduct}</span>
-            </Link>
-          </div>
+      {/* Action Bar */}
+      <motion.div variants={itemVariants} className="mb-6">
+        <div className="flex items-center justify-end space-x-3">
+          {/* 🚀 IMPROVED: Manual refresh button */}
+          <button
+            onClick={refreshData}
+            disabled={isLoading}
+            className="flex items-center space-x-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            title="Refresh data"
+          >
+            <svg className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span className="hidden sm:inline">{isLoading ? 'Refreshing...' : 'Refresh'}</span>
+          </button>
+          
+          <Link
+            href="/admin/products/add"
+            className="flex items-center space-x-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-md transition-colors text-sm font-medium"
+          >
+            <PlusIcon className="w-4 h-4" />
+            <span>{t.addProduct}</span>
+          </Link>
         </div>
+
+        {/* Cache Status */}
+        {lastFetched && (
+          <div className="mt-2 text-right">
+            <p className="text-xs text-gray-500">
+              Last updated: {lastFetched.toLocaleTimeString()}
+              <span className={`ml-2 ${
+                cacheStatus === 'fresh' ? 'text-green-600' :
+                cacheStatus === 'stale' ? 'text-yellow-600' : 'text-gray-600'
+              }`}>
+                {cacheStatus === 'fresh' && '🟢 Fresh'}
+                {cacheStatus === 'stale' && '🟡 Updating...'}
+                {cacheStatus === 'empty' && '⚪ Loading...'}
+              </span>
+            </p>
+          </div>
+        )}
       </motion.div>
 
       {/* Search and Filters */}
       <motion.div variants={itemVariants} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
-        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-          {/* Search */}
-          <div className="flex-1 relative">
-            <MagnifyingGlassIcon className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder={t.searchProducts}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
-            />
+        {/* Mobile Layout */}
+        <div className="block sm:hidden">
+          {/* Mobile Search Bar */}
+          <div className="mb-3">
+            <div className="relative">
+              <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder={t.searchProducts}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-gray-900 placeholder-gray-400 bg-white text-sm"
+              />
+            </div>
           </div>
 
-          {/* View Toggle */}
-          <div className="flex items-center bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('list')}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
-                viewMode === 'list' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <ListBulletIcon className="w-4 h-4" />
-              <span>{t.listView}</span>
-            </button>
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
-                viewMode === 'grid' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <Squares2X2Icon className="w-4 h-4" />
-              <span>{t.gridView}</span>
-            </button>
-          </div>
+          {/* Mobile Horizontal Controls */}
+          <div className="flex overflow-x-auto scrollbar-hide space-x-2 pb-2 snap-x snap-mandatory" style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}>
+            {/* View Toggle - Mobile */}
+            <div className="flex items-center bg-gray-100 rounded-lg p-0.5 flex-shrink-0 snap-start">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`flex items-center justify-center px-2 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  viewMode === 'list' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                <ListBulletIcon className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`flex items-center justify-center px-2 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  viewMode === 'grid' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                <Squares2X2Icon className="w-4 h-4" />
+              </button>
+            </div>
 
-          {/* Filters Toggle */}
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center space-x-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 hover:text-gray-900"
-          >
-            <FunnelIcon className="w-5 h-5 text-gray-600" />
-            <span>{t.filters}</span>
-          </motion.button>
+            {/* Filters Toggle - Mobile */}
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center justify-center px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 hover:text-gray-900 flex-shrink-0 snap-start"
+            >
+              <FunnelIcon className="w-4 h-4 text-gray-600" />
+            </motion.button>
+
+            {/* Export Dropdown - Mobile */}
+            <div className="relative group flex-shrink-0 snap-start">
+              <button className="flex items-center space-x-1.5 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-xs font-medium">
+                <DocumentArrowDownIcon className="w-4 h-4" />
+                <span>Export</span>
+                <ChevronDownIcon className="w-3 h-3" />
+              </button>
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                <button
+                  onClick={() => handleExport('csv')}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50 first:rounded-t-lg text-gray-900 hover:text-gray-900 text-sm"
+                >
+                  {t.exportCSV}
+                </button>
+                <button
+                  onClick={() => handleExport('excel')}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-900 hover:text-gray-900 text-sm"
+                >
+                  {t.exportExcel}
+                </button>
+                <button
+                  onClick={() => handleExport('pdf')}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50 last:rounded-b-lg text-gray-900 hover:text-gray-900 text-sm"
+                >
+                  {t.exportPDF}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Layout - Original Design */}
+        <div className="hidden sm:block">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <MagnifyingGlassIcon className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder={t.searchProducts}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
+              />
+            </div>
+
+            {/* View Toggle */}
+            <div className="flex items-center bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                  viewMode === 'list' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                <ListBulletIcon className="w-4 h-4" />
+                <span>{t.listView}</span>
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                  viewMode === 'grid' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                <Squares2X2Icon className="w-4 h-4" />
+                <span>{t.gridView}</span>
+              </button>
+            </div>
+
+            {/* Filters Toggle */}
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center space-x-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 hover:text-gray-900"
+            >
+              <FunnelIcon className="w-5 h-5 text-gray-600" />
+              <span>{t.filters}</span>
+            </motion.button>
+          </div>
         </div>
 
         {/* Filter Options */}
@@ -615,11 +689,16 @@ export default function ProductsPage() {
                   disabled={loadingCategories}
                 >
                   <option value="all">{t.allCategories}</option>
-                  {Array.isArray(categories) && categories.map(category => (
-                    <option key={category.id} value={category.name}>
-                      {language === 'sw' && category.nameSwahili ? category.nameSwahili : category.name}
-                    </option>
-                  ))}
+                  {Array.isArray(categories) && categories.map((category, index) => {
+                    const categoryObj = typeof category === 'string' 
+                      ? { id: category, name: category, nameSwahili: '' } 
+                      : (category as { id: string | number, name: string, nameSwahili?: string })
+                    return (
+                      <option key={categoryObj.id || index} value={categoryObj.name}>
+                        {language === 'sw' && categoryObj.nameSwahili ? categoryObj.nameSwahili : categoryObj.name}
+                      </option>
+                    )
+                  })}
                 </select>
               </div>
 
@@ -675,8 +754,8 @@ export default function ProductsPage() {
             )}
           </div>
 
-          {/* Export Dropdown */}
-          <div className="relative group">
+          {/* Export Dropdown - Desktop Only */}
+          <div className="hidden sm:block relative group">
             <button className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
               <DocumentArrowDownIcon className="w-5 h-5" />
               <span>{t.exportData}</span>
@@ -1071,45 +1150,106 @@ export default function ProductsPage() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <motion.div variants={itemVariants} className="mt-8 flex items-center justify-between">
-          <div className="text-sm text-gray-600">
-            {t.showing} {startIndex + 1}-{Math.min(endIndex, filteredProducts.length)} {t.of} {filteredProducts.length} {t.results}
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="flex items-center space-x-1 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 hover:text-gray-900"
-            >
-              <ChevronLeftIcon className="w-4 h-4" />
-              <span>{t.previous}</span>
-            </button>
-
-            <div className="flex items-center space-x-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`w-10 h-10 rounded-lg font-medium transition-colors ${
-                    currentPage === page
-                      ? 'bg-teal-500 text-white hover:bg-teal-600'
-                      : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
+        <motion.div variants={itemVariants} className="mt-8">
+          {/* Mobile Pagination */}
+          <div className="block sm:hidden">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-xs text-gray-600">
+                {startIndex + 1}-{Math.min(endIndex, filteredProducts.length)} {language === 'sw' ? 'ya' : 'of'} {filteredProducts.length}
+              </div>
+              <div className="text-xs text-gray-600">
+                {language === 'sw' ? 'Uk.' : 'Page'} {currentPage}/{totalPages}
+              </div>
             </div>
+            <div className="flex items-center justify-center space-x-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="flex items-center justify-center w-8 h-8 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 hover:text-gray-900"
+              >
+                <ChevronLeftIcon className="w-4 h-4" />
+              </button>
 
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="flex items-center space-x-1 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 hover:text-gray-900"
-            >
-              <span>{t.next}</span>
-              <ChevronRightIcon className="w-4 h-4" />
-            </button>
+              <div className="flex items-center space-x-1 overflow-x-auto scrollbar-hide max-w-48">
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                  let page: number;
+                  if (totalPages <= 5) {
+                    page = i + 1;
+                  } else if (currentPage <= 3) {
+                    page = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    page = totalPages - 4 + i;
+                  } else {
+                    page = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`flex-shrink-0 w-8 h-8 rounded-lg font-medium transition-colors text-sm ${
+                        currentPage === page
+                          ? 'bg-teal-500 text-white hover:bg-teal-600'
+                          : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="flex items-center justify-center w-8 h-8 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 hover:text-gray-900"
+              >
+                <ChevronRightIcon className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Desktop Pagination */}
+          <div className="hidden sm:flex sm:items-center sm:justify-between">
+            <div className="text-sm text-gray-600">
+              {t.showing} {startIndex + 1}-{Math.min(endIndex, filteredProducts.length)} {t.of} {filteredProducts.length} {t.results}
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="flex items-center space-x-1 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 hover:text-gray-900"
+              >
+                <ChevronLeftIcon className="w-4 h-4" />
+                <span>{t.previous}</span>
+              </button>
+
+              <div className="flex items-center space-x-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-10 h-10 rounded-lg font-medium transition-colors ${
+                      currentPage === page
+                        ? 'bg-teal-500 text-white hover:bg-teal-600'
+                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="flex items-center space-x-1 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 hover:text-gray-900"
+              >
+                <span>{t.next}</span>
+                <ChevronRightIcon className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </motion.div>
       )}
