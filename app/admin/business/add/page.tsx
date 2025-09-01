@@ -1,15 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   BuildingOfficeIcon,
-  ArrowLeftIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  ArrowLeftIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import { useNotifications } from '../../../contexts/NotificationContext'
-import Link from 'next/link'
 
 interface BusinessFormData {
   // Business Basic Info
@@ -47,6 +46,7 @@ export default function AddBusinessPage() {
   const { showSuccess, showError } = useNotifications()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
+  const progressNavRef = useRef<HTMLDivElement>(null)
   
   const [formData, setFormData] = useState<BusinessFormData>({
     name: '',
@@ -74,9 +74,6 @@ export default function AddBusinessPage() {
 
   const translations = {
     en: {
-      pageTitle: 'Add New Business',
-      pageSubtitle: 'Create a new business location or branch',
-      backToBusiness: 'Back to Businesses',
       
       // Steps
       step1: 'Basic Information',
@@ -124,9 +121,6 @@ export default function AddBusinessPage() {
       businessError: 'Failed to create business'
     },
     sw: {
-      pageTitle: 'Ongeza Biashara Mpya',
-      pageSubtitle: 'Unda eneo jipya la biashara au tawi',
-      backToBusiness: 'Rudi kwa Biashara',
       
       // Steps
       step1: 'Taarifa za Msingi',
@@ -185,6 +179,19 @@ export default function AddBusinessPage() {
       .substring(0, 50)
   }
 
+  const scrollStepIntoView = (stepNumber: number) => {
+    if (progressNavRef.current) {
+      const activeStep = progressNavRef.current.querySelector(`[data-step="${stepNumber}"]`)
+      if (activeStep) {
+        activeStep.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'center'
+        })
+      }
+    }
+  }
+
   const handleInputChange = (field: keyof BusinessFormData, value: string | number | boolean) => {
     setFormData(prev => {
       const updated = { ...prev, [field]: value }
@@ -200,14 +207,24 @@ export default function AddBusinessPage() {
 
   const handleNextStep = () => {
     if (currentStep < 3) {
-      setCurrentStep(currentStep + 1)
+      const newStep = currentStep + 1
+      setCurrentStep(newStep)
+      setTimeout(() => scrollStepIntoView(newStep), 100)
     }
   }
 
   const handlePreviousStep = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
+      const newStep = currentStep - 1
+      setCurrentStep(newStep)
+      setTimeout(() => scrollStepIntoView(newStep), 100)
     }
+  }
+
+  const handleStepClick = (stepNumber: number) => {
+    // Allow navigation to any step
+    setCurrentStep(stepNumber)
+    setTimeout(() => scrollStepIntoView(stepNumber), 100)
   }
 
   const handleSubmit = async () => {
@@ -248,62 +265,80 @@ export default function AddBusinessPage() {
     { number: 3, title: t.step3 }
   ]
 
+  // Auto-scroll to current step when component loads or step changes
+  useEffect(() => {
+    scrollStepIntoView(currentStep)
+  }, [currentStep])
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8"
     >
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center space-x-4 mb-4">
-          <Link 
-            href="/admin/business"
-            className="text-gray-600 hover:text-gray-900 transition-colors flex items-center space-x-2"
-          >
-            <ArrowLeftIcon className="w-5 h-5" />
-            <span>{t.backToBusiness}</span>
-          </Link>
-        </div>
-        <h1 className="text-3xl font-bold text-gray-900">{t.pageTitle}</h1>
-        <p className="mt-2 text-gray-600">{t.pageSubtitle}</p>
-      </div>
+
 
       {/* Progress Steps */}
-      <div className="mb-8 overflow-x-auto">
-        <nav aria-label="Progress">
-          <ol className="flex items-center min-w-max px-4">
+      <div className="mb-8">
+        <div className="border-b border-gray-200">
+          <nav 
+            ref={progressNavRef}
+            aria-label="Progress"
+            className="flex overflow-x-auto scrollbar-hide space-x-6 sm:space-x-8 pb-2 sm:pb-0 snap-x snap-mandatory"
+            style={{ 
+              scrollBehavior: 'smooth',
+              WebkitOverflowScrolling: 'touch'
+            }}
+          >
             {steps.map((step, stepIdx) => (
-              <li key={step.number} className={`${stepIdx !== steps.length - 1 ? 'pr-4 sm:pr-8 lg:pr-16' : ''} relative flex-1 min-w-0`}>
-                <div className="flex items-center">
-                  <div className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 flex-shrink-0 ${
-                    step.number === currentStep
-                      ? 'border-teal-600 bg-teal-600 text-white'
-                      : step.number < currentStep
-                      ? 'border-teal-600 bg-teal-600 text-white'
-                      : 'border-gray-300 bg-white text-gray-500'
-                  }`}>
-                    {step.number < currentStep ? (
-                      <CheckCircleIcon className="w-4 h-4 sm:w-6 sm:h-6" />
-                    ) : (
-                      <span className="text-xs sm:text-sm font-medium">{step.number}</span>
-                    )}
-                  </div>
-                  <span className={`ml-2 sm:ml-3 text-xs sm:text-sm font-medium truncate ${
-                    step.number <= currentStep ? 'text-teal-600' : 'text-gray-500'
-                  }`}>
-                    {step.title}
-                  </span>
+              <button
+                key={step.number}
+                data-step={step.number}
+                onClick={() => handleStepClick(step.number)}
+                className="flex items-center justify-center space-x-3 py-4 px-3 sm:px-1 whitespace-nowrap flex-shrink-0 min-w-max snap-start transition-colors hover:bg-gray-50 rounded-lg"
+              >
+                <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 flex-shrink-0 ${
+                  step.number === currentStep
+                    ? 'border-teal-600 bg-teal-600 text-white'
+                    : step.number < currentStep
+                    ? 'border-teal-600 bg-teal-600 text-white'
+                    : 'border-gray-300 bg-white text-gray-500'
+                }`}>
+                  {step.number < currentStep ? (
+                    <CheckCircleIcon className="w-5 h-5" />
+                  ) : (
+                    <span className="text-sm font-medium">{step.number}</span>
+                  )}
                 </div>
+                <span className={`text-sm font-medium ${
+                  step.number <= currentStep ? 'text-teal-600' : 'text-gray-500'
+                }`}>
+                  {step.title}
+                </span>
                 {stepIdx !== steps.length - 1 && (
-                  <div className={`absolute top-4 sm:top-5 left-8 sm:left-10 right-0 h-0.5 -z-10 ${
+                  <div className={`w-8 h-0.5 mx-2 ${
                     step.number < currentStep ? 'bg-teal-600' : 'bg-gray-300'
                   }`} />
                 )}
-              </li>
+              </button>
             ))}
-          </ol>
-        </nav>
+          </nav>
+        </div>
+        
+        {/* Mobile progress indicator */}
+        <div className="flex justify-center mt-2 sm:hidden">
+          <div className="flex space-x-1">
+            {steps.map((step) => (
+              <div
+                key={step.number}
+                className={`w-2 h-2 rounded-full transition-colors ${
+                  step.number === currentStep ? 'bg-teal-500' : 
+                  step.number < currentStep ? 'bg-teal-600' : 'bg-gray-300'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Form Content */}
@@ -580,38 +615,38 @@ export default function AddBusinessPage() {
         )}
 
         {/* Navigation Buttons */}
-        <div className="mt-8 pt-6 border-t border-gray-200 flex justify-between">
+        <div className="mt-6 pt-4 border-t border-gray-200 flex justify-between items-center">
           <button
             onClick={handlePreviousStep}
             disabled={currentStep === 1}
-            className="flex items-center space-x-2 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center space-x-1.5 px-4 py-2 border border-gray-300 text-gray-600 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
           >
-            <ArrowLeftIcon className="w-5 h-5" />
+            <ArrowLeftIcon className="w-4 h-4" />
             <span>{t.previousStep}</span>
           </button>
 
           {currentStep < 3 ? (
             <button
               onClick={handleNextStep}
-              className="flex items-center space-x-2 bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition-colors"
+              className="flex items-center space-x-1.5 bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 transition-colors text-sm font-medium"
             >
               <span>{t.nextStep}</span>
-              <ArrowLeftIcon className="w-5 h-5 transform rotate-180" />
+              <ArrowLeftIcon className="w-4 h-4 transform rotate-180" />
             </button>
           ) : (
             <button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="flex items-center space-x-2 bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center space-x-1.5 bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
             >
               {isSubmitting ? (
                 <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                   <span>{t.creating}</span>
                 </>
               ) : (
                 <>
-                  <BuildingOfficeIcon className="w-5 h-5" />
+                  <BuildingOfficeIcon className="w-4 h-4" />
                   <span>{t.createBusiness}</span>
                 </>
               )}

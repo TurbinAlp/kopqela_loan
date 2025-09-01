@@ -46,6 +46,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     if (pathname.startsWith('/admin/settings')) {
       expanded.push('settings')
     }
+    if (pathname.startsWith('/admin/business')) {
+      expanded.push('business')
+    }
+    if (pathname.startsWith('/admin/customers')) {
+      expanded.push('customers')
+    }
     return expanded
   })
 
@@ -56,9 +62,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       allProducts: "All Products",
       categories: "Categories",
       addProduct: "Add Product",
+      editProduct: "Edit Product",
+      productDetails: "Product Details",
       sales: "Sales",
       pos: "Point of Sale",
       customers: "Customers",
+      customerDetails: "Customer Details",
       credit: "Credit Sales",
       reports: "Reports",
       settings: "Settings",
@@ -70,8 +79,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       adminName: "John Admin",
       business: 'Business',
       businessInfo: 'Business Information',
+      addBusiness: 'Add Business',
+      editBusiness: 'Edit Business',
       businessReports: 'Business Reports',
-      userManagement: 'User Management'
+      userManagement: 'User Management',
+      notifications: 'Notifications',
+      accessControl: 'Access Control'
     },
     sw: {
       dashboard: "Dashibodi",
@@ -79,9 +92,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       allProducts: "Bidhaa Zote",
       categories: "Makundi",
       addProduct: "Ongeza Bidhaa",
+      editProduct: "Hariri Bidhaa",
+      productDetails: "Maelezo ya Bidhaa",
       sales: "Mauzo",
       pos: "Mahali pa Mauzo",
       customers: "Wateja",
+      customerDetails: "Maelezo ya Mteja",
       credit: "Mauzo ya Mikopo",
       reports: "Ripoti",
       settings: "Mipangilio",
@@ -93,8 +109,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       adminName: "John Msimamizi",
       business: 'Biashara',
       businessInfo: 'Taarifa za Biashara',
+      addBusiness: 'Ongeza Biashara',
+      editBusiness: 'Hariri Biashara',
       businessReports: 'Ripoti za Biashara',
-      userManagement: 'Usimamizi wa Watumiaji'
+      userManagement: 'Usimamizi wa Watumiaji',
+      notifications: 'Arifa',
+      accessControl: 'Udhibiti wa Ufikiaji'
     }
   }
 
@@ -118,23 +138,48 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { name: t.credit, icon: CreditCardIcon, href: "/admin/credit" },
     { name: t.reports, icon: DocumentTextIcon, href: "/admin/reports" },
     { name: t.userManagement, icon: UserGroupIcon, href: "/admin/users" },
+    { name: t.notifications, icon: DocumentTextIcon, href: "/admin/notifications" },
+    { name: t.profile, icon: UserGroupIcon, href: "/admin/profile" },
+    { name: t.accessControl, icon: CogIcon, href: "/admin/rbac" },
     { 
       name: t.settings, 
       icon: CogIcon, 
       href: "/admin/settings",
       subItems: [
-        { name: t.generalSettings, href: "/admin/settings" }
+        { name: t.generalSettings, href: "/admin/settings" },
+        { name: t.businessSettings, href: "/admin/settings/business" }
       ]
     },
     { 
       name: t.business, 
       icon: BuildingOfficeIcon, 
-      href: "/admin/business"
+      href: "/admin/business",
+      subItems: [
+        { name: t.businessInfo, href: "/admin/business" },
+        { name: t.addBusiness, href: "/admin/business/add" },
+        { name: t.editBusiness, href: "/admin/business/edit" }
+      ]
     }
   ]
 
   const isActiveRoute = (href: string) => {
-    return pathname === href
+    if (pathname === href) return true
+    
+    // For nested routes, match parent routes but avoid false positives
+    const nestedRouteMap: Record<string, string> = {
+      "/admin/business": "/admin/business",
+      "/admin/products": "/admin/products", 
+      "/admin/settings": "/admin/settings",
+      "/admin/customers": "/admin/customers"
+    }
+    
+    for (const [parentRoute, prefix] of Object.entries(nestedRouteMap)) {
+      if (href === parentRoute && pathname.startsWith(prefix + "/")) {
+        return true
+      }
+    }
+    
+    return false
   }
 
   const isItemExpanded = (itemName: string) => {
@@ -151,14 +196,56 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   const getPageTitle = () => {
-    // Check for sub-items first
+    // Check for exact matches in sub-items first
     for (const item of sidebarItems) {
       if (item.subItems) {
-        const subItem = item.subItems.find(sub => isActiveRoute(sub.href))
+        const subItem = item.subItems.find(sub => pathname === sub.href)
         if (subItem) return subItem.name
       }
     }
-    // Then check main items
+    
+    // Detailed route-specific handling
+    const routeTitleMap: Record<string, string> = {
+      // Products routes
+      '/admin/products/add': t.addProduct,
+      '/admin/products/categories': t.categories,
+      
+      // Business routes
+      '/admin/business/add': t.addBusiness,
+      '/admin/business/edit': t.editBusiness,
+      
+      // Settings routes
+      '/admin/settings/business': t.businessSettings,
+      
+      // Other routes
+      '/admin/notifications': t.notifications,
+      '/admin/profile': t.profile,
+      '/admin/rbac': t.accessControl,
+    }
+    
+    // Check for dynamic routes with patterns
+    if (pathname.match(/^\/admin\/products\/\d+\/edit$/)) {
+      return t.editProduct
+    }
+    
+    if (pathname.match(/^\/admin\/products\/\d+$/)) {
+      return t.productDetails
+    }
+    
+    if (pathname.match(/^\/admin\/customers\/\d+$/)) {
+      return t.customerDetails
+    }
+    
+    // Check static route mappings
+    if (routeTitleMap[pathname]) {
+      return routeTitleMap[pathname]
+    }
+    
+    // Then check main items for exact matches
+    const exactMatch = sidebarItems.find(item => pathname === item.href)
+    if (exactMatch) return exactMatch.name
+    
+    // Finally, check for parent routes
     const currentItem = sidebarItems.find(item => isActiveRoute(item.href))
     return currentItem ? currentItem.name : t.dashboard
   }

@@ -16,7 +16,6 @@ import {
 import { useLanguage } from '../../../contexts/LanguageContext'
 import { useNotifications } from '../../../contexts/NotificationContext'
 import { useBusiness } from '../../../contexts/BusinessContext'
-import Link from 'next/link'
 import Image from 'next/image'
 
 interface BusinessSettings {
@@ -199,7 +198,6 @@ export default function EditBusinessPage() {
   const translations = {
     en: {
       pageTitle: 'Edit Business',
-      backToBusiness: 'Back to Business',
       companyInfo: 'Company Information',
       businessDetails: 'Business Details',
       brandingSettings: 'Branding & Visual',
@@ -299,7 +297,6 @@ export default function EditBusinessPage() {
     },
     sw: {
       pageTitle: 'Hariri Biashara',
-      backToBusiness: 'Rudi kwa Biashara',
       companyInfo: 'Taarifa za Kampuni',
       businessDetails: 'Maelezo ya Biashara',
       brandingSettings: 'Chapa na Muonekano',
@@ -631,18 +628,7 @@ export default function EditBusinessPage() {
       animate={{ opacity: 1 }}
       className="w-full max-w-full mx-auto px-4 sm:px-6 lg:px-8"
     >
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center space-x-4 mb-4">
-          <Link 
-            href="/admin/business"
-            className="text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            ← {t.backToBusiness}
-          </Link>
-        </div>
-        <h1 className="text-2xl font-bold text-gray-800">{t.pageTitle}</h1>
-      </div>
+
 
       {/* Tab Navigation */}
       <div className="mb-8">

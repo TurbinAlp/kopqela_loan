@@ -24,8 +24,6 @@ export default function BusinessPage() {
 
   const translations = {
     en: {
-      pageTitle: 'My Businesses',
-      pageSubtitle: 'Manage all your business locations and settings',
       addBusiness: 'Add New Business',
       noBusiness: 'No businesses found',
       businessName: 'Business Name',
@@ -44,8 +42,6 @@ export default function BusinessPage() {
       loadingError: 'Failed to load businesses'
     },
     sw: {
-      pageTitle: 'Biashara Zangu',
-      pageSubtitle: 'Simamia maeneo yote ya biashara yako na mipangilio',
       addBusiness: 'Ongeza Biashara Mpya',
       noBusiness: 'Hakuna biashara zilizopatikana',
       businessName: 'Jina la Biashara',
@@ -94,13 +90,9 @@ export default function BusinessPage() {
       animate={{ opacity: 1 }}
       className="w-full max-w-full mx-auto px-4 sm:px-6 lg:px-8"
     >
-      {/* Header */}
+      {/* Action Bar */}
       <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{t.pageTitle}</h1>
-            <p className="mt-2 text-gray-600">{t.pageSubtitle}</p>
-          </div>
+        <div className="flex justify-end">
           <button
             onClick={handleAddBusiness}
             className="flex items-center space-x-2 bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition-colors"
