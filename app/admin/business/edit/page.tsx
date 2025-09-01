@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { 
   BuildingOfficeIcon,
@@ -115,6 +115,7 @@ export default function EditBusinessPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [isUploadingLogo, setIsUploadingLogo] = useState(false)
+  const tabNavRef = useRef<HTMLDivElement>(null)
   const [settings, setSettings] = useState<BusinessSettings>({
     name: '',
     businessType: '',
@@ -529,6 +530,24 @@ export default function EditBusinessPage() {
     setSettings(prev => ({ ...prev, [field]: value }))
   }
 
+  const scrollTabIntoView = (tabId: string) => {
+    if (tabNavRef.current) {
+      const activeButton = tabNavRef.current.querySelector(`[data-tab="${tabId}"]`)
+      if (activeButton) {
+        activeButton.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'center'
+        })
+      }
+    }
+  }
+
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId)
+    setTimeout(() => scrollTabIntoView(tabId), 100)
+  }
+
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file || !currentBusiness) return
@@ -627,26 +646,53 @@ export default function EditBusinessPage() {
 
       {/* Tab Navigation */}
       <div className="mb-8">
-        <nav className="flex space-x-8 border-b border-gray-200">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === tab.id
-                  ? 'border-teal-500 text-teal-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <tab.icon className="w-5 h-5" />
-              <span>{tab.label}</span>
-            </button>
-          ))}
-        </nav>
+        <div className="border-b border-gray-200">
+          <nav 
+            ref={tabNavRef}
+            className="flex overflow-x-auto scrollbar-hide space-x-6 sm:space-x-8 pb-2 sm:pb-0 snap-x snap-mandatory"
+            style={{ 
+              scrollBehavior: 'smooth',
+              WebkitOverflowScrolling: 'touch'
+            }}
+          >
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                data-tab={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`flex items-center justify-center space-x-2 py-4 px-3 sm:px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap flex-shrink-0 min-w-max snap-start ${
+                  activeTab === tab.id
+                    ? 'border-teal-500 text-teal-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 active:text-gray-900'
+                }`}
+              >
+                <tab.icon className="w-5 h-5 flex-shrink-0" />
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden text-xs font-medium">
+                  {tab.label.split(' ').slice(0, 2).join(' ')}
+                </span>
+              </button>
+            ))}
+          </nav>
+        </div>
+        
+        {/* Mobile scroll indicator */}
+        <div className="flex justify-center mt-2 sm:hidden">
+          <div className="flex space-x-1">
+            {tabs.map((tab) => (
+              <div
+                key={tab.id}
+                className={`w-2 h-2 rounded-full transition-colors ${
+                  activeTab === tab.id ? 'bg-teal-500' : 'bg-gray-300'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Form Content */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
         {/* Company Information Tab */}
         {activeTab === 'company' && (
           <div className="space-y-6">
