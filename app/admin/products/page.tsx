@@ -15,7 +15,8 @@ import {
   DocumentArrowDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  FunnelIcon
+  FunnelIcon,
+  ArrowRightIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useBusiness } from '../../contexts/BusinessContext'
@@ -25,6 +26,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import DeleteConfirmModal from '../../components/ui/DeleteConfirmModal'
 import SuccessModal from '../../components/ui/SuccessModal'
+import StockTransferModal from '../../components/ui/StockTransferModal'
 import Spinner from '../../components/ui/Spinner'
 import { useNotifications } from '../../contexts/NotificationContext'
 
@@ -50,6 +52,7 @@ export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
+  const [selectedLocation, setSelectedLocation] = useState('all')
   const [selectedProducts, setSelectedProducts] = useState<number[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [showFilters, setShowFilters] = useState(false)
@@ -87,6 +90,11 @@ export default function ProductsPage() {
     message: ''
   })
 
+  // Stock transfer modal state
+  const [stockTransferModal, setStockTransferModal] = useState({
+    isOpen: false
+  })
+
 
 
   useEffect(() => {
@@ -108,6 +116,7 @@ export default function ProductsPage() {
       exportData: "Export Data",
       bulkActions: "Bulk Actions",
       deleteSelected: "Delete Selected",
+      transferStock: "Transfer Stock",
       
       // View modes
       gridView: "Grid View",
@@ -116,8 +125,10 @@ export default function ProductsPage() {
       // Filters
       allCategories: "All Categories",
       allStatuses: "All Statuses",
+      allLocations: "All Locations",
       categoryFilter: "Category",
       statusFilter: "Status",
+      locationFilter: "Location",
       
       // Table headers
       product: "Product",
@@ -149,6 +160,10 @@ export default function ProductsPage() {
       home: "Home & Garden",
       beauty: "Beauty & Personal Care",
       sports: "Sports & Outdoors",
+      
+      // Locations
+      mainStore: "Main Store",
+      retailStore: "Retail Store",
       
       // Pagination
       showing: "Showing",
@@ -184,6 +199,7 @@ export default function ProductsPage() {
       exportData: "Hamisha Data",
       bulkActions: "Vitendo vya Pamoja",
       deleteSelected: "Futa Zilizochaguliwa",
+      transferStock: "Hamisha Hisa",
       
       // View modes
       gridView: "Mchoro wa Grid",
@@ -192,8 +208,10 @@ export default function ProductsPage() {
       // Filters
       allCategories: "Makundi Yote",
       allStatuses: "Hali Zote",
+      allLocations: "Mahali Yote",
       categoryFilter: "Kundi",
       statusFilter: "Hali",
+      locationFilter: "Mahali",
       
       // Table headers
       product: "Bidhaa",
@@ -225,6 +243,10 @@ export default function ProductsPage() {
       home: "Nyumba na Bustani",
       beauty: "Urembo na Huduma za Kibinafsi",
       sports: "Michezo na Nje",
+      
+      // Locations
+      mainStore: "Hifadhi Kuu",
+      retailStore: "Duka la Nje",
       
       // Pagination
       showing: "Inaonyesha",
@@ -266,7 +288,18 @@ export default function ProductsPage() {
                          sku.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesCategory = selectedCategory === 'all' || categoryName === selectedCategory
     
-    // Status logic: compute status based on inventory/stock and product state
+    // Location filtering logic
+    let matchesLocation = true
+    if (selectedLocation !== 'all') {
+      const inventoryArray = Array.isArray(product.inventory) ? product.inventory : (product.inventory ? [product.inventory] : [])
+      if (selectedLocation === 'main_store') {
+        matchesLocation = inventoryArray.some(inv => inv.location === 'main_store' && inv.quantity > 0)
+      } else if (selectedLocation === 'retail_store') {
+        matchesLocation = inventoryArray.some(inv => inv.location === 'retail_store' && inv.quantity > 0)
+      }
+    }
+    
+    // Status logic: compute status based on combined inventory from both locations
     let status: string = 'inStock'
     if (product.isDraft) {
       status = 'draft'
@@ -276,15 +309,26 @@ export default function ProductsPage() {
       status = 'active'
     }
     
-    // Override with stock status if inventory exists
-    if (product.inventory) {
-      if (product.inventory.quantity === 0) status = 'outOfStock'
-      else if (product.inventory.reorderPoint && product.inventory.quantity <= product.inventory.reorderPoint) status = 'lowStock'
-      else if (product.inventory.quantity > 0) status = 'inStock'
+    // Override with stock status based on combined inventory from both locations
+    const inventoryArray = Array.isArray(product.inventory) ? product.inventory : (product.inventory ? [product.inventory] : [])
+    const mainStock = inventoryArray.find(inv => inv.location === 'main_store')?.quantity ?? 0
+    const retailStock = inventoryArray.find(inv => inv.location === 'retail_store')?.quantity ?? 0
+    const totalStock = mainStock + retailStock
+    const combinedReorderPoint = Math.max(
+      inventoryArray.find(inv => inv.location === 'main_store')?.reorderPoint ?? 0,
+      inventoryArray.find(inv => inv.location === 'retail_store')?.reorderPoint ?? 0
+    )
+    
+    if (totalStock === 0) {
+      status = 'outOfStock'
+    } else if (combinedReorderPoint > 0 && totalStock <= combinedReorderPoint) {
+      status = 'lowStock'  
+    } else if (totalStock > 0) {
+      status = 'inStock'
     }
     
     const matchesStatus = selectedStatus === 'all' || status === selectedStatus
-    return matchesSearch && matchesCategory && matchesStatus
+    return matchesSearch && matchesCategory && matchesLocation && matchesStatus
   })
 
   // Pagination
@@ -298,6 +342,7 @@ export default function ProductsPage() {
       case 'inStock': return 'text-green-600 bg-green-100'
       case 'lowStock': return 'text-yellow-600 bg-yellow-100'
       case 'outOfStock': return 'text-red-600 bg-red-100'
+      case 'notAvailableForSale': return 'text-orange-600 bg-orange-100'
       default: return 'text-gray-600 bg-gray-100'
     }
   }
@@ -388,6 +433,27 @@ export default function ProductsPage() {
 
   const handleBulkDeleteClose = () => {
     setBulkDeleteModal({ isOpen: false, productCount: 0 })
+  }
+
+  const handleTransferClick = () => {
+    if (selectedProducts.length === 0) {
+      showError(
+        language === 'sw' ? 'Hitilafu' : 'Error',
+        language === 'sw' 
+          ? 'Tafadhali chagua bidhaa za kuhamisha'
+          : 'Please select products to transfer'
+      )
+      return
+    }
+
+    setStockTransferModal({ isOpen: true })
+  }
+
+  const handleTransferComplete = () => {
+    // Refresh products data
+    refreshData()
+    // Clear selected products
+    setSelectedProducts([])
   }
 
   const handleExport = (format: string) => {
@@ -678,7 +744,7 @@ export default function ProductsPage() {
             exit={{ opacity: 0, height: 0 }}
             className="mt-4 pt-4 border-t border-gray-200"
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Category Filter */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{t.categoryFilter}</label>
@@ -719,6 +785,20 @@ export default function ProductsPage() {
                   <option value="draft">{language === 'sw' ? 'Dondoo' : 'Draft'}</option>
                 </select>
               </div>
+
+              {/* Location Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t.locationFilter}</label>
+                <select
+                  value={selectedLocation}
+                  onChange={(e) => setSelectedLocation(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
+                >
+                  <option value="all">{t.allLocations}</option>
+                  <option value="main_store">{t.mainStore}</option>
+                  <option value="retail_store">{t.retailStore}</option>
+                </select>
+              </div>
             </div>
           </motion.div>
         )}
@@ -749,6 +829,13 @@ export default function ProductsPage() {
                       : t.deleteSelected
                     }
                   </span>
+                </button>
+                <button
+                  onClick={handleTransferClick}
+                  className="flex items-center space-x-1 px-3 py-2 bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 hover:text-teal-800 transition-colors font-medium"
+                >
+                  <ArrowRightIcon className="w-4 h-4" />
+                  <span>{t.transferStock}</span>
                 </button>
               </div>
             )}
@@ -882,13 +969,13 @@ export default function ProductsPage() {
         >
           <ArchiveBoxIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all' 
+            {searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all' || selectedLocation !== 'all'
               ? (language === 'sw' ? 'Hakuna Bidhaa Zilizopatikana' : 'No Products Found')
               : (language === 'sw' ? 'Hakuna Bidhaa' : 'No Products Yet')
             }
           </h3>
           <p className="text-gray-600 mb-4">
-            {searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all' 
+            {searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all' || selectedLocation !== 'all'
               ? (language === 'sw' 
                   ? 'Jaribu kubadilisha vichujio vyako au utafute kitu kingine.'
                   : 'Try adjusting your filters or search for something else.'
@@ -899,12 +986,13 @@ export default function ProductsPage() {
                 )
             }
           </p>
-          {(searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all') && (
+          {(searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all' || selectedLocation !== 'all') && (
             <button
               onClick={() => {
                 setSearchQuery('')
                 setSelectedCategory('all')
                 setSelectedStatus('all')
+                setSelectedLocation('all')
               }}
               className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors mr-3"
             >
@@ -992,7 +1080,26 @@ export default function ProductsPage() {
                       <span className="text-gray-700">{product.unit || '—'}</span>
                     </td>
                     <td className="py-4 px-6">
-                      <span className="text-gray-700">{product.inventory?.quantity ?? '—'}</span>
+                      {(() => {
+                        // Calculate stock breakdown by location
+                        const inventoryArray = Array.isArray(product.inventory) ? product.inventory : (product.inventory ? [product.inventory] : [])
+                        const mainStock = inventoryArray.find(inv => inv.location === 'main_store')?.quantity ?? 0
+                        const retailStock = inventoryArray.find(inv => inv.location === 'retail_store')?.quantity ?? 0
+                        const totalStock = mainStock + retailStock
+
+                        if (totalStock === 0) {
+                          return <span className="text-gray-500">—</span>
+                        }
+
+                        return (
+                          <div className="text-sm">
+                            <div className="text-gray-800 font-medium">Total: {totalStock}</div>
+                            <div className="text-gray-600">
+                              Main: {mainStock} | Retail: {retailStock}
+                            </div>
+                          </div>
+                        )
+                      })()}
                     </td>
                     <td className="py-4 px-6">
                       <span className="text-gray-700 text-sm">{product.inventory?.location || '—'}</span>
@@ -1002,14 +1109,33 @@ export default function ProductsPage() {
                     </td>
                     <td className="py-4 px-6">
                       {(() => {
-                        let status: string = 'inStock';
-                        if (product.inventory && product.inventory.quantity === 0) status = 'outOfStock';
-                        else if (product.inventory && product.inventory.quantity < 10) status = 'lowStock';
+                        // Calculate retail store availability for sale status
+                        const inventoryArray = Array.isArray(product.inventory) ? product.inventory : (product.inventory ? [product.inventory] : [])
+                        const retailStock = inventoryArray.find(inv => inv.location === 'retail_store')?.quantity ?? 0
+                        const mainStock = inventoryArray.find(inv => inv.location === 'main_store')?.quantity ?? 0
+                        const totalStock = mainStock + retailStock
+
+                        let status: string = 'inStock'
+                        let statusText = t.inStock
+
+                        if (retailStock === 0) {
+                          if (totalStock === 0) {
+                            status = 'outOfStock'
+                            statusText = t.outOfStock
+                          } else {
+                            status = 'notAvailableForSale'
+                            statusText = language === 'sw' ? 'Haipatikani Kwa Mauzo' : 'Not Available for Sale'
+                          }
+                        } else if (retailStock < 10) {
+                          status = 'lowStock'
+                          statusText = t.lowStock
+                        }
+
                         return (
                           <span className={`px-3 py-1 text-sm rounded-full font-medium ${getStatusColor(status)}`}>
-                            {t[status as keyof typeof t]}
+                            {statusText}
                           </span>
-                        );
+                        )
                       })()}
                     </td>
                     <td className="py-4 px-6">
@@ -1069,19 +1195,35 @@ export default function ProductsPage() {
                   onChange={() => handleSelectProduct(product.id)}
                   className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
                 />
-                <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor((() => {
-                  let status: string = 'inStock';
-                  if (product.inventory && product.inventory.quantity === 0) status = 'outOfStock';
-                  else if (product.inventory && product.inventory.quantity < 10) status = 'lowStock';
-                  return status;
-                })())}`}>
-                  {t[((() => {
-                    let status: string = 'inStock';
-                    if (product.inventory && product.inventory.quantity === 0) status = 'outOfStock';
-                    else if (product.inventory && product.inventory.quantity < 10) status = 'lowStock';
-                    return status;
-                  })()) as keyof typeof t]}
-                </span>
+                {(() => {
+                  // Calculate retail store availability for sale status
+                  const inventoryArray = Array.isArray(product.inventory) ? product.inventory : (product.inventory ? [product.inventory] : [])
+                  const retailStock = inventoryArray.find(inv => inv.location === 'retail_store')?.quantity ?? 0
+                  const mainStock = inventoryArray.find(inv => inv.location === 'main_store')?.quantity ?? 0
+                  const totalStock = mainStock + retailStock
+
+                  let status: string = 'inStock'
+                  let statusText = t.inStock
+
+                  if (retailStock === 0) {
+                    if (totalStock === 0) {
+                      status = 'outOfStock'
+                      statusText = t.outOfStock
+                    } else {
+                      status = 'notAvailableForSale'
+                      statusText = language === 'sw' ? 'Haipatikani Kwa Mauzo' : 'Not Available for Sale'
+                    }
+                  } else if (retailStock < 10) {
+                    status = 'lowStock'
+                    statusText = t.lowStock
+                  }
+
+                  return (
+                    <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(status)}`}>
+                      {statusText}
+                    </span>
+                  )
+                })()}
               </div>
 
               <div className="w-full h-32 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden mb-4">
@@ -1102,9 +1244,30 @@ export default function ProductsPage() {
                 <h3 className="font-semibold text-gray-800">{product.name}</h3>
                 <p className="text-sm text-gray-500 font-mono">{product.sku || 'No SKU'}</p>
                 <p className="text-sm text-gray-600">{typeof product.category === 'string' ? product.category : product.category?.name}</p>
-                <div className="flex items-center justify-between text-sm text-gray-600">
-                  <span>{t.unit}: {product.unit || '—'}</span>
-                  <span>{t.stock}: {product.inventory?.quantity ?? '—'}</span>
+                <div className="space-y-1 text-sm text-gray-600">
+                  <div className="flex items-center justify-between">
+                    <span>{t.unit}: {product.unit || '—'}</span>
+                  </div>
+                  {(() => {
+                    // Calculate stock breakdown by location
+                    const inventoryArray = Array.isArray(product.inventory) ? product.inventory : (product.inventory ? [product.inventory] : [])
+                    const mainStock = inventoryArray.find(inv => inv.location === 'main_store')?.quantity ?? 0
+                    const retailStock = inventoryArray.find(inv => inv.location === 'retail_store')?.quantity ?? 0
+                    const totalStock = mainStock + retailStock
+
+                    if (totalStock === 0) {
+                      return <div className="text-gray-500">{t.stock}: —</div>
+                    }
+
+                    return (
+                      <div>
+                        <div className="font-medium text-gray-800">Total: {totalStock}</div>
+                        <div className="text-xs text-gray-500">
+                          Main: {mainStock} | Retail: {retailStock}
+                        </div>
+                      </div>
+                    )
+                  })()}
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">{t.location}: {product.inventory?.location || '—'}</span>
@@ -1285,6 +1448,15 @@ export default function ProductsPage() {
         message={successModal.message}
         autoClose={true}
         autoCloseDelay={3000}
+      />
+
+      {/* Stock Transfer Modal */}
+      <StockTransferModal
+        isOpen={stockTransferModal.isOpen}
+        onClose={() => setStockTransferModal({ isOpen: false })}
+        products={products}
+        selectedProductIds={selectedProducts}
+        onTransferComplete={handleTransferComplete}
       />
     </div>
   )

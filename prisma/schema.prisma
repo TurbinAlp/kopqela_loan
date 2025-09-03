@@ -34,6 +34,7 @@ model User {
   grantedPermissions    UserPermission[] @relation("PermissionGrantedBy")
   userPermissions       UserPermission[]
   sessions              UserSession[]
+  inventoryMovements    InventoryMovement[]
 
   @@map("users")
 }
@@ -122,6 +123,7 @@ model Business {
   creditApplications CreditApplication[]
   customers          Customer[]
   inventory          Inventory[]
+  inventoryMovements InventoryMovement[]
   orders             Order[]
   payments           Payment[]
   products           Product[]
@@ -267,6 +269,7 @@ model Product {
   inventory      Inventory[]
   orderItems     OrderItem[]
   images         ProductImage[]
+  movements      InventoryMovement[]
   business       Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
   category       Category?      @relation(fields: [categoryId], references: [id])
 
@@ -299,14 +302,34 @@ model Inventory {
   reservedQuantity Int      @default(0) @map("reserved_quantity")
   reorderPoint     Int?     @map("reorder_point")
   maxStock         Int?     @map("max_stock")
-  location         String?  @db.VarChar(100)
+  location         String   @default("main_store") @db.VarChar(100)
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
   business         Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@unique([businessId, productId])
+  @@unique([businessId, productId, location])
   @@map("inventory")
+}
+
+model InventoryMovement {
+  id           Int      @id @default(autoincrement())
+  businessId   Int      @map("business_id")
+  productId    Int      @map("product_id")
+  fromLocation String?  @map("from_location") @db.VarChar(100)
+  toLocation   String   @map("to_location") @db.VarChar(100)
+  quantity     Int
+  movementType String   @map("movement_type") @db.VarChar(50) // 'transfer', 'adjustment', 'initial_stock', 'sale'
+  reason       String?  @db.VarChar(255)
+  referenceId  String?  @map("reference_id") @db.VarChar(100) // Order ID, transfer ID, etc.
+  createdBy    Int      @map("created_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+  
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [createdBy], references: [id])
+
+  @@map("inventory_movements")
 }
 
 model Order {

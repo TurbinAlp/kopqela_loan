@@ -28,8 +28,7 @@ const productSchema = z.object({
   // Inventory data
   quantity: z.number().min(0).optional().default(0),
   reorderPoint: z.number().min(0).optional(),
-  maxStock: z.number().min(0).optional(),
-  location: z.string().max(100).optional()
+  maxStock: z.number().min(0).optional()
 })
 
 // Search and filter schema
@@ -332,7 +331,7 @@ export async function POST(
       name, nameSwahili, description, categoryId, sku, barcode,
       price, wholesalePrice, costPrice, unit,
       specifications, seoTitle, seoDescription, seoKeywords, variations,
-      quantity, reorderPoint, maxStock, location
+      quantity, reorderPoint, maxStock
     } = validationResult.data
 
     // Check if category exists (if provided)
@@ -395,7 +394,7 @@ export async function POST(
         }
       })
 
-      // Create inventory record
+      // Create inventory record in main_store by default
       await tx.inventory.create({
         data: {
           businessId: business.id,
@@ -403,9 +402,12 @@ export async function POST(
           quantity: quantity || 0,
           reorderPoint,
           maxStock,
-          location
+          location: 'main_store' // Always create in main_store first
         }
       })
+
+      // Skip movement record for now - will be added after server restart  
+      // TODO: Add inventory movement record after Prisma client regeneration
 
       return newProduct
     })

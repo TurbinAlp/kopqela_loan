@@ -26,7 +26,6 @@ interface ProductFormData {
   minimumStock: string
   reorderLevel: string
   maxStock: string
-  location: string
   stockAlerts: boolean
 
   isDraft?: boolean
@@ -341,7 +340,6 @@ export function useProductManagement() {
         minimumStock: formData.minimumStock ? parseInt(formData.minimumStock) : undefined,
         reorderLevel: formData.reorderLevel ? parseInt(formData.reorderLevel) : undefined,
         maxStock: formData.maxStock ? parseInt(formData.maxStock) : undefined,
-        location: formData.location || undefined,
         stockAlerts: formData.stockAlerts,
 
         images: imagesData.length > 0 ? imagesData : undefined, // New: Multiple images

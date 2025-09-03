@@ -38,7 +38,6 @@ interface ProductForm {
   minimumStock: string
   reorderLevel: string
   maxStock: string
-  location: string
   stockAlerts: boolean
   images: File[]
   primaryImageIndex: number
@@ -84,7 +83,6 @@ export default function AddEditProductPage() {
     minimumStock: '',
     reorderLevel: '',
     maxStock: '',
-    location: '',
     stockAlerts: true,
     images: [],
     primaryImageIndex: 0
@@ -184,7 +182,6 @@ export default function AddEditProductPage() {
       minimumStock: "Minimum Stock Level",
       reorderLevel: "Reorder Level",
       maxStock: "Maximum Stock Level",
-      location: "Storage Location",
       stockAlerts: "Enable Stock Alerts",
       stockAlertsDesc: "Get notified when stock falls below minimum level",
       
@@ -265,7 +262,6 @@ export default function AddEditProductPage() {
       minimumStock: "Kiwango cha Hisa Kidogo",
       reorderLevel: "Kiwango cha Kuagiza Upya",
       maxStock: "Kiwango cha Juu cha Hisa",
-      location: "Mahali pa Uhifadhi",
       stockAlerts: "Wezesha Arifa za Hisa",
       stockAlertsDesc: "Pata arifa wakati hisa inapungua chini ya kiwango",
       
@@ -937,8 +933,8 @@ export default function AddEditProductPage() {
                   </div>
                 </div>
 
-                {/* Max Stock & Location */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Max Stock */}
+                <div className="grid grid-cols-1 gap-4">
                   <div className="min-w-0">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       {t.maxStock}
@@ -950,18 +946,9 @@ export default function AddEditProductPage() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
                       placeholder="1000"
                     />
-                  </div>
-                  <div className="min-w-0">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t.location}
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.location}
-                      onChange={(e) => handleInputChange('location', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
-                      placeholder={language === 'en' ? 'e.g. Warehouse A, Shelf 1' : 'mfano: Ghala A, Rafu 1'}
-                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      {language === 'en' ? 'All products start in Main Store. Use Transfer feature to move to Retail Store.' : 'Bidhaa zote zinaanza Main Store. Tumia Transfer kuhamisha kwenda Retail Store.'}
+                    </p>
                   </div>
                 </div>
 

@@ -1,5 +1,3 @@
-'use client'
-
 import { invalidateDashboardCache } from '../hooks/useDashboardData'
 import { ProductsCacheInvalidator } from '../hooks/useProductsData'
 import { CustomersCacheInvalidator } from '../hooks/useCustomersData'

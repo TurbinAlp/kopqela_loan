@@ -287,17 +287,59 @@ export async function POST(request: NextRequest) {
         data: orderItemsData
       })
 
-      // Update inventory
+      // Update inventory - deduct only from retail_store
       for (const item of items) {
-        await tx.inventory.updateMany({
+        // Check if product exists in retail_store
+        const retailInventory = await tx.inventory.findUnique({
           where: {
-            businessId,
-            productId: item.productId
+            businessId_productId_location: {
+              businessId,
+              productId: item.productId,
+              location: 'retail_store'
+            }
+          }
+        })
+
+        if (!retailInventory) {
+          throw new Error(`Product ${item.productId} not available in retail store`)
+        }
+
+        if (retailInventory.quantity < item.quantity) {
+          const product = await tx.product.findUnique({
+            where: { id: item.productId },
+            select: { name: true }
+          })
+          throw new Error(`Insufficient stock for ${product?.name}. Available: ${retailInventory.quantity}, Requested: ${item.quantity}`)
+        }
+
+        // Deduct from retail_store only
+        await tx.inventory.update({
+          where: {
+            businessId_productId_location: {
+              businessId,
+              productId: item.productId,
+              location: 'retail_store'
+            }
           },
           data: {
             quantity: {
               decrement: item.quantity
             }
+          }
+        })
+
+        // Create movement record for sale
+        await tx.inventoryMovement.create({
+          data: {
+            businessId,
+            productId: item.productId,
+            fromLocation: 'retail_store',
+            toLocation: null, // Sale has no destination
+            quantity: item.quantity,
+            movementType: 'sale',
+            reason: `Sale - Order ${order.orderNumber}`,
+            referenceId: order.orderNumber,
+            createdBy: 1 // TODO: Get from auth context
           }
         })
       }
