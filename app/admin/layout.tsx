@@ -40,7 +40,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [expandedItems, setExpandedItems] = useState<string[]>(() => {
     // Auto-expand items based on current route
     const expanded = []
-    if (pathname.startsWith('/admin/products')) {
+    if (pathname.startsWith('/admin/products') || pathname.startsWith('/admin/inventory')) {
       expanded.push('products')
     }
     if (pathname.startsWith('/admin/settings')) {
@@ -84,7 +84,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       businessReports: 'Business Reports',
       userManagement: 'User Management',
       notifications: 'Notifications',
-      accessControl: 'Access Control'
+      accessControl: 'Access Control',
+      movementHistory: 'Movement History'
     },
     sw: {
       dashboard: "Dashibodi",
@@ -114,7 +115,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       businessReports: 'Ripoti za Biashara',
       userManagement: 'Usimamizi wa Watumiaji',
       notifications: 'Arifa',
-      accessControl: 'Udhibiti wa Ufikiaji'
+      accessControl: 'Udhibiti wa Ufikiaji',
+      movementHistory: 'Historia ya Mabadiliko'
     }
   }
 
@@ -129,7 +131,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       subItems: [
         { name: t.allProducts, href: "/admin/products" },
         { name: t.categories, href: "/admin/products/categories" },
-        { name: t.addProduct, href: "/admin/products/add" }
+        { name: t.addProduct, href: "/admin/products/add" },
+        { name: t.movementHistory, href: "/admin/inventory/movements" }
       ]
     },
     { name: t.sales, icon: DocumentChartBarIcon, href: "/admin/sales" },

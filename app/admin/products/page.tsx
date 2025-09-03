@@ -16,7 +16,8 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   FunnelIcon,
-  ArrowRightIcon
+  ArrowRightIcon,
+  ArchiveBoxArrowDownIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useBusiness } from '../../contexts/BusinessContext'
@@ -165,6 +166,9 @@ export default function ProductsPage() {
       mainStore: "Main Store",
       retailStore: "Retail Store",
       
+      // Links
+      viewMovements: "View Movement History",
+      
       // Pagination
       showing: "Showing",
       of: "of",
@@ -247,6 +251,9 @@ export default function ProductsPage() {
       // Locations
       mainStore: "Hifadhi Kuu",
       retailStore: "Duka la Nje",
+      
+      // Links
+      viewMovements: "Angalia Historia ya Mabadiliko",
       
       // Pagination
       showing: "Inaonyesha",
@@ -579,6 +586,14 @@ export default function ProductsPage() {
             </svg>
             <span className="hidden sm:inline">{isLoading ? 'Refreshing...' : 'Refresh'}</span>
           </button>
+          
+          <Link
+            href="/admin/inventory/movements"
+            className="flex items-center space-x-2 px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md transition-colors text-sm"
+          >
+            <ArchiveBoxArrowDownIcon className="w-4 h-4" />
+            <span className="hidden sm:inline">{t.viewMovements}</span>
+          </Link>
           
           <Link
             href="/admin/products/add"

@@ -1,15 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { 
   ArrowRightIcon,
   FunnelIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  MagnifyingGlassIcon,
-  ArchiveBoxIcon,
-  CalendarIcon
+  ArchiveBoxIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import { useBusiness } from '../../../contexts/BusinessContext'
@@ -26,7 +24,7 @@ interface InventoryMovement {
     name: string
     nameSwahili?: string
     sku?: string
-    imageUrl?: string
+    images?: { url: string }[]
   }
   fromLocation?: string
   toLocation: string
@@ -34,10 +32,11 @@ interface InventoryMovement {
   movementType: string
   reason?: string
   referenceId?: string
-  createdBy: {
+  user?: {
     id: number
-    name: string
-  }
+    firstName: string
+    lastName: string
+  } | null
   createdAt: string
 }
 
@@ -97,6 +96,7 @@ export default function StockMovementHistoryPage() {
       allLocations: 'All Locations',
       mainStore: 'Main Store',
       retailStore: 'Retail Store',
+      sold: 'Sold',
       
       // Movement types
       transfer: 'Transfer',
@@ -139,6 +139,7 @@ export default function StockMovementHistoryPage() {
       allLocations: 'Mahali Yote',
       mainStore: 'Hifadhi Kuu',
       retailStore: 'Duka la Nje',
+      sold: 'Imeuzwa',
       
       // Movement types
       transfer: 'Uhamishaji',
@@ -176,7 +177,7 @@ export default function StockMovementHistoryPage() {
     setMounted(true)
   }, [])
 
-  const fetchMovements = async () => {
+  const fetchMovements = useCallback(async () => {
     if (!currentBusiness) return
 
     setLoading(true)
@@ -211,13 +212,13 @@ export default function StockMovementHistoryPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [currentBusiness, currentPage, pagination.limit, movementType, fromLocation, toLocation, startDate, endDate, language, showError])
 
   useEffect(() => {
     if (currentBusiness && mounted) {
       fetchMovements()
     }
-  }, [currentBusiness, mounted, currentPage, movementType, fromLocation, toLocation, startDate, endDate])
+  }, [currentBusiness, mounted, fetchMovements])
 
   const clearFilters = () => {
     setMovementType('all')
@@ -242,7 +243,8 @@ export default function StockMovementHistoryPage() {
     if (!location) return '—'
     const locationMap: Record<string, string> = {
       main_store: t.mainStore,
-      retail_store: t.retailStore
+      retail_store: t.retailStore,
+      sold: t.sold
     }
     return locationMap[location] || location
   }
@@ -424,8 +426,8 @@ export default function StockMovementHistoryPage() {
                       <td className="py-4 px-6">
                         <div className="flex items-center space-x-3">
                           <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
-                            {movement.product.imageUrl ? (
-                              <Image src={movement.product.imageUrl} alt={movement.product.name} width={48} height={48} className="w-full h-full object-cover" />
+                            {movement.product.images?.[0]?.url ? (
+                              <Image src={movement.product.images[0].url} alt={movement.product.name} width={48} height={48} className="w-full h-full object-cover" />
                             ) : (
                               <ArchiveBoxIcon className="w-6 h-6 text-gray-500" />
                             )}
@@ -440,7 +442,7 @@ export default function StockMovementHistoryPage() {
                       </td>
                       <td className="py-4 px-6">
                         <div className="flex items-center space-x-2">
-                          <span className="text-sm text-gray-600">{formatLocation(movement.fromLocation)}</span>
+                          <span className="text-sm text-gray-600">{formatLocation(movement.fromLocation || null)}</span>
                           <ArrowRightIcon className="w-4 h-4 text-gray-400" />
                           <span className="text-sm font-medium text-gray-800">{formatLocation(movement.toLocation)}</span>
                         </div>
@@ -460,7 +462,9 @@ export default function StockMovementHistoryPage() {
                         )}
                       </td>
                       <td className="py-4 px-6">
-                        <span className="text-sm text-gray-700">{movement.createdBy.name}</span>
+                        <span className="text-sm text-gray-700">
+                          {movement.user ? `${movement.user.firstName} ${movement.user.lastName}` : '—'}
+                        </span>
                       </td>
                       <td className="py-4 px-6">
                         <span className="text-sm text-gray-600">{formatDate(movement.createdAt)}</span>
