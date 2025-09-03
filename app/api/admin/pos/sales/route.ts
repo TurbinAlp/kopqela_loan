@@ -301,15 +301,21 @@ export async function POST(request: NextRequest) {
         })
 
         if (!retailInventory) {
-          throw new Error(`Product ${item.productId} not available in retail store`)
+          const product = await tx.product.findUnique({
+            where: { id: item.productId },
+            select: { name: true, nameSwahili: true }
+          })
+          const productName = product?.nameSwahili || product?.name || `Product ${item.productId}`
+          throw new Error(`BIDHAA_HAIPO_DUKANI:${productName}`)
         }
 
         if (retailInventory.quantity < item.quantity) {
           const product = await tx.product.findUnique({
             where: { id: item.productId },
-            select: { name: true }
+            select: { name: true, nameSwahili: true }
           })
-          throw new Error(`Insufficient stock for ${product?.name}. Available: ${retailInventory.quantity}, Requested: ${item.quantity}`)
+          const productName = product?.nameSwahili || product?.name || `Product ${item.productId}`
+          throw new Error(`HISA_HAITOSHI:${productName}:${retailInventory.quantity}:${item.quantity}`)
         }
 
         // Deduct from retail_store only
@@ -334,7 +340,7 @@ export async function POST(request: NextRequest) {
             businessId,
             productId: item.productId,
             fromLocation: 'retail_store',
-            toLocation: null, // Sale has no destination
+            toLocation: 'sold', // Sale destination
             quantity: item.quantity,
             movementType: 'sale',
             reason: `Sale - Order ${order.orderNumber}`,
@@ -392,11 +398,44 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('POS Sales - Error creating sale:', error)
+    
+    // Handle custom business logic errors with user-friendly messages
+    if (error instanceof Error) {
+      const errorMessage = error.message
+      
+      // Product not available in retail store
+      if (errorMessage.startsWith('BIDHAA_HAIPO_DUKANI:')) {
+        const productName = errorMessage.split(':')[1]
+        return NextResponse.json({
+          success: false,
+          message: 'Bidhaa haipo kwenye duka',
+          details: `Bidhaa "${productName}" haipo kwenye duka la nje. Hamisha kwanza kutoka hifadhi kuu kwenda duka la nje ili uweze kuuza.`,
+          errorType: 'PRODUCT_NOT_IN_RETAIL',
+          productName
+        }, { status: 400 })
+      }
+      
+      // Insufficient stock
+      if (errorMessage.startsWith('HISA_HAITOSHI:')) {
+        const [, productName, available, requested] = errorMessage.split(':')
+        return NextResponse.json({
+          success: false,
+          message: 'Hisa haitoshi',
+          details: `Bidhaa "${productName}" haina hisa ya kutosha kwenye duka la nje. Inapatikana: ${available}, Inahitajika: ${requested}. Hamisha zaidi kutoka hifadhi kuu ili uweze kuuza.`,
+          errorType: 'INSUFFICIENT_STOCK',
+          productName,
+          available: parseInt(available),
+          requested: parseInt(requested)
+        }, { status: 400 })
+      }
+    }
+    
+    // Default Prisma error handling
     const prismaError = handlePrismaError(error)
     
     return NextResponse.json({
       success: false,
-      message: 'Failed to process sale',
+      message: 'Imeshindwa kuchakata mauzo',
       error: prismaError.message
     }, { status: 500 })
   }

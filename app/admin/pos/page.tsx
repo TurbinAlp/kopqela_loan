@@ -93,6 +93,19 @@ interface Transaction {
   creditPlan?: string
 }
 
+interface ApiErrorData {
+  message?: string
+  details?: string
+  errorType?: string
+  productName?: string
+  available?: number
+  requested?: number
+}
+
+interface EnhancedError extends Error {
+  apiData?: ApiErrorData
+}
+
 export default function POSSystem() {
   const { language } = useLanguage()
   const { currentBusiness } = useBusiness()
@@ -169,7 +182,12 @@ export default function POSSystem() {
       addCustomer: "Add New Customer",
       noBusinessSelected: "No business selected",
       authRequired: "Authentication Required",
-      loginToViewReceipt: "Please login to view receipt"
+      loginToViewReceipt: "Please login to view receipt",
+      paymentFailed: "Payment Failed",
+      paymentError: "Payment could not be processed. Please try again.",
+      saleComplete: "Sale Complete",
+      cartEmpty: "Please add items to cart before processing payment",
+      customerRequired: "Please select a customer"
     },
     sw: {
       pageTitle: "Mfumo wa Mauzo",
@@ -216,7 +234,12 @@ export default function POSSystem() {
       addCustomer: "Ongeza Mteja Mpya",
       noBusinessSelected: "Hakuna biashara iliyochaguliwa",
       authRequired: "Uhakikishaji Unahitajika",
-      loginToViewReceipt: "Tafadhali ingia ili kuona risiti"
+      loginToViewReceipt: "Tafadhali ingia ili kuona risiti",
+      paymentFailed: "Malipo Yameshindwa",
+      paymentError: "Malipo hayawezi kushughulikiwa. Tafadhali jaribu tena.",
+      saleComplete: "Uuzi Umekamilika",
+      cartEmpty: "Tafadhali ongeza bidhaa kwenye kart kabla ya kuchakua malipo",
+      customerRequired: "Tafadhali chagua mteja"
     }
   }
 
@@ -374,22 +397,22 @@ export default function POSSystem() {
   // Payment processing
   const processPayment = async () => {
     if (cart.length === 0) {
-      showError('Cart Empty', 'Please add items to cart before processing payment')
+      showError(t.paymentFailed, t.cartEmpty)
       return
     }
 
     if (!selectedCustomer){
-      showError('Customer Required', 'Please select a customer before processing payment')
+      showError(t.paymentFailed, t.customerRequired)
       return
     }
 
     if (paymentMethod === 'partial' && partialPercentage < 30) {
-      showError('Minimum Percentage Required', 'Partial payment must be at least 30% of total')
+      showError(t.paymentFailed, language === 'sw' ? 'Malipo ya sehemu lazima yawe angalau 30% ya jumla' : 'Partial payment must be at least 30% of total')
       return
     }
 
     if (paymentMethod === 'partial' && !dueDate) {
-      showError('Due Date Required', 'Please select a due date for the remaining balance')
+      showError(t.paymentFailed, language === 'sw' ? 'Tafadhali chagua tarehe ya kumaliza malipo' : 'Please select a due date for the remaining balance')
       return
     }
 
@@ -461,7 +484,10 @@ export default function POSSystem() {
       const result = await response.json()
 
       if (!response.ok || !result.success) {
-        throw new Error(result.message || 'Failed to process payment')
+        // Create enhanced error with API response data
+        const enhancedError = new Error(result.message || 'Failed to process payment') as EnhancedError
+        enhancedError.apiData = result
+        throw enhancedError
       }
       
       // Create transaction object for receipt
@@ -492,13 +518,38 @@ export default function POSSystem() {
       }
       
       setShowReceipt(true)
-      showSuccess('Payment Successful', `${t.paymentSuccessful} - Order #${result.data.orderNumber}`)
+      showSuccess(t.saleComplete, `${t.paymentSuccessful} - Order #${result.data.orderNumber}`)
       clearCart()
       
     } catch (error) {
       console.error('POS - Payment processing error:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Payment could not be processed. Please try again.'
-      showError('Payment Failed', errorMessage)
+      
+      // Handle API error responses with custom messages
+      if (error instanceof Error && (error as EnhancedError).apiData) {
+        const apiData = (error as EnhancedError).apiData!
+        
+        // Handle specific error types from our API
+        if (apiData.errorType === 'PRODUCT_NOT_IN_RETAIL') {
+          showError(t.paymentFailed, apiData.details || (language === 'sw' ? 
+            `Bidhaa "${apiData.productName || 'Unknown'}" haipo dukani. Hamisha kwanza kutoka hifadhi kuu.` :
+            `Product "${apiData.productName || 'Unknown'}" not available in retail store. Transfer from main store first.`))
+          return
+        }
+        
+        if (apiData.errorType === 'INSUFFICIENT_STOCK') {
+          showError(t.paymentFailed, apiData.details || (language === 'sw' ? 
+            `Bidhaa "${apiData.productName || 'Unknown'}" haina hisa(stock) ya kutosha. Inapatikana: ${apiData.available || 0}, Inahitajika: ${apiData.requested || 0}` :
+            `Insufficient stock for "${apiData.productName || 'Unknown'}". Available: ${apiData.available || 0}, Requested: ${apiData.requested || 0}`))
+          return
+        }
+        
+        // Generic API error message
+        showError(t.paymentFailed, apiData.message || apiData.details || t.paymentError)
+        return
+      }
+      
+      // Generic error message
+      showError(t.paymentFailed, t.paymentError)
     } finally {
       setIsProcessing(false)
     }
