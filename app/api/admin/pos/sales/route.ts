@@ -50,7 +50,8 @@ const posSalesSchema = z.object({
   // Transaction metadata
   transactionId: z.string().optional(),
   notes: z.string().optional(),
-  includeTax: z.boolean().default(false)
+  includeTax: z.boolean().default(false),
+  orderType: z.enum(['RETAIL', 'WHOLESALE']).default('RETAIL')
 })
 
 /**
@@ -99,6 +100,7 @@ export async function POST(request: NextRequest) {
       partialPayment,
       transactionId,
       notes,
+      orderType,
     } = validationResult.data
 
     // Verify business exists and user has access
@@ -230,7 +232,7 @@ export async function POST(request: NextRequest) {
             customerId,
             orderNumber,
             status: 'CONFIRMED',
-            orderType: 'RETAIL',
+            orderType: orderType,
             subtotal,
             taxAmount,
             discountAmount,
@@ -257,7 +259,7 @@ export async function POST(request: NextRequest) {
               customerId,
               orderNumber: fallbackOrderNumber,
               status: 'CONFIRMED',
-              orderType: 'RETAIL',
+              orderType: orderType,
               subtotal,
               taxAmount,
               discountAmount,
@@ -408,8 +410,7 @@ export async function POST(request: NextRequest) {
         const productName = errorMessage.split(':')[1]
         return NextResponse.json({
           success: false,
-          message: 'Bidhaa haipo kwenye duka',
-          details: `Bidhaa "${productName}" haipo kwenye duka la nje. Hamisha kwanza kutoka hifadhi kuu kwenda duka la nje ili uweze kuuza.`,
+          message: 'Product not available in retail location',
           errorType: 'PRODUCT_NOT_IN_RETAIL',
           productName
         }, { status: 400 })
@@ -420,8 +421,7 @@ export async function POST(request: NextRequest) {
         const [, productName, available, requested] = errorMessage.split(':')
         return NextResponse.json({
           success: false,
-          message: 'Hisa haitoshi',
-          details: `Bidhaa "${productName}" haina hisa ya kutosha kwenye duka la nje. Inapatikana: ${available}, Inahitajika: ${requested}. Hamisha zaidi kutoka hifadhi kuu ili uweze kuuza.`,
+          message: 'Insufficient stock in retail location',
           errorType: 'INSUFFICIENT_STOCK',
           productName,
           available: parseInt(available),
@@ -435,7 +435,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({
       success: false,
-      message: 'Imeshindwa kuchakata mauzo',
+      message: 'Failed to process sale',
       error: prismaError.message
     }, { status: 500 })
   }
@@ -482,7 +482,7 @@ export async function GET(request: NextRequest) {
     const orders = await prisma.order.findMany({
       where: {
         businessId: parseInt(businessId),
-        orderType: 'RETAIL',
+        // Show all order types in POS sales history
         ...(Object.keys(dateFilter).length > 0 && {
           orderDate: dateFilter
         })
@@ -518,7 +518,7 @@ export async function GET(request: NextRequest) {
     const totalCount = await prisma.order.count({
       where: {
         businessId: parseInt(businessId),
-        orderType: 'RETAIL',
+        // Count all order types
         ...(Object.keys(dateFilter).length > 0 && {
           orderDate: dateFilter
         })

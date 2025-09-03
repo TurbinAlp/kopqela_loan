@@ -135,6 +135,7 @@ export default function POSSystem() {
   const [showCustomerModal, setShowCustomerModal] = useState(false)
   const [includeTax, setIncludeTax] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(true)
+  const [orderType, setOrderType] = useState<'RETAIL' | 'WHOLESALE'>('RETAIL')
   
   const translations = {
     en: {
@@ -187,7 +188,12 @@ export default function POSSystem() {
       paymentError: "Payment could not be processed. Please try again.",
       saleComplete: "Sale Complete",
       cartEmpty: "Please add items to cart before processing payment",
-      customerRequired: "Please select a customer"
+      customerRequired: "Please select a customer",
+      orderType: "Order Type",
+      retail: "Retail Sale",
+      wholesale: "Wholesale",
+      productNotInRetail: "Product not available in retail store. Transfer from main store first.",
+      insufficientStock: "Insufficient stock in retail store. Available: {available}, Requested: {requested}. Transfer more from main store."
     },
     sw: {
       pageTitle: "Mfumo wa Mauzo",
@@ -239,7 +245,12 @@ export default function POSSystem() {
       paymentError: "Malipo hayawezi kushughulikiwa. Tafadhali jaribu tena.",
       saleComplete: "Uuzi Umekamilika",
       cartEmpty: "Tafadhali ongeza bidhaa kwenye kart kabla ya kuchakua malipo",
-      customerRequired: "Tafadhali chagua mteja"
+      customerRequired: "Tafadhali chagua mteja",
+      orderType: "Aina ya Agizo",
+      retail: "Uuzaji wa Reja Reja",
+      wholesale: "Uuzaji wa Jumla",
+      productNotInRetail: "Bidhaa haipo dukani. Hamisha kwanza kutoka hifadhi kuu.",
+      insufficientStock: "Hisa haitoshi dukani. Inapatikana: {available}, Inahitajika: {requested}. Hamisha zaidi kutoka hifadhi kuu."
     }
   }
 
@@ -469,7 +480,8 @@ export default function POSSystem() {
         }),
         transactionId: `TXN-${Date.now()}`,
         notes: paymentMethod === 'partial' ? `Partial payment: ${currentPartialPercentage}%` : undefined,
-        includeTax: includeTax
+        includeTax: includeTax,
+        orderType: orderType
       }
 
       // Call POS Sales API
@@ -530,16 +542,16 @@ export default function POSSystem() {
         
         // Handle specific error types from our API
         if (apiData.errorType === 'PRODUCT_NOT_IN_RETAIL') {
-          showError(t.paymentFailed, apiData.details || (language === 'sw' ? 
-            `Bidhaa "${apiData.productName || 'Unknown'}" haipo dukani. Hamisha kwanza kutoka hifadhi kuu.` :
-            `Product "${apiData.productName || 'Unknown'}" not available in retail store. Transfer from main store first.`))
+          const message = `${apiData.productName || 'Unknown'}: ${t.productNotInRetail}`
+          showError(t.paymentFailed, message)
           return
         }
         
         if (apiData.errorType === 'INSUFFICIENT_STOCK') {
-          showError(t.paymentFailed, apiData.details || (language === 'sw' ? 
-            `Bidhaa "${apiData.productName || 'Unknown'}" haina hisa(stock) ya kutosha. Inapatikana: ${apiData.available || 0}, Inahitajika: ${apiData.requested || 0}` :
-            `Insufficient stock for "${apiData.productName || 'Unknown'}". Available: ${apiData.available || 0}, Requested: ${apiData.requested || 0}`))
+          const message = t.insufficientStock
+            .replace('{available}', (apiData.available || 0).toString())
+            .replace('{requested}', (apiData.requested || 0).toString())
+          showError(t.paymentFailed, `${apiData.productName || 'Unknown'}: ${message}`)
           return
         }
         
@@ -592,6 +604,38 @@ export default function POSSystem() {
               onSelectCustomer={selectCustomer}
               onAddCustomerClick={() => setShowCustomerModal(true)}
             />
+
+            {/* Order Type Selection */}
+            <div className="bg-white rounded-xl p-6 shadow-sm">
+              <h3 className="font-semibold mb-4 flex items-center text-gray-900">
+                <svg className="w-5 h-5 mr-2 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                {t.orderType}
+              </h3>
+              
+              <div className="flex gap-2">
+                {[
+                  { value: 'RETAIL', label: t.retail, icon: '🏪' },
+                  { value: 'WHOLESALE', label: t.wholesale, icon: '🏭' }
+                ].map((type) => (
+                  <button
+                    key={type.value}
+                    onClick={() => setOrderType(type.value as 'RETAIL' | 'WHOLESALE')}
+                    className={`flex-1 px-3 py-2 rounded-lg border text-center transition-all text-xs ${
+                      orderType === type.value
+                        ? 'border-teal-500 bg-teal-50 text-teal-800'
+                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center space-x-1">
+                      <span className="text-sm">{type.icon}</span>
+                      <span className="font-medium">{type.label}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <CartSection
               cart={cart}
