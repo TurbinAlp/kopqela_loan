@@ -5,6 +5,8 @@ import { LanguageProvider } from "./contexts/LanguageContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import ToastContainer from "./components/notifications/ToastContainer";
 import { AuthProvider } from "./components/providers/AuthProvider";
+import LoadingBar from "./components/ui/LoadingBar";
+import { LoadingBarProvider } from "./components/ui/LoadingBarProvider";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -43,14 +45,17 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>
-          <LanguageProvider>
-            <NotificationProvider>
-              {children}
-              <ToastContainer />
-            </NotificationProvider>
-          </LanguageProvider>
-        </AuthProvider>
+        <LoadingBarProvider>
+          <LoadingBar />
+          <AuthProvider>
+            <LanguageProvider>
+              <NotificationProvider>
+                {children}
+                <ToastContainer />
+              </NotificationProvider>
+            </LanguageProvider>
+          </AuthProvider>
+        </LoadingBarProvider>
       </body>
     </html>
   );

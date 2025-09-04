@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import LoadingLink from '../components/ui/LoadingLink'
 import { 
   Bars3Icon,
   XMarkIcon,
@@ -335,7 +335,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   {(isItemExpanded(item.name) || pathname.startsWith(item.href)) && (
                     <div className="ml-8 mb-2">
                       {item.subItems.map((subItem, subIndex) => (
-                        <Link
+                        <LoadingLink
                           key={subItem.name}
                           href={subItem.href}
                         >
@@ -351,14 +351,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                           >
                             {subItem.name}
                           </motion.div>
-                        </Link>
+                        </LoadingLink>
                       ))}
                     </div>
                   )}
                 </>
               ) : (
                 // Regular menu item
-                <Link href={item.href}>
+                <LoadingLink href={item.href}>
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -372,7 +372,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     <item.icon className="w-5 h-5" />
                     <span>{item.name}</span>
                   </motion.div>
-                </Link>
+                </LoadingLink>
               )}
             </div>
           ))}

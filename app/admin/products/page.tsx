@@ -24,6 +24,7 @@ import { useBusiness } from '../../contexts/BusinessContext'
 import { useRequireAdminAuth } from '../../hooks/useRequireAuth'
 import { useProductsData, ProductsCacheInvalidator } from '../../hooks/useProductsData'
 import Link from 'next/link'
+import LoadingLink from '../../components/ui/LoadingLink'
 import Image from 'next/image'
 import DeleteConfirmModal from '../../components/ui/DeleteConfirmModal'
 import SuccessModal from '../../components/ui/SuccessModal'
@@ -587,21 +588,21 @@ export default function ProductsPage() {
             <span className="hidden sm:inline">{isLoading ? 'Refreshing...' : 'Refresh'}</span>
           </button>
           
-          <Link
-            href="/admin/inventory/movements"
-            className="flex items-center space-x-2 px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md transition-colors text-sm"
-          >
-            <ArchiveBoxArrowDownIcon className="w-4 h-4" />
-            <span className="hidden sm:inline">{t.viewMovements}</span>
-          </Link>
-          
-          <Link
-            href="/admin/products/add"
-            className="flex items-center space-x-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-md transition-colors text-sm font-medium"
-          >
-            <PlusIcon className="w-4 h-4" />
-            <span>{t.addProduct}</span>
-          </Link>
+                     <LoadingLink
+             href="/admin/inventory/movements"
+             className="flex items-center space-x-2 px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md transition-colors text-sm"
+           >
+             <ArchiveBoxArrowDownIcon className="w-4 h-4" />
+             <span className="hidden sm:inline">{t.viewMovements}</span>
+           </LoadingLink>
+           
+           <LoadingLink
+             href="/admin/products/add"
+             className="flex items-center space-x-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-md transition-colors text-sm font-medium"
+           >
+             <PlusIcon className="w-4 h-4" />
+             <span>{t.addProduct}</span>
+           </LoadingLink>
         </div>
 
         {/* Cache Status */}
@@ -1154,27 +1155,27 @@ export default function ProductsPage() {
                       })()}
                     </td>
                     <td className="py-4 px-6">
-                      <div className="flex items-center justify-center space-x-2">
-                        <Link href={`/admin/products/${product.id}`}>
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title={t.view}
-                          >
-                            <EyeIcon className="w-4 h-4" />
-                          </motion.button>
-                        </Link>
-                        <Link href={`/admin/products/${product.id}/edit`}>
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                            title={t.edit}
-                          >
-                            <PencilIcon className="w-4 h-4" />
-                          </motion.button>
-                        </Link>
+                                             <div className="flex items-center justify-center space-x-2">
+                         <LoadingLink href={`/admin/products/${product.id}`}>
+                           <motion.button
+                             whileHover={{ scale: 1.1 }}
+                             whileTap={{ scale: 0.9 }}
+                             className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                             title={t.view}
+                           >
+                             <EyeIcon className="w-4 h-4" />
+                           </motion.button>
+                         </LoadingLink>
+                         <LoadingLink href={`/admin/products/${product.id}/edit`}>
+                           <motion.button
+                             whileHover={{ scale: 1.1 }}
+                             whileTap={{ scale: 0.9 }}
+                             className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                             title={t.edit}
+                           >
+                             <PencilIcon className="w-4 h-4" />
+                           </motion.button>
+                         </LoadingLink>
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
@@ -1290,27 +1291,27 @@ export default function ProductsPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                <Link href={`/admin/products/${product.id}`}>
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                    title={t.view}
-                  >
-                    <EyeIcon className="w-4 h-4" />
-                  </motion.button>
-                </Link>
-                <Link href={`/admin/products/${product.id}/edit`}>
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                    title={t.edit}
-                  >
-                    <PencilIcon className="w-4 h-4" />
-                  </motion.button>
-                </Link>
+                             <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                 <LoadingLink href={`/admin/products/${product.id}`}>
+                   <motion.button
+                     whileHover={{ scale: 1.1 }}
+                     whileTap={{ scale: 0.9 }}
+                     className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                     title={t.view}
+                   >
+                     <EyeIcon className="w-4 h-4" />
+                   </motion.button>
+                 </LoadingLink>
+                 <LoadingLink href={`/admin/products/${product.id}/edit`}>
+                   <motion.button
+                     whileHover={{ scale: 1.1 }}
+                     whileTap={{ scale: 0.9 }}
+                     className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                     title={t.edit}
+                   >
+                     <PencilIcon className="w-4 h-4" />
+                   </motion.button>
+                 </LoadingLink>
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
