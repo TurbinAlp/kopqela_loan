@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import LoadingLink from '../components/ui/LoadingLink'
@@ -21,6 +21,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../contexts/LanguageContext'
 import { BusinessProvider } from '../contexts/BusinessContext'
+import { SidebarProvider, useSidebar } from '../contexts/SidebarContext'
 import { usePathname } from 'next/navigation'
 import NotificationCenter from '../components/notifications/NotificationCenter'
 import GlobalSearch from '../components/search/GlobalSearch'
@@ -32,11 +33,25 @@ interface AdminLayoutProps {
   children: React.ReactNode
 }
 
-export default function AdminLayout({ children }: AdminLayoutProps) {
+// Main admin layout content component
+function AdminLayoutContent({ children }: AdminLayoutProps) {
   const { language, setLanguage } = useLanguage()
   const pathname = usePathname()
   const router = useRouter()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { sidebarOpen, setSidebarOpen, closeSidebar } = useSidebar()
+  
+  // Listen for close sidebar events (from LoadingLink)
+  useEffect(() => {
+    const handleCloseSidebar = () => {
+      closeSidebar()
+    }
+    
+    window.addEventListener('closeSidebar', handleCloseSidebar)
+    return () => {
+      window.removeEventListener('closeSidebar', handleCloseSidebar)
+    }
+  }, [closeSidebar])
+
   const [expandedItems, setExpandedItems] = useState<string[]>(() => {
     // Auto-expand items based on current route
     const expanded = []
@@ -284,10 +299,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   return (
-    <BusinessProvider>
-      <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 flex flex-col`}>
         {/* Logo */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
           <div className="flex items-center space-x-3">
@@ -305,7 +319,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="mt-6 px-3">
+        <nav className="flex-1 overflow-y-auto mt-6 px-3 pb-6 sidebar-scroll">
           {sidebarItems.map((item, index) => (
             <div key={item.name}>
               {item.subItems ? (
@@ -338,6 +352,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                         <LoadingLink
                           key={subItem.name}
                           href={subItem.href}
+                          closeSidebarOnMobile={true}
                         >
                           <motion.div
                             initial={{ opacity: 0, x: -10 }}
@@ -358,7 +373,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </>
               ) : (
                 // Regular menu item
-                <LoadingLink href={item.href}>
+                <LoadingLink href={item.href} closeSidebarOnMobile={true}>
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -482,6 +497,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       
 
     </div>
+  )
+}
+
+// Main export component with providers
+export default function AdminLayout({ children }: AdminLayoutProps) {
+  return (
+    <BusinessProvider>
+      <SidebarProvider>
+        <AdminLayoutContent>{children}</AdminLayoutContent>
+      </SidebarProvider>
     </BusinessProvider>
   )
 }
