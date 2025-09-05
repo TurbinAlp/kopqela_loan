@@ -48,6 +48,14 @@ export const authOptions: NextAuthOptions = {
           }
 
           if (!user.isVerified) {
+            // Return null but we'll handle this in signIn callback
+            console.log('User not verified:', user.email)
+            return null
+          }
+
+          if (!user.isActive) {
+            // Return null but we'll handle this in signIn callback  
+            console.log('User not active:', user.email)
             return null
           }
 

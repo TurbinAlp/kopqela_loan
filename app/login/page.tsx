@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline'
 import { useLanguage, LanguageToggle } from '../contexts/LanguageContext'
@@ -11,8 +12,9 @@ import Spinner from '../components/ui/Spinner'
 
 export default function LoginPage() {
   const { language } = useLanguage()
-  const { showError } = useNotifications()
+  const { showError, showSuccess } = useNotifications()
   const { isLoading: authLoading } = useAuthRedirect()
+  const searchParams = useSearchParams()
   const [isVisible, setIsVisible] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
@@ -25,7 +27,16 @@ export default function LoginPage() {
   // Animated entrance effect
   useEffect(() => {
     setIsVisible(true)
-  }, [])
+    
+    // Check if user just verified their email
+    const verified = searchParams.get('verified')
+    if (verified === 'true') {
+      showSuccess(
+        language === 'en' ? 'Email Verified!' : 'Barua Pepe Imehakikiwa!',
+        language === 'en' ? 'Your account has been verified. You can now login.' : 'Akaunti yako imehakikiwa. Sasa unaweza kuingia.'
+      )
+    }
+  }, [searchParams, language, showSuccess])
 
   // Language translations
   const translations = {
@@ -97,6 +108,39 @@ export default function LoginPage() {
     setIsLoading(true)
     
     try {
+      // First, check credentials and verification status
+      const checkResponse = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      })
+
+      const checkData = await checkResponse.json()
+
+      if (!checkData.success) {
+        if (checkData.error === 'UNVERIFIED_EMAIL') {
+          // Redirect to existing verification page
+          window.location.href = `/register?email=${encodeURIComponent(email)}`
+          return
+        } else if (checkData.error === 'ACCOUNT_INACTIVE') {
+          showError(
+            language === 'en' ? 'Account Inactive' : 'Akaunti Haifanyi Kazi',
+            language === 'en' ? 'Your account is not active. Please contact your administrator or verify your email.' : 'Akaunti yako haifanyi kazi. Wasiliana na msimamizi wako au hakiki barua pepe yako.'
+          )
+          return
+        } else {
+          // Invalid credentials or other error
+          showError(
+            language === 'en' ? 'Login Failed' : 'Kuingia Kumeshindwa',
+            language === 'en' ? 'Invalid email or password. Please check your credentials.' : 'Email au nenosiri sio sahihi. Angalia taarifa zako.'
+          )
+          return
+        }
+      }
+
+      // If check passed, proceed with NextAuth
       const result = await signIn('credentials', {
         email,
         password,
@@ -105,18 +149,11 @@ export default function LoginPage() {
       })
 
       if (result?.error) {
-        // Handle different error types
-        if (result.error === 'CredentialsSignin') {
-          showError(
-            language === 'en' ? 'Login Failed' : 'Kuingia Kumeshindwa',
-            language === 'en' ? 'Invalid email or password. Please check your credentials.' : 'Email au nenosiri sio sahihi. Angalia taarifa zako.'
-          )
-        } else {
-          showError(
-            language === 'en' ? 'Login Failed' : 'Kuingia Kumeshindwa',
-            result.error
-          )
-        }
+        // Handle NextAuth errors (should be rare now)
+        showError(
+          language === 'en' ? 'Login Failed' : 'Kuingia Kumeshindwa',
+          language === 'en' ? 'Authentication failed. Please try again.' : 'Uthibitisho umeshindwa. Jaribu tena.'
+        )
       } else if (result?.ok) {
         // Login successful, redirect manually
         window.location.href = result.url || '/admin/dashboard'

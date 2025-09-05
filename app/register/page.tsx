@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   EyeIcon, 
@@ -23,6 +24,7 @@ export default function RegisterPage() {
   const { language } = useLanguage()
   const { showWarning, showError, showSuccess } = useNotifications()
   const { isLoading: authLoading } = useAuthRedirect()
+  const searchParams = useSearchParams()
   const [currentStep, setCurrentStep] = useState<RegistrationStep>('method')
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
@@ -52,7 +54,15 @@ export default function RegisterPage() {
 
   useEffect(() => {
     setIsVisible(true)
-  }, [])
+    
+    // Check if user came from employee invitation
+    const emailParam = searchParams.get('email')
+    if (emailParam) {
+      // If email is provided, this is likely an employee verification
+      setFormData(prev => ({ ...prev, email: emailParam }))
+      setCurrentStep('verification') // Skip to verification step
+    }
+  }, [searchParams])
 
   useEffect(() => {
     let interval: NodeJS.Timeout

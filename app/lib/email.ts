@@ -32,6 +32,16 @@ interface PasswordResetEmailData {
   businessName?: string
 }
 
+interface EmployeeInvitationEmailData {
+  name: string
+  email: string
+  code: string
+  businessName: string
+  role: string
+  invitedBy: string
+}
+
+
 // Email configuration with better defaults
 const emailConfig: EmailConfig = {
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -352,4 +362,173 @@ export async function sendPasswordResetEmail(data: PasswordResetEmailData): Prom
     }
     return false
   }
-} 
+}
+
+// Send employee invitation email
+export async function sendEmployeeInvitationEmail(data: EmployeeInvitationEmailData): Promise<boolean> {
+  try {
+    // Check if email is properly configured
+    if (!emailConfig.auth.user || !emailConfig.auth.pass) {
+      console.warn('Email credentials not configured. Logging verification code instead:', data.code)
+      console.log(`Employee invitation code for ${data.email}: ${data.code}`)
+      return true // Return true for development
+    }
+
+    const roleNames = {
+      'ADMIN': 'Administrator',
+      'MANAGER': 'Manager', 
+      'CASHIER': 'Cashier'
+    }
+    
+    const roleName = roleNames[data.role as keyof typeof roleNames] || data.role
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Welcome to ${data.businessName} - Koppela</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { text-align: center; margin-bottom: 30px; }
+          .logo { font-size: 28px; font-weight: bold; color: #14b8a6; }
+          .verification-code { 
+            background: #f0fdfa; 
+            border: 2px solid #14b8a6; 
+            border-radius: 8px; 
+            padding: 20px; 
+            text-align: center; 
+            margin: 20px 0; 
+          }
+          .code { 
+            font-size: 32px; 
+            font-weight: bold; 
+            color: #14b8a6; 
+            letter-spacing: 5px; 
+          }
+          .credentials-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+          }
+          .button { 
+            display: inline-block; 
+            background: #14b8a6; 
+            color: white; 
+            padding: 12px 24px; 
+            text-decoration: none; 
+            border-radius: 6px; 
+            margin: 20px 0; 
+          }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">KOPPELA</div>
+            <h1>Welcome to ${data.businessName}!</h1>
+          </div>
+          
+          <p>Hi ${data.name},</p>
+          
+          <p>You have been invited by <strong>${data.invitedBy}</strong> to join <strong>${data.businessName}</strong> as a <strong>${roleName}</strong> on the Koppela platform.</p>
+          
+          <p>To complete your account setup and verify your email address, please use the verification code below:</p>
+          
+          <div class="verification-code">
+            <p><strong>Your Verification Code:</strong></p>
+            <div class="code">${data.code}</div>
+          </div>
+          
+          <div class="credentials-box">
+            <h3>Your Login Credentials:</h3>
+            <p><strong>Email:</strong> ${data.email}</p>
+            <p><strong>Password:</strong> Set by administrator</p>
+            <p><em>You will be required to change this password after your first login.</em></p>
+          </div>
+          
+          <div style="text-align: center;">
+            <a href="${process.env.NEXT_PUBLIC_APP_URL}/register?email=${encodeURIComponent(data.email)}" class="button">Verify Your Account</a>
+          </div>
+          
+          <p>This verification code will expire in 24 hours for security reasons.</p>
+          
+          <p>As a <strong>${roleName}</strong>, you will have access to:</p>
+          <ul>
+            ${data.role === 'ADMIN' ? `
+            <li>Full system administration</li>
+            <li>User management and permissions</li>
+            <li>Business settings and configuration</li>
+            <li>Reports and analytics</li>
+            ` : data.role === 'MANAGER' ? `
+            <li>Sales and inventory management</li>
+            <li>Customer management</li>
+            <li>Reports and analytics</li>
+            <li>Employee oversight</li>
+            ` : `
+            <li>Point of sale operations</li>
+            <li>Customer service</li>
+            <li>Order processing</li>
+            <li>Payment collection</li>
+            `}
+          </ul>
+          
+          <p>If you have any questions or need assistance, please contact your administrator.</p>
+          
+          <p>Welcome to the team!</p>
+          
+          <div class="footer">
+            <p>© 2025 Koppela. All rights reserved.</p>
+            <p>This is an automated email, please do not reply.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `
+
+    const textContent = `
+      Hi ${data.name},
+      
+      You have been invited by ${data.invitedBy} to join ${data.businessName} as a ${roleName} on the Koppela platform.
+      
+      Your verification code is: ${data.code}
+      
+      Your login credentials:
+      Email: ${data.email}
+      Password: Set by administrator (change after first login)
+      
+      Verify your account at: ${process.env.NEXT_PUBLIC_APP_URL}/register?email=${encodeURIComponent(data.email)}
+      
+      This code will expire in 24 hours.
+      
+      Welcome to the team!
+      
+      © 2025 Koppela. All rights reserved.
+    `
+
+    const mailOptions = {
+      from: `"Koppela" <${emailConfig.auth.user}>`,
+      to: data.email,
+      subject: `Welcome to ${data.businessName} - Verify Your Account`,
+      text: textContent,
+      html: htmlContent
+    }
+
+    await transporter.sendMail(mailOptions)
+    console.log('Employee invitation email sent successfully to:', data.email)
+    return true
+  } catch (error) {
+    console.error('Error sending employee invitation email:', error)
+    // For development, log the code even if email fails
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Employee invitation code for ${data.email}: ${data.code}`)
+      return true
+    }
+    return false
+  }
+}

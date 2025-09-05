@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma, handlePrismaError } from '../../../lib/prisma'
 import { getAuthContext, hasPermission } from '../../../lib/rbac/middleware'
 import { Resource, Action } from '../../../lib/rbac/permissions'
+import { sendEmployeeInvitationEmail } from '../../../lib/email'
 import bcrypt from 'bcryptjs'
 
 /**
@@ -245,6 +246,10 @@ export async function POST(request: NextRequest) {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10)
 
+    // Generate verification code
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString()
+    const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+
     // Create user
     const newUser = await prisma.user.create({
       data: {
@@ -254,8 +259,10 @@ export async function POST(request: NextRequest) {
         phone,
         passwordHash,
         role,
-        isVerified: true, // Since admin is creating, mark as verified
-        isActive: true
+        isVerified: false, // Require email verification for employees
+        isActive: false, // Activate after verification
+        verificationCode,
+        verificationExpiresAt
       },
       select: {
         id: true,
@@ -316,11 +323,32 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // Get current user (admin who created the employee) and business info
+    const currentUser = await prisma.user.findUnique({
+      where: { id: authContext.userId },
+      select: { firstName: true, lastName: true }
+    })
+
+    // Send invitation email
+    try {
+      await sendEmployeeInvitationEmail({
+        name: `${newUser.firstName} ${newUser.lastName}`,
+        email: newUser.email,
+        code: verificationCode,
+        businessName: business.name,
+        role: newUser.role,
+        invitedBy: currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'Administrator'
+      })
+    } catch (emailError) {
+      console.error('Failed to send invitation email:', emailError)
+      // Don't fail user creation if email fails
+    }
+
     // Format response
     const responseUser = {
       ...newUser,
       name: `${newUser.firstName} ${newUser.lastName}`,
-      status: newUser.isActive ? 'Active' : 'Inactive',
+      status: newUser.isActive ? 'Active' : 'Pending Verification',
       lastLogin: newUser.lastLoginAt ? 
         newUser.lastLoginAt.toISOString().split('T')[0] : 'Never',
       isOwner: false
@@ -328,7 +356,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'User created successfully',
+      message: 'User created successfully. Verification email sent.',
       data: responseUser
     }, { status: 201 })
 
