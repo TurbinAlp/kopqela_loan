@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json()
-    const { firstName, lastName, email, password, role, phone } = body
+    const { firstName, lastName, email, password, role, phone, isActive } = body
 
     // Validate required fields
     if (!firstName || !lastName || !email || !password || !role) {
@@ -259,8 +259,8 @@ export async function POST(request: NextRequest) {
         phone,
         passwordHash,
         role,
-        isVerified: false, // Require email verification for employees
-        isActive: false, // Activate after verification
+        isVerified: false, 
+        isActive: isActive !== undefined ? isActive : true, 
         verificationCode,
         verificationExpiresAt
       },

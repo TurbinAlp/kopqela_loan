@@ -38,6 +38,7 @@ interface UserForm {
   confirmPassword: string
   role: 'ADMIN' | 'MANAGER' | 'CASHIER'
   phone: string
+  status: 'Active' | 'Inactive'
 }
 
 interface AddUserModalProps {
@@ -63,13 +64,14 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
     password: '',
     confirmPassword: '',
     role: 'CASHIER',
-    phone: ''
+    phone: '',
+    status: 'Active'
   })
 
 
 
   // Calculate progress
-  const totalFields = 6 // firstName, lastName, email, password, confirmPassword, role
+  const totalFields = 7 // firstName, lastName, email, password, confirmPassword, role, status
   const progress = Math.min((completedFields.size / totalFields) * 100, 100)
 
   const translations = {
@@ -90,6 +92,7 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
       password: "Password",
       confirmPassword: "Confirm Password",
       userRole: "User Role",
+      userStatus: "User Status",
       
       // Role options
       admin: "Admin",
@@ -153,6 +156,7 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
       password: "Nywila",
       confirmPassword: "Thibitisha Nywila",
       userRole: "Jukumu la Mtumiaji",
+      userStatus: "Hali ya Mtumiaji",
       
       // Role options
       admin: "Msimamizi",
@@ -323,7 +327,8 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
           email: formData.email,
           phone: formData.phone,
           password: formData.password,
-          role: formData.role
+          role: formData.role,
+          isActive: formData.status === 'Active'
         })
       })
 
@@ -343,7 +348,8 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
           password: '',
           confirmPassword: '',
           role: 'CASHIER',
-          phone: ''
+          phone: '',
+          status: 'Active'
         })
         setCompletedFields(new Set())
 
@@ -372,7 +378,8 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
       password: '',
       confirmPassword: '',
       role: 'CASHIER',
-      phone: ''
+      phone: '',
+      status: 'Active'
     })
     setErrors({})
     setCompletedFields(new Set())
@@ -741,6 +748,24 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
                               onBlur={handleFieldBlur}
                             />
                           </div>
+                        </div>
+
+                        {/* User Status */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {t.userStatus} <span className="text-red-500">*</span>
+                          </label>
+                          <select
+                            value={formData.status}
+                            onChange={(e) => handleInputChange('status', e.target.value as 'Active' | 'Inactive')}
+                            className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900 bg-white"
+                            disabled={isSubmitting}
+                            onFocus={() => handleFieldFocus('status')}
+                            onBlur={handleFieldBlur}
+                          >
+                            <option value="Active">{t.active}</option>
+                            <option value="Inactive">{t.inactive}</option>
+                          </select>
                         </div>
                       </div>
                     </div>
