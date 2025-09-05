@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import {
   PencilIcon,
@@ -8,25 +8,58 @@ import {
   UserPlusIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { useBusiness } from '../../contexts/BusinessContext'
 import AddUserModal from '../../components/AddUserModal'
 import EditUserModal from '../../components/EditUserModal'
 
+interface User {
+  id: number
+  name: string
+  email: string
+  role: 'ADMIN' | 'MANAGER' | 'CASHIER'
+  status: 'Active' | 'Inactive'
+  lastLogin: string
+  firstName?: string
+  lastName?: string
+  phone?: string
+  isOwner?: boolean
+}
+
 export default function UserManagementPage() {
   const { language } = useLanguage()
+  const { currentBusiness } = useBusiness()
   const [isVisible, setIsVisible] = useState(false)
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false)
   const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<{ id: number; name: string; email: string; role: 'Admin' | 'Manager' | 'Cashier'; status: 'Active' | 'Inactive'; lastLogin: string } | null>(null)
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [users, setUsers] = useState<User[]>([])
+  const [isLoading, setIsLoading] = useState(false)
 
-  const [users, setUsers] = useState<{ id: number; name: string; email: string; role: 'Admin' | 'Manager' | 'Cashier'; status: 'Active' | 'Inactive'; lastLogin: string }[]>([
-    { id: 1, name: 'John Admin', email: 'john@koppela.com', role: 'Admin' as const, status: 'Active' as const, lastLogin: '2024-01-15' },
-    { id: 2, name: 'Mary Cashier', email: 'mary@koppela.com', role: 'Cashier' as const, status: 'Active' as const, lastLogin: '2024-01-14' },
-    { id: 3, name: 'Peter Manager', email: 'peter@koppela.com', role: 'Manager' as const, status: 'Inactive' as const, lastLogin: '2024-01-10' }
-  ])
+  // Load users when component mounts and when business changes
+  const loadUsers = useCallback(async () => {
+    if (!currentBusiness?.id) return
+    
+    setIsLoading(true)
+    try {
+      const response = await fetch(`/api/admin/users?businessId=${currentBusiness.id}`)
+      const data = await response.json()
+      
+      if (data.success) {
+        setUsers(data.data || [])
+      } else {
+        console.error('Failed to load users:', data.message)
+      }
+    } catch (error) {
+      console.error('Error loading users:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [currentBusiness?.id])
 
   useEffect(() => {
     setIsVisible(true)
-  }, [])
+    loadUsers()
+  }, [currentBusiness?.id, loadUsers])
 
   const translations = {
     en: {
@@ -53,7 +86,11 @@ export default function UserManagementPage() {
       // Messages
       saved: "Settings saved successfully",
       userAdded: "User added successfully",
-      userUpdated: "User updated successfully"
+      userUpdated: "User updated successfully",
+      userDeleted: "User deleted successfully",
+      confirmDelete: "Are you sure you want to delete this user?",
+      deleteError: "Error deleting user. Please try again.",
+      loading: "Loading users..."
     },
     sw: {
       pageTitle: "Usimamizi wa Watumiaji",
@@ -79,23 +116,52 @@ export default function UserManagementPage() {
       // Messages
       saved: "Mipangilio imehifadhiwa",
       userAdded: "Mtumiaji ameongezwa",
-      userUpdated: "Mtumiaji ameharirifwa"
+      userUpdated: "Mtumiaji ameharirifwa",
+      userDeleted: "Mtumiaji amefutwa",
+      confirmDelete: "Una uhakika unataka kumfuta mtumiaji huyu?",
+      deleteError: "Kuna tatizo la kumfuta mtumiaji. Jaribu tena.",
+      loading: "Inapakia watumiaji..."
     }
   }
 
   const t = translations[language]
 
-  const handleUserAdded = (newUser: { id: number; name: string; email: string; role: 'Admin' | 'Manager' | 'Cashier'; status: 'Active' | 'Inactive'; lastLogin: string }) => {
+  const handleUserAdded = (newUser: User) => {
     setUsers(prev => [...prev, newUser])
   }
 
-  const handleEditUser = (user: { id: number; name: string; email: string; role: 'Admin' | 'Manager' | 'Cashier'; status: 'Active' | 'Inactive'; lastLogin: string }) => {
+  const handleEditUser = (user: User) => {
     setSelectedUser(user)
     setIsEditUserModalOpen(true)
   }
 
-  const handleUserUpdated = (updatedUser: { id: number; name: string; email: string; role: 'Admin' | 'Manager' | 'Cashier'; status: 'Active' | 'Inactive'; lastLogin: string }) => {
+  const handleUserUpdated = (updatedUser: User) => {
     setUsers(prev => prev.map(user => user.id === updatedUser.id ? updatedUser : user))
+  }
+
+  const handleDeleteUser = async (userId: number) => {
+    if (!currentBusiness?.id) return
+    
+    if (!confirm(t.confirmDelete)) return
+    
+    try {
+      const response = await fetch(`/api/admin/users/${userId}?businessId=${currentBusiness.id}`, {
+        method: 'DELETE'
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        // Remove user from list or update status
+        setUsers(prev => prev.filter(user => user.id !== userId))
+        alert(t.userDeleted)
+      } else {
+        alert(data.message || t.deleteError)
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error)
+      alert(t.deleteError)
+    }
   }
 
   const containerVariants = {
@@ -148,57 +214,85 @@ export default function UserManagementPage() {
               <h3 className="text-lg font-semibold text-gray-900">{t.pageTitle}</h3>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="text-left py-3 px-6 font-medium text-gray-900">{t.userName}</th>
-                    <th className="text-left py-3 px-6 font-medium text-gray-900">{t.userEmail}</th>
-                    <th className="text-left py-3 px-6 font-medium text-gray-900">{t.userRole}</th>
-                    <th className="text-left py-3 px-6 font-medium text-gray-900">{t.userStatus}</th>
-                    <th className="text-left py-3 px-6 font-medium text-gray-900">{t.lastLogin}</th>
-                    <th className="text-left py-3 px-6 font-medium text-gray-900">{t.actions}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((user) => (
-                    <tr key={user.id} className="border-b border-gray-100">
-                      <td className="py-4 px-6 text-gray-900">{user.name}</td>
-                      <td className="py-4 px-6 text-gray-900">{user.email}</td>
-                      <td className="py-4 px-6">
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          user.role === 'Admin' ? 'bg-purple-100 text-purple-800' :
-                          user.role === 'Manager' ? 'bg-blue-100 text-blue-800' :
-                          'bg-green-100 text-green-800'
-                        }`}>
-                          {user.role}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6">
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          user.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {user.status}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6 text-gray-900">{user.lastLogin}</td>
-                      <td className="py-4 px-6">
-                        <div className="flex space-x-2">
-                          <button 
-                            onClick={() => handleEditUser(user)}
-                            className="p-1 text-blue-600 hover:bg-blue-50 rounded" 
-                            title={t.editUser}
-                          >
-                            <PencilIcon className="w-4 h-4" />
-                          </button>
-                          <button className="p-1 text-red-600 hover:bg-red-50 rounded" title={t.deleteUser}>
-                            <TrashIcon className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
+              {isLoading ? (
+                <div className="flex justify-center items-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-teal-500 border-t-transparent"></div>
+                  <span className="ml-2 text-gray-600">{t.loading}</span>
+                </div>
+              ) : users.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  No users found for this business
+                </div>
+              ) : (
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="text-left py-3 px-6 font-medium text-gray-900">{t.userName}</th>
+                      <th className="text-left py-3 px-6 font-medium text-gray-900">{t.userEmail}</th>
+                      <th className="text-left py-3 px-6 font-medium text-gray-900">{t.userRole}</th>
+                      <th className="text-left py-3 px-6 font-medium text-gray-900">{t.userStatus}</th>
+                      <th className="text-left py-3 px-6 font-medium text-gray-900">{t.lastLogin}</th>
+                      <th className="text-left py-3 px-6 font-medium text-gray-900">{t.actions}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {users.map((user) => (
+                      <tr key={user.id} className="border-b border-gray-100">
+                        <td className="py-4 px-6 text-gray-900">
+                          {user.name}
+                          {user.isOwner && (
+                            <span className="ml-2 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                              Owner
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-4 px-6 text-gray-900">{user.email}</td>
+                        <td className="py-4 px-6">
+                          <span className={`px-2 py-1 text-xs rounded-full ${
+                            user.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' :
+                            user.role === 'MANAGER' ? 'bg-blue-100 text-blue-800' :
+                            'bg-green-100 text-green-800'
+                          }`}>
+                            {user.role === 'ADMIN' ? t.admin : 
+                             user.role === 'MANAGER' ? t.manager : 
+                             t.cashier}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className={`px-2 py-1 text-xs rounded-full ${
+                            user.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {user.status === 'Active' ? t.active : t.inactive}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-gray-900">{user.lastLogin}</td>
+                        <td className="py-4 px-6">
+                          <div className="flex space-x-2">
+                            <button 
+                              onClick={() => handleEditUser(user)}
+                              className="p-1 text-blue-600 hover:bg-blue-50 rounded" 
+                              title={t.editUser}
+                              disabled={isLoading}
+                            >
+                              <PencilIcon className="w-4 h-4" />
+                            </button>
+                            {!user.isOwner && (
+                              <button 
+                                onClick={() => handleDeleteUser(user.id)}
+                                className="p-1 text-red-600 hover:bg-red-50 rounded" 
+                                title={t.deleteUser}
+                                disabled={isLoading}
+                              >
+                                <TrashIcon className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </motion.div>
@@ -209,6 +303,7 @@ export default function UserManagementPage() {
         isOpen={isAddUserModalOpen}
         onClose={() => setIsAddUserModalOpen(false)}
         onUserAdded={handleUserAdded}
+        businessId={currentBusiness?.id}
       />
 
       {/* Edit User Modal */}
@@ -217,6 +312,7 @@ export default function UserManagementPage() {
         onClose={() => setIsEditUserModalOpen(false)}
         onUserUpdated={handleUserUpdated}
         user={selectedUser}
+        businessId={currentBusiness?.id}
       />
     </motion.div>
   )

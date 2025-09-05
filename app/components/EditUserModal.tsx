@@ -21,9 +21,13 @@ interface User {
   id: number
   name: string
   email: string
-  role: 'Admin' | 'Manager' | 'Cashier'
+  role: 'ADMIN' | 'MANAGER' | 'CASHIER'
   status: 'Active' | 'Inactive'
   lastLogin: string
+  firstName?: string
+  lastName?: string
+  phone?: string
+  isOwner?: boolean
 }
 
 interface UserForm {
@@ -31,7 +35,7 @@ interface UserForm {
   email: string
   password: string
   confirmPassword: string
-  role: 'Admin' | 'Manager' | 'Cashier'
+  role: 'ADMIN' | 'MANAGER' | 'CASHIER'
   status: 'Active' | 'Inactive'
 }
 
@@ -40,9 +44,10 @@ interface EditUserModalProps {
   onClose: () => void
   onUserUpdated?: (user: User) => void
   user: User | null
+  businessId?: number
 }
 
-export default function EditUserModal({ isOpen, onClose, onUserUpdated, user }: EditUserModalProps) {
+export default function EditUserModal({ isOpen, onClose, onUserUpdated, user, businessId }: EditUserModalProps) {
   const { language } = useLanguage()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -57,7 +62,7 @@ export default function EditUserModal({ isOpen, onClose, onUserUpdated, user }: 
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'Cashier',
+    role: 'CASHIER',
     status: 'Active'
   })
 
@@ -316,33 +321,55 @@ export default function EditUserModal({ isOpen, onClose, onUserUpdated, user }: 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!validateForm() || !user) return
+    if (!validateForm() || !user || !businessId) return
 
     setIsSubmitting(true)
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-
-      // Create updated user object
-      const updatedUser: User = {
-        ...user,
-        name: formData.name,
+      const updateData: {
+        firstName: string
+        lastName: string
+        email: string
+        role: string
+        isActive: boolean
+        password?: string
+      } = {
+        firstName: formData.name.split(' ')[0] || formData.name,
+        lastName: formData.name.split(' ').slice(1).join(' ') || '',
         email: formData.email,
         role: formData.role,
-        status: formData.status
+        isActive: formData.status === 'Active'
       }
 
-      // Call callback if provided
-      if (onUserUpdated) {
-        onUserUpdated(updatedUser)
+      // Include password if changing
+      if (changePassword && formData.password) {
+        updateData.password = formData.password
       }
 
-      // Show success message
-      alert(t.userUpdated)
+      const response = await fetch(`/api/admin/users/${user.id}?businessId=${businessId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateData)
+      })
 
-      // Close modal
-      onClose()
+      const data = await response.json()
+
+      if (data.success) {
+        // Call callback if provided
+        if (onUserUpdated) {
+          onUserUpdated(data.data)
+        }
+
+        // Show success message
+        alert(t.userUpdated)
+
+        // Close modal
+        onClose()
+      } else {
+        alert(data.message || 'Error updating user. Please try again.')
+      }
 
     } catch (error) {
       console.error('Error updating user:', error)
@@ -358,7 +385,7 @@ export default function EditUserModal({ isOpen, onClose, onUserUpdated, user }: 
       email: '',
       password: '',
       confirmPassword: '',
-      role: 'Cashier',
+      role: 'CASHIER',
       status: 'Active'
     })
     setErrors({})
@@ -369,11 +396,11 @@ export default function EditUserModal({ isOpen, onClose, onUserUpdated, user }: 
 
   const getRoleDescription = (role: string) => {
     switch (role) {
-      case 'Admin':
+      case 'ADMIN':
         return t.adminDescription
-      case 'Manager':
+      case 'MANAGER':
         return t.managerDescription
-      case 'Cashier':
+      case 'CASHIER':
         return t.cashierDescription
       default:
         return ''
@@ -572,15 +599,15 @@ export default function EditUserModal({ isOpen, onClose, onUserUpdated, user }: 
                           </label>
                           <select
                             value={formData.role}
-                            onChange={(e) => handleInputChange('role', e.target.value as 'Admin' | 'Manager' | 'Cashier')}
+                            onChange={(e) => handleInputChange('role', e.target.value as 'ADMIN' | 'MANAGER' | 'CASHIER')}
                             className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900 bg-white"
                             disabled={isSubmitting}
                             onFocus={() => handleFieldFocus('role')}
                             onBlur={handleFieldBlur}
                           >
-                            <option value="Cashier">{t.cashier}</option>
-                            <option value="Manager">{t.manager}</option>
-                            <option value="Admin">{t.admin}</option>
+                            <option value="CASHIER">{t.cashier}</option>
+                            <option value="MANAGER">{t.manager}</option>
+                            <option value="ADMIN">{t.admin}</option>
                           </select>
                           <p className="mt-1 text-sm text-gray-500">{getRoleDescription(formData.role)}</p>
                         </div>

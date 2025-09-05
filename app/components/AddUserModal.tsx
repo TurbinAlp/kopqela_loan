@@ -21,28 +21,33 @@ interface User {
   id: number
   name: string
   email: string
-  role: 'Admin' | 'Manager' | 'Cashier'
+  role: 'ADMIN' | 'MANAGER' | 'CASHIER'
   status: 'Active' | 'Inactive'
   lastLogin: string
+  firstName?: string
+  lastName?: string
+  phone?: string
+  isOwner?: boolean
 }
 
 interface UserForm {
-  name: string
+  firstName: string
+  lastName: string
   email: string
   password: string
   confirmPassword: string
-  role: 'Admin' | 'Manager' | 'Cashier'
-  status: 'Active' | 'Inactive'
-  permissions: string[]
+  role: 'ADMIN' | 'MANAGER' | 'CASHIER'
+  phone: string
 }
 
 interface AddUserModalProps {
   isOpen: boolean
   onClose: () => void
   onUserAdded?: (user: User) => void
+  businessId?: number
 }
 
-export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserModalProps) {
+export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId }: AddUserModalProps) {
   const { language } = useLanguage()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -52,19 +57,19 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   
   const [formData, setFormData] = useState<UserForm>({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'Cashier',
-    status: 'Active',
-    permissions: []
+    role: 'CASHIER',
+    phone: ''
   })
 
 
 
   // Calculate progress
-  const totalFields = 6 // name, email, password, confirmPassword, role, status
+  const totalFields = 6 // firstName, lastName, email, password, confirmPassword, role
   const progress = Math.min((completedFields.size / totalFields) * 100, 100)
 
   const translations = {
@@ -78,12 +83,13 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
       permissions: "Permissions",
       
       // Form fields
-      fullName: "Full Name",
+      firstName: "First Name",
+      lastName: "Last Name",
       emailAddress: "Email Address",
+      phoneNumber: "Phone Number",
       password: "Password",
       confirmPassword: "Confirm Password",
       userRole: "User Role",
-      userStatus: "User Status",
       
       // Role options
       admin: "Admin",
@@ -95,8 +101,10 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
       inactive: "Inactive",
       
       // Placeholders
-      enterFullName: "Enter full name",
+      enterFirstName: "Enter first name",
+      enterLastName: "Enter last name",
       enterEmail: "Enter email address",
+      enterPhone: "Enter phone number",
       enterPassword: "Enter password",
       confirmPasswordPlaceholder: "Confirm password",
       
@@ -108,7 +116,8 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
       hidePassword: "Hide Password",
       
       // Validation messages
-      nameRequired: "Full name is required",
+      firstNameRequired: "First name is required",
+      lastNameRequired: "Last name is required",
       emailRequired: "Email address is required",
       emailInvalid: "Please enter a valid email address",
       passwordRequired: "Password is required",
@@ -137,12 +146,13 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
       permissions: "Ruhusa",
       
       // Form fields
-      fullName: "Jina Kamili",
+      firstName: "Jina la Kwanza",
+      lastName: "Jina la Mwisho",
       emailAddress: "Barua Pepe",
+      phoneNumber: "Nambari ya Simu",
       password: "Nywila",
       confirmPassword: "Thibitisha Nywila",
       userRole: "Jukumu la Mtumiaji",
-      userStatus: "Hali ya Mtumiaji",
       
       // Role options
       admin: "Msimamizi",
@@ -154,8 +164,10 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
       inactive: "Sio Amilifu",
       
       // Placeholders
-      enterFullName: "Ingiza jina kamili",
+      enterFirstName: "Ingiza jina la kwanza",
+      enterLastName: "Ingiza jina la mwisho",
       enterEmail: "Ingiza barua pepe",
+      enterPhone: "Ingiza nambari ya simu",
       enterPassword: "Ingiza nywila",
       confirmPasswordPlaceholder: "Thibitisha nywila",
       
@@ -167,7 +179,8 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
       hidePassword: "Ficha Nywila",
       
       // Validation messages
-      nameRequired: "Jina kamili linahitajika",
+      firstNameRequired: "Jina la kwanza linahitajika",
+      lastNameRequired: "Jina la mwisho linahitajika",
       emailRequired: "Barua pepe inahitajika",
       emailInvalid: "Tafadhali ingiza barua pepe sahihi",
       passwordRequired: "Nywila inahitajika",
@@ -257,8 +270,12 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
     const newErrors: Record<string, string> = {}
 
     // Required fields
-    if (!formData.name.trim()) {
-      newErrors.name = t.nameRequired
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = t.firstNameRequired
+    }
+
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = t.lastNameRequired
     }
 
     if (!formData.email.trim()) {
@@ -290,46 +307,54 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!validateForm()) return
+    if (!validateForm() || !businessId) return
 
     setIsSubmitting(true)
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-
-      // Create user object
-      const newUser: User = {
-        id: Date.now(), // In real app, this would come from API
-        name: formData.name,
-        email: formData.email,
-        role: formData.role,
-        status: formData.status,
-        lastLogin: 'Never'
-      }
-
-      // Call callback if provided
-      if (onUserAdded) {
-        onUserAdded(newUser)
-      }
-
-      // Reset form
-      setFormData({
-        name: '',
-        email: '',
-        password: '',
-        confirmPassword: '',
-        role: 'Cashier',
-        status: 'Active',
-        permissions: []
+      const response = await fetch(`/api/admin/users?businessId=${businessId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          password: formData.password,
+          role: formData.role
+        })
       })
-      setCompletedFields(new Set())
 
-      // Show success message (you can implement toast notification)
-      alert(t.userAdded)
+      const data = await response.json()
 
-      // Close modal
-      onClose()
+      if (data.success) {
+        // Call callback if provided
+        if (onUserAdded) {
+          onUserAdded(data.data)
+        }
+
+        // Reset form
+        setFormData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          password: '',
+          confirmPassword: '',
+          role: 'CASHIER',
+          phone: ''
+        })
+        setCompletedFields(new Set())
+
+        // Show success message
+        alert(t.userAdded)
+
+        // Close modal
+        onClose()
+      } else {
+        alert(data.message || 'Error adding user. Please try again.')
+      }
 
     } catch (error) {
       console.error('Error adding user:', error)
@@ -341,13 +366,13 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
 
   const resetAndClose = () => {
     setFormData({
-      name: '',
+      firstName: '',
+      lastName: '',
       email: '',
       password: '',
       confirmPassword: '',
-      role: 'Cashier',
-      status: 'Active',
-      permissions: []
+      role: 'CASHIER',
+      phone: ''
     })
     setErrors({})
     setCompletedFields(new Set())
@@ -356,11 +381,11 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
 
   const getRoleDescription = (role: string) => {
     switch (role) {
-      case 'Admin':
+      case 'ADMIN':
         return t.adminDescription
-      case 'Manager':
+      case 'MANAGER':
         return t.managerDescription
-      case 'Cashier':
+      case 'CASHIER':
         return t.cashierDescription
       default:
         return ''
@@ -444,16 +469,16 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
                           <span>{t.userInformation}</span>
                         </h3>
 
-                        {/* Full Name */}
+                        {/* First Name */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {t.fullName} <span className="text-red-500">*</span>
+                            {t.firstName} <span className="text-red-500">*</span>
                           </label>
                           <div className="relative">
                             <motion.div
                               animate={{ 
-                                scale: focusedField === 'name' ? 1.1 : 1,
-                                color: isFieldCompleted('name') ? '#10b981' : '#9ca3af'
+                                scale: focusedField === 'firstName' ? 1.1 : 1,
+                                color: isFieldCompleted('firstName') ? '#10b981' : '#9ca3af'
                               }}
                               className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5"
                             >
@@ -461,17 +486,17 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
                             </motion.div>
                             <input
                               type="text"
-                              value={formData.name}
-                              onChange={(e) => handleInputChange('name', e.target.value)}
-                              placeholder={t.enterFullName}
+                              value={formData.firstName}
+                              onChange={(e) => handleInputChange('firstName', e.target.value)}
+                              placeholder={t.enterFirstName}
                               className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition-colors text-gray-900 placeholder-gray-500 bg-white ${
-                                errors.name ? 'border-red-300' : 'border-gray-300'
+                                errors.firstName ? 'border-red-300' : 'border-gray-300'
                               }`}
                               disabled={isSubmitting}
-                              onFocus={() => handleFieldFocus('name')}
+                              onFocus={() => handleFieldFocus('firstName')}
                               onBlur={handleFieldBlur}
                             />
-                            {isFieldCompleted('name') && (
+                            {isFieldCompleted('firstName') && (
                               <motion.div
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
@@ -481,14 +506,63 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
                               </motion.div>
                             )}
                           </div>
-                          {errors.name && (
+                          {errors.firstName && (
                             <motion.p
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               className="mt-1 text-sm text-red-600 flex items-center space-x-1"
                             >
                               <ExclamationTriangleIcon className="w-4 h-4" />
-                              <span>{errors.name}</span>
+                              <span>{errors.firstName}</span>
+                            </motion.p>
+                          )}
+                        </div>
+
+                        {/* Last Name */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {t.lastName} <span className="text-red-500">*</span>
+                          </label>
+                          <div className="relative">
+                            <motion.div
+                              animate={{ 
+                                scale: focusedField === 'lastName' ? 1.1 : 1,
+                                color: isFieldCompleted('lastName') ? '#10b981' : '#9ca3af'
+                              }}
+                              className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5"
+                            >
+                              <UserIcon />
+                            </motion.div>
+                            <input
+                              type="text"
+                              value={formData.lastName}
+                              onChange={(e) => handleInputChange('lastName', e.target.value)}
+                              placeholder={t.enterLastName}
+                              className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition-colors text-gray-900 placeholder-gray-500 bg-white ${
+                                errors.lastName ? 'border-red-300' : 'border-gray-300'
+                              }`}
+                              disabled={isSubmitting}
+                              onFocus={() => handleFieldFocus('lastName')}
+                              onBlur={handleFieldBlur}
+                            />
+                            {isFieldCompleted('lastName') && (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                              >
+                                <CheckIcon className="w-5 h-5 text-green-500" />
+                              </motion.div>
+                            )}
+                          </div>
+                          {errors.lastName && (
+                            <motion.p
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              className="mt-1 text-sm text-red-600 flex items-center space-x-1"
+                            >
+                              <ExclamationTriangleIcon className="w-4 h-4" />
+                              <span>{errors.lastName}</span>
                             </motion.p>
                           )}
                         </div>
@@ -637,35 +711,36 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded }: AddUserMo
                           </label>
                           <select
                             value={formData.role}
-                            onChange={(e) => handleInputChange('role', e.target.value as 'Admin' | 'Manager' | 'Cashier')}
+                            onChange={(e) => handleInputChange('role', e.target.value as 'ADMIN' | 'MANAGER' | 'CASHIER')}
                             className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900 bg-white"
                             disabled={isSubmitting}
                             onFocus={() => handleFieldFocus('role')}
                             onBlur={handleFieldBlur}
                           >
-                            <option value="Cashier">{t.cashier}</option>
-                            <option value="Manager">{t.manager}</option>
-                            <option value="Admin">{t.admin}</option>
+                            <option value="CASHIER">{t.cashier}</option>
+                            <option value="MANAGER">{t.manager}</option>
+                            <option value="ADMIN">{t.admin}</option>
                           </select>
                           <p className="mt-1 text-sm text-gray-500">{getRoleDescription(formData.role)}</p>
                         </div>
 
-                        {/* User Status */}
+                        {/* Phone Number */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {t.userStatus}
+                            {t.phoneNumber}
                           </label>
-                          <select
-                            value={formData.status}
-                            onChange={(e) => handleInputChange('status', e.target.value as 'Active' | 'Inactive')}
-                            className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900 bg-white"
-                            disabled={isSubmitting}
-                            onFocus={() => handleFieldFocus('status')}
-                            onBlur={handleFieldBlur}
-                          >
-                            <option value="Active">{t.active}</option>
-                            <option value="Inactive">{t.inactive}</option>
-                          </select>
+                          <div className="relative">
+                            <input
+                              type="tel"
+                              value={formData.phone}
+                              onChange={(e) => handleInputChange('phone', e.target.value)}
+                              placeholder={t.enterPhone}
+                              className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900 placeholder-gray-500 bg-white"
+                              disabled={isSubmitting}
+                              onFocus={() => handleFieldFocus('phone')}
+                              onBlur={handleFieldBlur}
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
