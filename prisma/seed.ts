@@ -50,8 +50,6 @@ async function main() {
       email: 'admin@koppela.com',
       phone: '+255123456789',
       passwordHash: hashedPassword,
-      role: 'ADMIN',
-      isActive: true,
       isVerified: true
     }
   })
@@ -62,7 +60,25 @@ async function main() {
     data: { ownerId: user.id }
   })
 
+  // Create BusinessUser entry for admin
+  await prisma.businessUser.upsert({
+    where: {
+      businessId_userId: {
+        businessId: business.id,
+        userId: user.id
+      }
+    },
+    update: {},
+    create: {
+      businessId: business.id,
+      userId: user.id,
+      role: 'ADMIN',
+      isActive: true
+    }
+  })
+
   console.log('✅ Admin user created:', user.email)
+  console.log('✅ BusinessUser relationship created')
 
   // Create sample categories
   const categories = [
@@ -174,9 +190,10 @@ async function main() {
       // Create inventory for the product
       await prisma.inventory.upsert({
         where: {
-          businessId_productId: {
+          businessId_productId_location: {
             businessId: business.id,
-            productId: product.id
+            productId: product.id,
+            location: 'main-store'
           }
         },
         update: {},
@@ -220,9 +237,10 @@ async function main() {
     // Create inventory
     await prisma.inventory.upsert({
       where: {
-        businessId_productId: {
+        businessId_productId_location: {
           businessId: business.id,
-          productId: product.id
+          productId: product.id,
+          location: 'main-store'
         }
       },
       update: {},

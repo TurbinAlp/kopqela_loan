@@ -64,8 +64,6 @@ export async function GET(
         lastName: true,
         email: true,
         phone: true,
-        role: true,
-        isActive: true,
         lastLoginAt: true,
         createdAt: true
       }
@@ -82,7 +80,7 @@ export async function GET(
     const responseUser = {
       ...user,
       name: `${user.firstName} ${user.lastName}`,
-      status: user.isActive ? 'Active' : 'Inactive',
+      status: 'Active', // TODO: Get from BusinessUser table
       lastLogin: user.lastLoginAt ? 
         user.lastLoginAt.toISOString().split('T')[0] : 'Never'
     }
@@ -212,39 +210,63 @@ export async function PUT(
     }
 
     // Prepare update data
-    const updateData: any = {}
+    const updateData: {
+      firstName?: string
+      lastName?: string
+      email?: string
+      phone?: string
+      passwordHash?: string
+    } = {}
     
     if (firstName !== undefined) updateData.firstName = firstName
     if (lastName !== undefined) updateData.lastName = lastName
     if (email !== undefined) updateData.email = email
     if (phone !== undefined) updateData.phone = phone
-    if (role !== undefined) updateData.role = role
-    if (isActive !== undefined) updateData.isActive = isActive
+    // Role and isActive updates handled in BusinessUser table below
     
     // Hash password if provided
     if (password) {
       updateData.passwordHash = await bcrypt.hash(password, 10)
     }
 
-    // Update user
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: updateData,
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        phone: true,
-        role: true,
-        isActive: true,
-        lastLoginAt: true,
-        createdAt: true,
-        updatedAt: true
+    // Update user and BusinessUser in transaction
+    const updatedUser = await prisma.$transaction(async (tx) => {
+      // Update basic user info
+      const user = await tx.user.update({
+        where: { id: userId },
+        data: updateData,
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          lastLoginAt: true,
+          createdAt: true,
+          updatedAt: true
+        }
+      })
+
+      // Update BusinessUser role/isActive if provided
+      const businessUserUpdate: Record<string, unknown> = {}
+      if (role !== undefined) businessUserUpdate.role = role
+      if (isActive !== undefined) businessUserUpdate.isActive = isActive
+
+      if (Object.keys(businessUserUpdate).length > 0) {
+        await tx.businessUser.updateMany({
+          where: {
+            userId: userId,
+            businessId: businessIdNum
+          },
+          data: businessUserUpdate
+        })
       }
+
+      return user
     })
 
-    // If role changed, update permissions
+    // TODO: If role changed, update BusinessUser permissions
+    /*
     if (role && role !== existingUser.role) {
       // Remove existing business permissions
       await prisma.userPermission.deleteMany({
@@ -297,11 +319,27 @@ export async function PUT(
       }
     }
 
+    */
+    
+    // Get updated BusinessUser info for response
+    const businessUser = await prisma.businessUser.findFirst({
+      where: {
+        userId: userId,
+        businessId: businessIdNum
+      },
+      select: {
+        role: true,
+        isActive: true
+      }
+    })
+
     // Format response
     const responseUser = {
       ...updatedUser,
+      role: businessUser?.role || 'CASHIER',
+      isActive: businessUser?.isActive !== false,
       name: `${updatedUser.firstName} ${updatedUser.lastName}`,
-      status: updatedUser.isActive ? 'Active' : 'Inactive',
+      status: businessUser?.isActive !== false ? 'Active' : 'Inactive',
       lastLogin: updatedUser.lastLoginAt ? 
         updatedUser.lastLoginAt.toISOString().split('T')[0] : 'Never'
     }
@@ -409,15 +447,13 @@ export async function DELETE(
     const deactivatedUser = await prisma.user.update({
       where: { id: userId },
       data: { 
-        isActive: false,
         updatedAt: new Date()
       },
       select: {
         id: true,
         firstName: true,
         lastName: true,
-        email: true,
-        isActive: true
+        email: true
       }
     })
 

@@ -80,7 +80,6 @@ export async function POST(request: NextRequest) {
           firstName: true,
           lastName: true,
           email: true,
-          role: true,
           ownedBusinesses: {
             select: {
               id: true,
@@ -93,11 +92,22 @@ export async function POST(request: NextRequest) {
       
       // Update business status to active (if it's a business owner)
       const ownedBusiness = user.ownedBusinesses?.[0]
-      if (user.role === 'ADMIN' && ownedBusiness) {
-        await tx.business.update({
-          where: { id: ownedBusiness.id },
-          data: { status: 'ACTIVE' }
+      if (ownedBusiness) {
+        // Check if user has ADMIN role for this business
+        const businessUser = await tx.businessUser.findFirst({
+          where: {
+            userId: user.id,
+            businessId: ownedBusiness.id,
+            role: 'ADMIN'
+          }
         })
+        
+        if (businessUser) {
+          await tx.business.update({
+            where: { id: ownedBusiness.id },
+            data: { status: 'ACTIVE' }
+          })
+        }
       }
       
       return verifiedUser
@@ -109,12 +119,11 @@ export async function POST(request: NextRequest) {
       id: updatedUser.id,
       email: updatedUser.email,
       businessId: ownedBusiness?.id || null,
-      role: updatedUser.role,
       businessSlug: ownedBusiness?.slug
     })
     
-    // Send welcome email
-    if (user.role === 'ADMIN' && ownedBusiness) {
+    // Send welcome email (if user owns a business)
+    if (ownedBusiness) {
       const welcomeEmailSent = await sendWelcomeEmail({
         name: `${updatedUser.firstName} ${updatedUser.lastName}`,
         email: updatedUser.email,
@@ -137,7 +146,6 @@ export async function POST(request: NextRequest) {
           firstName: updatedUser.firstName,
           lastName: updatedUser.lastName,
           email: updatedUser.email,
-          role: updatedUser.role,
           businessId: ownedBusiness?.id || null,
           businessSlug: ownedBusiness?.slug
         },

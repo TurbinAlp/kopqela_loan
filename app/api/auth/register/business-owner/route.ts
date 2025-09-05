@@ -111,7 +111,6 @@ export async function POST(request: NextRequest) {
           email: body.email.toLowerCase(),
           phone: body.phone,
           passwordHash: hashedPassword,
-          role: 'ADMIN', // Business owner is admin
           isVerified: false,
           verificationCode: verificationCode,
           verificationExpiresAt: verificationExpiry,
@@ -161,6 +160,16 @@ export async function POST(request: NextRequest) {
           enableCreditSales: false,
           enableLoyaltyProgram: false,
           enableTaxCalculation: true
+        }
+      })
+      
+      // Create BusinessUser entry for the business owner
+      await tx.businessUser.create({
+        data: {
+          businessId: business.id,
+          userId: user.id,
+          role: 'ADMIN', // Business owner is admin
+          isActive: true
         }
       })
       

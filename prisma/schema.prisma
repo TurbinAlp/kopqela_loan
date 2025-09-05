@@ -16,7 +16,6 @@ model User {
   email                 String           @unique @db.VarChar(255)
   phone                 String?          @db.VarChar(20)
   passwordHash          String?          @map("password_hash") @db.VarChar(255)
-  role                  UserRole         @default(CUSTOMER)
   isVerified            Boolean          @default(false) @map("is_verified")
   verificationCode      String?          @map("verification_code") @db.VarChar(10)
   verificationExpiresAt DateTime?        @map("verification_expires_at")
@@ -26,10 +25,11 @@ model User {
   picture               String?          @map("picture") @db.VarChar(500)
   provider              String?          @default("email") @db.VarChar(50)
   lastLoginAt           DateTime?        @map("last_login_at")
-  isActive              Boolean          @default(true) @map("is_active")
   createdAt             DateTime         @default(now()) @map("created_at")
   updatedAt             DateTime         @updatedAt @map("updated_at")
   ownedBusinesses       Business[]       @relation("BusinessOwner")
+  businessMemberships   BusinessUser[]
+  addedUsers           BusinessUser[]   @relation("UserAddedBy")
   customers             Customer[]
   grantedPermissions    UserPermission[] @relation("PermissionGrantedBy")
   userPermissions       UserPermission[]
@@ -119,6 +119,7 @@ model Business {
   updatedAt          DateTime            @updatedAt @map("updated_at")
   businessSetting    BusinessSetting?
   owner              User?               @relation("BusinessOwner", fields: [ownerId], references: [id])
+  employees          BusinessUser[]
   categories         Category[]
   creditApplications CreditApplication[]
   customers          Customer[]
@@ -131,6 +132,25 @@ model Business {
   userPermissions    UserPermission[]
 
   @@map("businesses")
+}
+
+model BusinessUser {
+  id         Int      @id @default(autoincrement())
+  businessId Int      @map("business_id")
+  userId     Int      @map("user_id")
+  role       UserRole
+  isActive   Boolean  @default(true) @map("is_active")
+  joinedAt   DateTime @default(now()) @map("joined_at")
+  addedBy    Int?     @map("added_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  addedByUser User?    @relation("UserAddedBy", fields: [addedBy], references: [id])
+  
+  @@unique([businessId, userId])
+  @@map("business_users")
 }
 
 model BusinessSetting {

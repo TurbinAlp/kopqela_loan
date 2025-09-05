@@ -53,17 +53,13 @@ export const authOptions: NextAuthOptions = {
             return null
           }
 
-          if (!user.isActive) {
-            // Return null but we'll handle this in signIn callback  
-            console.log('User not active:', user.email)
-            return null
-          }
+          // Business-specific active status handled at application level
+          // User account level only checks verification status
 
           return {
             id: user.id.toString(),
             email: user.email,
             name: `${user.firstName} ${user.lastName}`,
-            role: user.role,
             firstName: user.firstName,
             lastName: user.lastName,
             image: user.picture || undefined
@@ -133,7 +129,6 @@ export const authOptions: NextAuthOptions = {
                 picture: user.image,
                 provider: 'google',
                 isVerified: true,
-                role: 'ADMIN',
                 lastLoginAt: createEastAfricaTimestamp()
               }
             })
@@ -180,7 +175,6 @@ export const authOptions: NextAuthOptions = {
 
           if (dbUser) {
             token.userId = dbUser.id
-            token.role = dbUser.role
             token.firstName = dbUser.firstName
             token.lastName = dbUser.lastName
             token.picture = dbUser.picture || user.image
@@ -191,7 +185,6 @@ export const authOptions: NextAuthOptions = {
         } else {
           // Handle credentials login
           token.userId = parseInt(user.id)
-          token.role = user.role
           token.firstName = user.firstName
           token.lastName = user.lastName
           token.picture = user.image
@@ -216,7 +209,6 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (token) {
         session.user.id = token.userId as number
-        session.user.role = token.role as string
         session.user.firstName = token.firstName as string
         session.user.lastName = token.lastName as string
         session.user.permissions = token.permissions as string[]

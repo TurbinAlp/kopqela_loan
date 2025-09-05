@@ -54,82 +54,61 @@ export async function GET(request: NextRequest) {
       }, { status: 404 })
     }
 
-    // Get all users associated with this business (employees + owner)
-    // First get business owner
-    const businessWithOwner = await prisma.business.findUnique({
-      where: { id: businessIdNum },
+    // Get all users associated with this business (employees via BusinessUser table)
+    const businessUsers = await prisma.businessUser.findMany({
+      where: {
+        businessId: businessIdNum
+      },
       include: {
-        owner: {
+        user: {
           select: {
             id: true,
             firstName: true,
             lastName: true,
             email: true,
             phone: true,
-            role: true,
-            isActive: true,
             lastLoginAt: true,
             createdAt: true
           }
         }
-      }
-    })
-
-    // Get employees via UserPermission relationship
-    const employees = await prisma.user.findMany({
-      where: {
-        userPermissions: {
-          some: {
-            businessId: businessIdNum,
-            permission: {
-              resource: 'BUSINESS'
-            }
-          }
-        },
-        role: {
-          in: ['ADMIN', 'MANAGER', 'CASHIER']
-        }
       },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        phone: true,
-        role: true,
-        isActive: true,
-        lastLoginAt: true,
-        createdAt: true
+      orderBy: {
+        createdAt: 'desc'
       }
     })
 
-    // Combine owner and employees, avoiding duplicates
-    const allUsers = []
-    
-    if (businessWithOwner?.owner) {
-      allUsers.push({
-        ...businessWithOwner.owner,
-        name: `${businessWithOwner.owner.firstName} ${businessWithOwner.owner.lastName}`,
-        status: businessWithOwner.owner.isActive ? 'Active' : 'Inactive',
-        lastLogin: businessWithOwner.owner.lastLoginAt ? 
-          businessWithOwner.owner.lastLoginAt.toISOString().split('T')[0] : 'Never',
-        isOwner: true
-      })
+    // Transform BusinessUser data to expected format
+    const allUsers = businessUsers.map(businessUser => ({
+      id: businessUser.user.id,
+      firstName: businessUser.user.firstName,
+      lastName: businessUser.user.lastName,
+      email: businessUser.user.email,
+      phone: businessUser.user.phone,
+      role: businessUser.role,
+      isActive: businessUser.isActive,
+      lastLoginAt: businessUser.user.lastLoginAt,
+      createdAt: businessUser.user.createdAt,
+      name: `${businessUser.user.firstName} ${businessUser.user.lastName}`,
+      status: businessUser.isActive ? 'Active' : 'Inactive',
+      lastLogin: businessUser.user.lastLoginAt ? 
+        businessUser.user.lastLoginAt.toISOString().split('T')[0] : 'Never',
+      isOwner: false, // We'll update this for business owner
+      joinedAt: businessUser.joinedAt,
+      addedBy: businessUser.addedBy
+    }))
+
+    // Mark business owner in the list
+    const businessOwner = await prisma.business.findUnique({
+      where: { id: businessIdNum },
+      select: { ownerId: true }
+    })
+
+    if (businessOwner?.ownerId) {
+      const ownerUser = allUsers.find(user => user.id === businessOwner.ownerId)
+      if (ownerUser) {
+        ownerUser.isOwner = true
+      }
     }
-
-    // Add employees (excluding owner if they appear in employees list)
-    employees.forEach(employee => {
-      if (!businessWithOwner?.owner || employee.id !== businessWithOwner.owner.id) {
-        allUsers.push({
-          ...employee,
-          name: `${employee.firstName} ${employee.lastName}`,
-          status: employee.isActive ? 'Active' : 'Inactive',
-          lastLogin: employee.lastLoginAt ? 
-            employee.lastLoginAt.toISOString().split('T')[0] : 'Never',
-          isOwner: false
-        })
-      }
-    })
 
     return NextResponse.json({
       success: true,
@@ -258,70 +237,31 @@ export async function POST(request: NextRequest) {
         email,
         phone,
         passwordHash,
-        role,
-        isVerified: false, 
-        isActive: isActive !== undefined ? isActive : true, 
-        verificationCode,
-        verificationExpiresAt
-      },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        phone: true,
-        role: true,
-        isActive: true,
-        lastLoginAt: true,
-        createdAt: true
-      }
-    })
-
-    // Create basic permissions for the user in this business
-    // Get business-related permissions
-    const businessPermissions = await prisma.permission.findMany({
-      where: {
-        OR: [
-          { resource: 'BUSINESS' },
-          { resource: 'PRODUCT' },
-          { resource: 'ORDER' },
-          { resource: 'CUSTOMER' },
-          { resource: 'USERS' }
-        ]
-      }
-    })
-
-    // Grant appropriate permissions based on role
-    const permissionsToGrant = businessPermissions.filter(permission => {
-      const action = permission.action
-      
-      switch (role) {
-        case 'ADMIN':
-          // Admin gets all permissions
-          return true
-        case 'MANAGER':
-          // Manager gets read/write for most things, limited delete
-          return action === 'READ' || action === 'UPDATE' || action === 'CREATE'
-        case 'CASHIER':
-          // Cashier gets mostly read permissions and order creation
-          return action === 'READ' || 
-                 (permission.resource === 'ORDER' && action === 'CREATE')
-        default:
-          return false
-      }
-    })
-
-    // Create user permission records
-    if (permissionsToGrant.length > 0) {
-      await prisma.userPermission.createMany({
-        data: permissionsToGrant.map(permission => ({
-          userId: newUser.id,
-          permissionId: permission.id,
-          businessId: businessIdNum,
-          grantedBy: authContext.userId
-        }))
-      })
+              isVerified: false, 
+      verificationCode,
+      verificationExpiresAt
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
+      lastLoginAt: true,
+      createdAt: true
     }
+    })
+
+    // Create BusinessUser relationship with role and status
+    await prisma.businessUser.create({
+      data: {
+        businessId: businessIdNum,
+        userId: newUser.id,
+        role: role,
+        isActive: isActive !== undefined ? isActive : true,
+        addedBy: authContext.userId
+      }
+    })
 
     // Get current user (admin who created the employee) and business info
     const currentUser = await prisma.user.findUnique({
@@ -336,7 +276,7 @@ export async function POST(request: NextRequest) {
         email: newUser.email,
         code: verificationCode,
         businessName: business.name,
-        role: newUser.role,
+        role: role,
         invitedBy: currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'Administrator'
       })
     } catch (emailError) {
@@ -345,10 +285,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Format response
+    const userActiveStatus = isActive !== undefined ? isActive : true
     const responseUser = {
-      ...newUser,
+      id: newUser.id,
+      firstName: newUser.firstName,
+      lastName: newUser.lastName,
+      email: newUser.email,
+      phone: newUser.phone,
+      lastLoginAt: newUser.lastLoginAt,
+      createdAt: newUser.createdAt,
+      role,
+      isActive: userActiveStatus,
       name: `${newUser.firstName} ${newUser.lastName}`,
-      status: newUser.isActive ? 'Active' : 'Pending Verification',
+      status: userActiveStatus ? 'Active' : 'Inactive',
       lastLogin: newUser.lastLoginAt ? 
         newUser.lastLoginAt.toISOString().split('T')[0] : 'Never',
       isOwner: false

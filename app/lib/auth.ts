@@ -10,7 +10,6 @@ export interface UserPayload {
   id: number
   email: string
   businessId: number | null
-  role: 'ADMIN' | 'MANAGER' | 'CASHIER' | 'CUSTOMER'
   businessSlug?: string
 }
 

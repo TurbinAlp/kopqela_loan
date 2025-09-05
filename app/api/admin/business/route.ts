@@ -52,7 +52,6 @@ export async function GET(request: NextRequest) {
             lastName: true,
             email: true,
             phone: true,
-            role: true,
             createdAt: true
           }
         },
@@ -154,7 +153,6 @@ export async function GET(request: NextRequest) {
             name: `${business.owner.firstName} ${business.owner.lastName}`,
             email: business.owner.email,
             phone: business.owner.phone,
-            role: business.owner.role,
             createdAt: business.owner.createdAt
           } : null,
           stats: {

@@ -6,7 +6,6 @@ import { UserRole } from '../../generated/prisma'
 
 export interface AuthContext {
   userId: number
-  role: UserRole
   permissions: string[]
   sessionId?: string
 }
@@ -15,7 +14,6 @@ export interface AuthContext {
 interface EnhancedJWTToken {
   sub: string
   userId: number
-  role: UserRole
   email?: string
   name?: string
   sessionId?: string
@@ -40,7 +38,6 @@ export async function getAuthContext(req: NextRequest): Promise<AuthContext | nu
 
     return {
       userId: token.userId,
-      role: token.role,
       permissions: userPermissions,
       sessionId: token.sessionId
     }
@@ -55,19 +52,33 @@ export async function getAuthContext(req: NextRequest): Promise<AuthContext | nu
  */
 export async function getUserPermissions(userId: number): Promise<string[]> {
   try {
-    // Get user details
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { role: true }
+    // Get user's business memberships with roles
+    const businessMemberships = await prisma.businessUser.findMany({
+      where: {
+        userId,
+        isActive: true
+      },
+      select: {
+        role: true,
+        businessId: true
+      }
     })
 
-    if (!user) return []
+    if (businessMemberships.length === 0) {
+      return []
+    }
 
-    // Get role-based permissions
-    const rolePermissions = getPermissionsForRole(user.role as keyof typeof getPermissionsForRole)
+    // Collect all permissions from all business roles
+    const allPermissions = new Set<string>()
 
-    // Get explicit user permissions from database (business-agnostic)
-    const userPermissions = await prisma.userPermission.findMany({
+    for (const membership of businessMemberships) {
+      // Get role-based permissions for this business role
+      const rolePermissions = getPermissionsForRole(membership.role as 'ADMIN' | 'MANAGER' | 'CASHIER')
+      rolePermissions.forEach(permission => allPermissions.add(permission))
+    }
+
+    // Also get explicit user permissions (kept for backward compatibility)
+    const explicitPermissions = await prisma.userPermission.findMany({
       where: {
         userId,
         isActive: true,
@@ -82,12 +93,9 @@ export async function getUserPermissions(userId: number): Promise<string[]> {
       }
     })
 
-    const explicitPermissions = userPermissions.map(up => up.permission.name)
+    explicitPermissions.forEach(up => allPermissions.add(up.permission.name))
 
-    // Combine role-based and explicit permissions
-    const allPermissions = [...new Set([...rolePermissions, ...explicitPermissions])]
-
-    return allPermissions
+    return Array.from(allPermissions)
   } catch (error) {
     console.error('Error getting user permissions:', error)
     return []
@@ -110,16 +118,27 @@ export async function hasPermission(
     return false
   }
 
-  // For business-specific permissions, verify user owns the business
+  // For business-specific permissions, verify user has access to the business
   if (isBusinessSpecificPermission(permissionName) && businessId) {
+    // First check if user is owner
     const business = await prisma.business.findFirst({
+      where: { id: businessId, ownerId: authContext.userId }
+    })
+    
+    if (business) {
+      return true
+    }
+    
+    // Then check if user is employee via BusinessUser table
+    const businessUser = await prisma.businessUser.findFirst({
       where: {
-        id: businessId,
-        ownerId: authContext.userId
+        businessId: businessId,
+        userId: authContext.userId,
+        isActive: true
       }
     })
     
-    if (!business) {
+    if (!businessUser) {
       return false
     }
   }
@@ -170,7 +189,6 @@ export function requirePermission(resource: Resource, action: Action, options?: 
     // Add auth context to request headers for downstream use
     const requestHeaders = new Headers(req.headers)
     requestHeaders.set('x-auth-user-id', authContext.userId.toString())
-    requestHeaders.set('x-auth-role', authContext.role)
     if (businessId) {
       requestHeaders.set('x-auth-business-id', businessId.toString())
     }
@@ -186,7 +204,7 @@ export function requirePermission(resource: Resource, action: Action, options?: 
 /**
  * Role-based middleware factory
  */
-export function requireRole(allowedRoles: UserRole[]) {
+export function requireRole(allowedRoles: UserRole[], businessId?: number) {
   return async function middleware(req: NextRequest) {
     const authContext = await getAuthContext(req)
 
@@ -194,14 +212,26 @@ export function requireRole(allowedRoles: UserRole[]) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!allowedRoles.includes(authContext.role)) {
+    // Check if user has any of the allowed roles in any business (or specific business)
+    const businessMemberships = await prisma.businessUser.findMany({
+      where: {
+        userId: authContext.userId,
+        isActive: true,
+        role: { in: allowedRoles },
+        ...(businessId && { businessId })
+      }
+    })
+
+    if (businessMemberships.length === 0) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Add auth context to request headers
     const requestHeaders = new Headers(req.headers)
     requestHeaders.set('x-auth-user-id', authContext.userId.toString())
-    requestHeaders.set('x-auth-role', authContext.role)
+    if (businessId) {
+      requestHeaders.set('x-auth-business-id', businessId.toString())
+    }
 
     return NextResponse.next({
       request: {
@@ -239,24 +269,31 @@ export function requireBusinessAccess() {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 })
     }
 
-    // Check if user owns this business or is admin
-    if (authContext.role !== 'ADMIN') {
-      const business = await prisma.business.findFirst({
-        where: {
-          id: businessId,
-          ownerId: authContext.userId
-        }
-      })
-      
-      if (!business) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    // Check if user has access to this business (owner or employee)
+    const hasAccess = await prisma.business.findFirst({
+      where: {
+        id: businessId,
+        OR: [
+          { ownerId: authContext.userId }, // User owns the business
+          { 
+            employees: {
+              some: {
+                userId: authContext.userId,
+                isActive: true
+              }
+            }
+          } // User is an active employee
+        ]
       }
+    })
+    
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Add business ID to request headers
     const requestHeaders = new Headers(req.headers)
     requestHeaders.set('x-auth-user-id', authContext.userId.toString())
-    requestHeaders.set('x-auth-role', authContext.role)
     requestHeaders.set('x-auth-business-id', businessId.toString())
 
     return NextResponse.next({
@@ -272,11 +309,9 @@ export function requireBusinessAccess() {
  */
 export function getAuthFromHeaders(req: NextRequest): Partial<AuthContext> {
   const userId = req.headers.get('x-auth-user-id')
-  const role = req.headers.get('x-auth-role') as UserRole
 
   return {
-    userId: userId ? parseInt(userId) : undefined,
-    role
+    userId: userId ? parseInt(userId) : undefined
   }
 }
 

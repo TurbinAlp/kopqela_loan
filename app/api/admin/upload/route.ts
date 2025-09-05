@@ -15,8 +15,13 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
  */
 export async function POST(request: NextRequest) {
   try {
+    console.log('🚀 Upload route started')
+    
     const authContext = await getAuthContext(request)
+    console.log('🔍 Auth context:', authContext ? 'FOUND' : 'NOT_FOUND')
+    
     if (!authContext) {
+      console.log('❌ Unauthorized')
       return NextResponse.json({
         success: false,
         message: 'Unauthorized'
@@ -67,7 +72,9 @@ export async function POST(request: NextRequest) {
 
     // Check permission to create products (needed for uploading product images)
     const hasAccess = await hasPermission(authContext, Resource.PRODUCTS, Action.CREATE, businessId)
+    
     if (!hasAccess) {
+      console.log('❌ No permission to upload product images')
       return NextResponse.json({
         success: false,
         message: 'You do not have permission to upload product images'
@@ -151,7 +158,7 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error uploading files:', error)
+    console.error('❌ Upload error:', error)
     return NextResponse.json({
       success: false,
       message: 'Failed to upload files'

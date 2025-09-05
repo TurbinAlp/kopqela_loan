@@ -21,8 +21,7 @@ export async function POST(request: NextRequest) {
         id: true,
         email: true,
         passwordHash: true,
-        isVerified: true,
-        isActive: true
+        isVerified: true
       }
     })
 
@@ -52,12 +51,8 @@ export async function POST(request: NextRequest) {
       }, { status: 403 })
     }
 
-    if (!user.isActive) {
-      return NextResponse.json({
-        success: false,
-        error: 'ACCOUNT_INACTIVE'
-      }, { status: 403 })
-    }
+    // Business-specific active status will be checked at business access level
+    // User account level only checks verification status
 
     // Credentials valid and user verified
     return NextResponse.json({
