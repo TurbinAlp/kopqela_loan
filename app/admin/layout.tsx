@@ -87,19 +87,10 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
       reports: "Reports",
       settings: "Settings",
       generalSettings: "General Settings",
-      businessSettings: "Business Settings",
       searchPlaceholder: "Search anything...",
-      profile: "Profile",
-      logout: "Logout",
       adminName: "John Admin",
       business: 'Business',
-      businessInfo: 'Business Information',
-      addBusiness: 'Add Business',
-      editBusiness: 'Edit Business',
-      businessReports: 'Business Reports',
       userManagement: 'User Management',
-      notifications: 'Notifications',
-      accessControl: 'Access Control',
       movementHistory: 'Movement History'
     },
     sw: {
@@ -118,19 +109,10 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
       reports: "Ripoti",
       settings: "Mipangilio",
       generalSettings: "Mipangilio ya Jumla",
-      businessSettings: "Mipangilio ya Biashara",
       searchPlaceholder: "Tafuta chochote...",
-      profile: "Profaili",
-      logout: "Toka",
       adminName: "John Msimamizi",
       business: 'Biashara',
-      businessInfo: 'Taarifa za Biashara',
-      addBusiness: 'Ongeza Biashara',
-      editBusiness: 'Hariri Biashara',
-      businessReports: 'Ripoti za Biashara',
       userManagement: 'Usimamizi wa Watumiaji',
-      notifications: 'Arifa',
-      accessControl: 'Udhibiti wa Ufikiaji',
       movementHistory: 'Historia ya Mabadiliko'
     }
   }
@@ -156,28 +138,15 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
     { name: t.credit, icon: CreditCardIcon, href: "/admin/credit" },
     { name: t.reports, icon: DocumentTextIcon, href: "/admin/reports" },
     { name: t.userManagement, icon: UserGroupIcon, href: "/admin/users" },
-    { name: t.notifications, icon: DocumentTextIcon, href: "/admin/notifications" },
-    { name: t.profile, icon: UserGroupIcon, href: "/admin/profile" },
-    { name: t.accessControl, icon: CogIcon, href: "/admin/rbac" },
     { 
       name: t.settings, 
       icon: CogIcon, 
       href: "/admin/settings",
       subItems: [
-        { name: t.generalSettings, href: "/admin/settings" },
-        { name: t.businessSettings, href: "/admin/settings/business" }
+        { name: t.generalSettings, href: "/admin/settings" }
       ]
     },
-    { 
-      name: t.business, 
-      icon: BuildingOfficeIcon, 
-      href: "/admin/business",
-      subItems: [
-        { name: t.businessInfo, href: "/admin/business" },
-        { name: t.addBusiness, href: "/admin/business/add" },
-        { name: t.editBusiness, href: "/admin/business/edit" }
-      ]
-    }
+    { name: t.business, icon: BuildingOfficeIcon, href: "/admin/business" }
   ]
 
   const isActiveRoute = (href: string) => {
@@ -228,17 +197,9 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
       '/admin/products/add': t.addProduct,
       '/admin/products/categories': t.categories,
       
-      // Business routes
-      '/admin/business/add': t.addBusiness,
-      '/admin/business/edit': t.editBusiness,
-      
-      // Settings routes
-      '/admin/settings/business': t.businessSettings,
-      
-      // Other routes
-      '/admin/notifications': t.notifications,
-      '/admin/profile': t.profile,
-      '/admin/rbac': t.accessControl,
+      // Business routes - need titles even without sidebar links
+      '/admin/business/add': language === 'sw' ? 'Ongeza Biashara' : 'Add Business',
+      '/admin/business/edit': language === 'sw' ? 'Hariri Biashara' : 'Edit Business',
     }
     
     // Check for dynamic routes with patterns
