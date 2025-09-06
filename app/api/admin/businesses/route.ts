@@ -16,19 +16,20 @@ export async function GET(request: NextRequest) {
       }, { status: 401 })
     }
 
-    // Get all businesses user has access to (owned OR employee)
+    // Get all businesses user has access to (owned OR employee via BusinessUser table)
     const businesses = await prisma.business.findMany({
       where: {
         OR: [
-          { ownerId: authContext.userId }, // Businesses owned by user
+          { ownerId: authContext.userId }, 
           { 
             employees: {
               some: {
                 userId: authContext.userId,
-                isActive: true
+                isActive: true,
+                isDeleted: false 
               }
             }
-          } // Businesses where user is an active employee
+          } 
         ]
       },
       include: {

@@ -60,7 +60,13 @@ export async function GET(request: NextRequest) {
           select: {
             products: true,
             categories: true,
-            orders: true
+            orders: true,
+            employees: {
+              where: {
+                isActive: true,
+                isDeleted: false
+              }
+            }
           }
         }
       }
@@ -159,7 +165,7 @@ export async function GET(request: NextRequest) {
             totalProducts: business._count.products,
             totalCategories: business._count.categories,
             totalOrders: business._count.orders,
-            totalEmployees: 1 // Hardcoded since we removed users relation
+            totalEmployees: business._count.employees
           }
         }
       }
