@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useParams } from 'next/navigation'
 import { useCustomerBusiness } from '../../../hooks/useCustomerBusiness'

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
@@ -20,7 +20,7 @@ import Spinner from '../components/ui/Spinner'
 
 type RegistrationStep = 'method' | 'details' | 'business' | 'verification'
 
-export default function RegisterPage() {
+function RegisterPageContent() {
   const { language } = useLanguage()
   const { showWarning, showError, showSuccess } = useNotifications()
   const { isLoading: authLoading } = useAuthRedirect()
@@ -851,5 +851,13 @@ export default function RegisterPage() {
         </motion.div>
       </motion.div>
     </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Spinner /></div>}>
+      <RegisterPageContent />
+    </Suspense>
   )
 } 

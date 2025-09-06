@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline'
@@ -10,7 +10,7 @@ import { signIn } from 'next-auth/react'
 import { useAuthRedirect } from '../hooks/useAuthRedirect'
 import Spinner from '../components/ui/Spinner'
 
-export default function LoginPage() {
+function LoginPageContent() {
   const { language } = useLanguage()
   const { showError, showSuccess } = useNotifications()
   const { isLoading: authLoading } = useAuthRedirect()
@@ -517,5 +517,13 @@ export default function LoginPage() {
         </motion.div>
       </motion.div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Spinner /></div>}>
+      <LoginPageContent />
+    </Suspense>
   )
 } 

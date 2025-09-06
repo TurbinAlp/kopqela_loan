@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useParams } from 'next/navigation'
 import { useCustomerBusiness } from '../../../hooks/useCustomerBusiness'
@@ -12,7 +12,7 @@ import {
   FunnelIcon
 } from '@heroicons/react/24/outline'
 
-export default function ProductCatalogPage() {
+function ProductCatalogPageContent() {
   const params = useParams()
   const slug = params.slug as string
   const { business, isLoading: businessLoading } = useCustomerBusiness(slug)
@@ -442,5 +442,13 @@ export default function ProductCatalogPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ProductCatalogPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <ProductCatalogPageContent />
+    </Suspense>
   )
 }
