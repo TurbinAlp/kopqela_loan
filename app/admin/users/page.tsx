@@ -9,8 +9,10 @@ import {
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useBusiness } from '../../contexts/BusinessContext'
+import { useNotifications } from '../../contexts/NotificationContext'
 import AddUserModal from '../../components/AddUserModal'
 import EditUserModal from '../../components/EditUserModal'
+import DeleteConfirmModal from '../../components/ui/DeleteConfirmModal'
 
 interface User {
   id: number
@@ -28,12 +30,18 @@ interface User {
 export default function UserManagementPage() {
   const { language } = useLanguage()
   const { currentBusiness } = useBusiness()
+  const { showSuccess, showError } = useNotifications()
   const [isVisible, setIsVisible] = useState(false)
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false)
   const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [users, setUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    userId: null as number | null,
+    userName: ''
+  })
 
   // Load users when component mounts and when business changes
   const loadUsers = useCallback(async () => {
@@ -87,9 +95,10 @@ export default function UserManagementPage() {
       saved: "Settings saved successfully",
       userAdded: "User added successfully",
       userUpdated: "User updated successfully",
-      userDeleted: "User deleted successfully",
-      confirmDelete: "Are you sure you want to delete this user?",
-      deleteError: "Error deleting user. Please try again.",
+      userDeleted: "User removed from business successfully",
+      confirmDelete: "Remove User from Business",
+      deleteMessage: "Are you sure you want to remove this user from the business? This action can be undone by re-adding the user.",
+      deleteError: "Error removing user. Please try again.",
       loading: "Loading users..."
     },
     sw: {
@@ -117,9 +126,10 @@ export default function UserManagementPage() {
       saved: "Mipangilio imehifadhiwa",
       userAdded: "Mtumiaji ameongezwa",
       userUpdated: "Mtumiaji ameharirifwa",
-      userDeleted: "Mtumiaji amefutwa",
-      confirmDelete: "Una uhakika unataka kumfuta mtumiaji huyu?",
-      deleteError: "Kuna tatizo la kumfuta mtumiaji. Jaribu tena.",
+      userDeleted: "Mtumiaji ameondolewa kutoka biashara kwa ufanisi",
+      confirmDelete: "Ondoa Mtumiaji kutoka Biashara",
+      deleteMessage: "Je, una uhakika unataka kumondoa mtumiaji huyu kutoka biashara? Kitendo hiki kinaweza kubatilishwa kwa kumuongeza tena.",
+      deleteError: "Kuna tatizo la kumondoa mtumiaji. Jaribu tena.",
       loading: "Inapakia watumiaji..."
     }
   }
@@ -139,13 +149,27 @@ export default function UserManagementPage() {
     setUsers(prev => prev.map(user => user.id === updatedUser.id ? updatedUser : user))
   }
 
-  const handleDeleteUser = async (userId: number) => {
-    if (!currentBusiness?.id) return
-    
-    if (!confirm(t.confirmDelete)) return
+  const handleDeleteUser = (userId: number, userName: string) => {
+    setDeleteModal({
+      isOpen: true,
+      userId: userId,
+      userName: userName
+    })
+  }
+
+  const handleDeleteClose = () => {
+    setDeleteModal({
+      isOpen: false,
+      userId: null,
+      userName: ''
+    })
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!currentBusiness?.id || !deleteModal.userId) return
     
     try {
-      const response = await fetch(`/api/admin/users/${userId}?businessId=${currentBusiness.id}`, {
+      const response = await fetch(`/api/admin/users/${deleteModal.userId}?businessId=${currentBusiness.id}`, {
         method: 'DELETE'
       })
       
@@ -153,14 +177,14 @@ export default function UserManagementPage() {
       
       if (data.success) {
         // Remove user from list or update status
-        setUsers(prev => prev.filter(user => user.id !== userId))
-        alert(t.userDeleted)
+        setUsers(prev => prev.filter(user => user.id !== deleteModal.userId))
+        showSuccess('Success', t.userDeleted)
       } else {
-        alert(data.message || t.deleteError)
+        showError('Error', data.message || t.deleteError)
       }
     } catch (error) {
       console.error('Error deleting user:', error)
-      alert(t.deleteError)
+      showError('Error', t.deleteError)
     }
   }
 
@@ -278,7 +302,7 @@ export default function UserManagementPage() {
                             </button>
                             {!user.isOwner && (
                               <button 
-                                onClick={() => handleDeleteUser(user.id)}
+                                onClick={() => handleDeleteUser(user.id, user.name)}
                                 className="p-1 text-red-600 hover:bg-red-50 rounded" 
                                 title={t.deleteUser}
                                 disabled={isLoading}
@@ -313,6 +337,16 @@ export default function UserManagementPage() {
         onUserUpdated={handleUserUpdated}
         user={selectedUser}
         businessId={currentBusiness?.id}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={handleDeleteClose}
+        onConfirm={handleDeleteConfirm}
+        title={t.confirmDelete}
+        message={t.deleteMessage}
+        itemName={deleteModal.userName}
       />
     </motion.div>
   )

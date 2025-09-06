@@ -54,10 +54,11 @@ export async function GET(request: NextRequest) {
       }, { status: 404 })
     }
 
-    // Get all users associated with this business (employees via BusinessUser table)
+    // Get all users associated with this business (employees via BusinessUser table, excluding deleted)
     const businessUsers = await prisma.businessUser.findMany({
       where: {
-        businessId: businessIdNum
+        businessId: businessIdNum,
+        isDeleted: false  // Only show non-deleted users
       },
       include: {
         user: {
@@ -246,7 +247,7 @@ export async function POST(request: NextRequest) {
         }, { status: 404 })
       }
 
-      // Check if user is already a member of this business
+      // Check if user is already a member of this business (including deleted ones)
       const existingBusinessUser = await prisma.businessUser.findFirst({
         where: {
           userId: existingUser.id,
@@ -255,10 +256,39 @@ export async function POST(request: NextRequest) {
       })
 
       if (existingBusinessUser) {
-        return NextResponse.json({
-          success: false,
-          message: 'User is already a member of this business'
-        }, { status: 409 })
+        if (existingBusinessUser.isDeleted) {
+          // User was previously deleted, restore them with new role
+          await prisma.businessUser.update({
+            where: { id: existingBusinessUser.id },
+            data: {
+              role: role,
+              isActive: isActive !== undefined ? isActive : true,
+              isDeleted: false,  // Restore user
+              addedBy: authContext.userId
+            }
+          })
+          
+          // Variables will be set later in the flow
+        } else {
+          // User is currently active in this business
+          return NextResponse.json({
+            success: false,
+            message: 'User is already a member of this business'
+          }, { status: 409 })
+        }
+      } else {
+        // User is not a member, create new BusinessUser entry
+        // Create BusinessUser relationship with role and status
+        await prisma.businessUser.create({
+          data: {
+            businessId: businessIdNum,
+            userId: existingUser.id,
+            role: role,
+            isActive: isActive !== undefined ? isActive : true,
+            isDeleted: false,
+            addedBy: authContext.userId
+          }
+        })
       }
     } else {
       // For new user creation
@@ -274,29 +304,7 @@ export async function POST(request: NextRequest) {
     let emailType = 'employee_invitation' // Default for new users
     let verificationCode: string | undefined // For new users only
 
-    if (inviteExistingUser) {
-      // For existing user invitation
-      if (!existingUser) {
-        return NextResponse.json({
-          success: false,
-          message: 'User not found'
-        }, { status: 404 })
-      }
-
-      targetUser = existingUser
-      emailType = 'business_invitation'
-
-      // Create BusinessUser relationship with role and status
-      await prisma.businessUser.create({
-        data: {
-          businessId: businessIdNum,
-          userId: existingUser.id,
-          role: role,
-          isActive: isActive !== undefined ? isActive : true,
-          addedBy: authContext.userId
-        }
-      })
-    } else {
+    if (!inviteExistingUser) {
       // For new user creation
       // Hash password
       const passwordHash = await bcrypt.hash(password, 10)
@@ -340,6 +348,20 @@ export async function POST(request: NextRequest) {
           addedBy: authContext.userId
         }
       })
+    }
+
+    // Set target user and email type for existing users (since we handled them above)
+    if (inviteExistingUser && !targetUser) {
+      targetUser = existingUser
+      emailType = 'business_invitation'
+    }
+
+    // Validate that we have a target user
+    if (!targetUser) {
+      return NextResponse.json({
+        success: false,
+        message: 'Failed to create or find user'
+      }, { status: 500 })
     }
 
     // Get current user (admin who created the employee) and business info

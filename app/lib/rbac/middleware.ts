@@ -52,11 +52,12 @@ export async function getAuthContext(req: NextRequest): Promise<AuthContext | nu
  */
 export async function getUserPermissions(userId: number): Promise<string[]> {
   try {
-    // Get user's business memberships with roles
+    // Get user's business memberships with roles (excluding deleted)
     const businessMemberships = await prisma.businessUser.findMany({
       where: {
         userId,
-        isActive: true
+        isActive: true,
+        isDeleted: false  // Exclude soft-deleted users
       },
       select: {
         role: true,
@@ -129,12 +130,13 @@ export async function hasPermission(
       return true
     }
     
-    // Then check if user is employee via BusinessUser table
+    // Then check if user is employee via BusinessUser table (excluding deleted)
     const businessUser = await prisma.businessUser.findFirst({
       where: {
         businessId: businessId,
         userId: authContext.userId,
-        isActive: true
+        isActive: true,
+        isDeleted: false  // Exclude soft-deleted users
       }
     })
     
@@ -212,11 +214,12 @@ export function requireRole(allowedRoles: UserRole[], businessId?: number) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user has any of the allowed roles in any business (or specific business)
+    // Check if user has any of the allowed roles in any business (or specific business, excluding deleted)
     const businessMemberships = await prisma.businessUser.findMany({
       where: {
         userId: authContext.userId,
         isActive: true,
+        isDeleted: false,  // Exclude soft-deleted users
         role: { in: allowedRoles },
         ...(businessId && { businessId })
       }

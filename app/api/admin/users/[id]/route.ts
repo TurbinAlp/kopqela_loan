@@ -423,15 +423,17 @@ export async function DELETE(
       }, { status: 404 })
     }
 
-    // Check if user is a business owner - owners cannot be deleted
-    const isOwner = await prisma.business.findFirst({
-      where: { ownerId: userId }
+    const isOwnerOfThisBusiness = await prisma.business.findFirst({
+      where: { 
+        id: businessIdNum,
+        ownerId: userId 
+      }
     })
 
-    if (isOwner) {
+    if (isOwnerOfThisBusiness) {
       return NextResponse.json({
         success: false,
-        message: 'Cannot delete business owner. Transfer ownership first.'
+        message: 'Cannot remove business owner from their own business. Transfer ownership first.'
       }, { status: 400 })
     }
 
@@ -443,12 +445,34 @@ export async function DELETE(
       }, { status: 400 })
     }
 
-    // Soft delete by deactivating the user
-    const deactivatedUser = await prisma.user.update({
-      where: { id: userId },
+    // Soft delete by setting isDeleted = true in BusinessUser table
+    const businessUser = await prisma.businessUser.findFirst({
+      where: {
+        userId: userId,
+        businessId: businessIdNum,
+        isDeleted: false
+      }
+    })
+
+    if (!businessUser) {
+      return NextResponse.json({
+        success: false,
+        message: 'User is not a member of this business'
+      }, { status: 404 })
+    }
+
+    // Perform soft delete
+    await prisma.businessUser.update({
+      where: { id: businessUser.id },
       data: { 
+        isDeleted: true,
         updatedAt: new Date()
-      },
+      }
+    })
+
+    // Get user info for response
+    const deactivatedUser = await prisma.user.findUnique({
+      where: { id: userId },
       select: {
         id: true,
         firstName: true,
@@ -457,13 +481,20 @@ export async function DELETE(
       }
     })
 
+    if (!deactivatedUser) {
+      return NextResponse.json({
+        success: false,
+        message: 'User not found'
+      }, { status: 404 })
+    }
+
     return NextResponse.json({
       success: true,
-      message: 'User deactivated successfully',
+      message: 'User removed from business successfully',
       data: {
-        id: deactivatedUser.id,
-        name: `${deactivatedUser.firstName} ${deactivatedUser.lastName}`,
-        email: deactivatedUser.email,
+        id: deactivatedUser!.id,
+        name: `${deactivatedUser!.firstName} ${deactivatedUser!.lastName}`,
+        email: deactivatedUser!.email,
         status: 'Inactive'
       }
     })
