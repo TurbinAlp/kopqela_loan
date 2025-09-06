@@ -93,6 +93,19 @@ export async function POST(request: NextRequest) {
 
       console.log('Business created:', business.id)
 
+      // Add owner to BusinessUser table as ADMIN
+      await tx.businessUser.create({
+        data: {
+          businessId: business.id,
+          userId: authContext.userId,
+          role: 'ADMIN',
+          isActive: true,
+          addedBy: authContext.userId 
+        }
+      })
+
+      console.log('Owner added to BusinessUser table')
+
       // Create business settings
       const businessSettings = await tx.businessSetting.create({
         data: {

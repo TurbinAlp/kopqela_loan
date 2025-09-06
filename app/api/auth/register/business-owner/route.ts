@@ -139,6 +139,17 @@ export async function POST(request: NextRequest) {
           name: true
         }
       })
+
+      // Add owner to BusinessUser table as ADMIN
+      await tx.businessUser.create({
+        data: {
+          businessId: business.id,
+          userId: user.id,
+          role: 'ADMIN',
+          isActive: true,
+          addedBy: user.id // Self-added
+        }
+      })
       
       // Create business settings with detailed information
       await tx.businessSetting.create({
