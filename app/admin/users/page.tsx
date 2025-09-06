@@ -203,8 +203,8 @@ export default function UserManagementPage() {
               onClick={() => setIsAddUserModalOpen(true)}
               className="flex items-center space-x-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
             >
-              <UserPlusIcon className="w-5 h-5" />
-              <span>{t.addUser}</span>
+              <UserPlusIcon className="w-5 h-5 text-white" />
+              <span className="text-white">{t.addUser}</span>
             </button>
           </div>
 

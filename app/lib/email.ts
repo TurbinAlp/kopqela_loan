@@ -8,6 +8,7 @@ interface EmailConfig {
     user: string
     pass: string
   }
+  from: string
 }
 
 interface VerificationEmailData {
@@ -41,6 +42,14 @@ interface EmployeeInvitationEmailData {
   invitedBy: string
 }
 
+interface BusinessInvitationEmailData {
+  name: string
+  email: string
+  businessName: string
+  role: string
+  invitedBy: string
+}
+
 
 // Email configuration with better defaults
 const emailConfig: EmailConfig = {
@@ -50,7 +59,8 @@ const emailConfig: EmailConfig = {
   auth: {
     user: process.env.SMTP_USER || '',
     pass: process.env.SMTP_PASS || ''
-  }
+  },
+  from: process.env.SMTP_FROM || 'noreply@koppela.com'
 }
 
 // Create transporter with additional options
@@ -527,6 +537,148 @@ export async function sendEmployeeInvitationEmail(data: EmployeeInvitationEmailD
     // For development, log the code even if email fails
     if (process.env.NODE_ENV === 'development') {
       console.log(`Employee invitation code for ${data.email}: ${data.code}`)
+      return true
+    }
+    return false
+  }
+}
+
+// Send business invitation email to existing user
+export async function sendBusinessInvitationEmail(data: BusinessInvitationEmailData): Promise<boolean> {
+  try {
+    // Check if email is properly configured
+    if (!emailConfig.auth.user || !emailConfig.auth.pass) {
+      console.warn('Email credentials not configured. Logging business invitation instead')
+      console.log(`Business invitation for ${data.email} to join ${data.businessName} as ${data.role}`)
+      return true // Return true for development
+    }
+
+    const roleNames = {
+      'ADMIN': 'Administrator',
+      'MANAGER': 'Manager', 
+      'CASHIER': 'Cashier'
+    }
+
+    const roleName = roleNames[data.role as keyof typeof roleNames] || data.role
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Business Invitation - Koppela</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { text-align: center; margin-bottom: 30px; }
+          .logo { font-size: 28px; font-weight: bold; color: #14b8a6; }
+          .invitation-box { 
+            background: #f8fafc; 
+            border: 2px solid #14b8a6; 
+            border-radius: 8px; 
+            padding: 20px; 
+            margin: 20px 0; 
+            text-align: center; 
+          }
+          .role-badge { 
+            background: #14b8a6; 
+            color: white; 
+            padding: 8px 16px; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            display: inline-block; 
+            margin: 10px 0; 
+          }
+          .button { 
+            display: inline-block; 
+            background: #14b8a6; 
+            color: white; 
+            padding: 12px 24px; 
+            text-decoration: none; 
+            border-radius: 6px; 
+            margin: 20px 0; 
+          }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">KOPPELA</div>
+            <h1>Business Invitation</h1>
+          </div>
+          
+          <p>Hi ${data.name},</p>
+          
+          <div class="invitation-box">
+            <h2>You've been invited to join</h2>
+            <h3><strong>${data.businessName}</strong></h3>
+            <div class="role-badge">${roleName}</div>
+            <p>by ${data.invitedBy}</p>
+          </div>
+          
+          <p>You have been invited to join <strong>${data.businessName}</strong> as a <strong>${roleName}</strong>.</p>
+          
+          <p>Since you already have a Koppela account, you can immediately access the business dashboard:</p>
+          
+          <div style="text-align: center;">
+            <a href="${process.env.NEXTAUTH_URL || 'http://koppela.com'}/login" class="button">
+              Login to Access Business
+            </a>
+          </div>
+          
+          <p><strong>Your new role:</strong> ${roleName}</p>
+          <p><strong>Business:</strong> ${data.businessName}</p>
+          <p><strong>Invited by:</strong> ${data.invitedBy}</p>
+          
+          <div class="footer">
+            <p>Welcome to the Koppela family!</p>
+            <p>If you have any questions, please contact your business administrator.</p>
+            <p>&copy; 2025 Koppela. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `
+
+    const textContent = `
+Hi ${data.name},
+
+You've been invited to join ${data.businessName} as a ${roleName} by ${data.invitedBy}.
+
+Since you already have a Koppela account, you can immediately access the business dashboard by logging in at:
+${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/login
+
+Your new role: ${roleName}
+Business: ${data.businessName}
+Invited by: ${data.invitedBy}
+
+Welcome to the Koppela family!
+
+If you have any questions, please contact your business administrator.
+
+© 2025 Koppela. All rights reserved.
+    `
+
+    const transporter = nodemailer.createTransport(emailConfig)
+
+    const mailOptions = {
+      from: emailConfig.from,
+      to: data.email,
+      subject: `Invitation to join ${data.businessName} - Koppela`,
+      text: textContent,
+      html: htmlContent
+    }
+
+    await transporter.sendMail(mailOptions)
+    console.log('Business invitation email sent successfully to:', data.email)
+    return true
+  } catch (error) {
+    console.error('Error sending business invitation email:', error)
+    // For development, log the invitation details even if email fails
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Business invitation for ${data.email} to join ${data.businessName} as ${data.role}`)
       return true
     }
     return false

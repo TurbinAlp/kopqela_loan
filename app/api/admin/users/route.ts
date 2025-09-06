@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma, handlePrismaError } from '../../../lib/prisma'
 import { getAuthContext, hasPermission } from '../../../lib/rbac/middleware'
 import { Resource, Action } from '../../../lib/rbac/permissions'
-import { sendEmployeeInvitationEmail } from '../../../lib/email'
+import { sendEmployeeInvitationEmail, sendBusinessInvitationEmail } from '../../../lib/email'
 import bcrypt from 'bcryptjs'
 
 /**
@@ -163,14 +163,25 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json()
-    const { firstName, lastName, email, password, role, phone, isActive } = body
+    const { firstName, lastName, email, password, role, phone, isActive, inviteExistingUser } = body
 
-    // Validate required fields
-    if (!firstName || !lastName || !email || !password || !role) {
-      return NextResponse.json({
-        success: false,
-        message: 'First name, last name, email, password, and role are required'
-      }, { status: 400 })
+    // Validate required fields - different validation for existing vs new users
+    if (inviteExistingUser) {
+      // For existing users, only email and role are required
+      if (!email || !role) {
+        return NextResponse.json({
+          success: false,
+          message: 'Email and role are required for existing user invitation'
+        }, { status: 400 })
+      }
+    } else {
+      // For new users, all fields are required
+      if (!firstName || !lastName || !email || !password || !role) {
+        return NextResponse.json({
+          success: false,
+          message: 'First name, last name, email, password, and role are required'
+        }, { status: 400 })
+      }
     }
 
     // Validate role
@@ -190,8 +201,8 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Validate password length
-    if (password.length < 8) {
+    // Validate password length (only for new users)
+    if (!inviteExistingUser && password.length < 8) {
       return NextResponse.json({
         success: false,
         message: 'Password must be at least 8 characters long'
@@ -200,7 +211,8 @@ export async function POST(request: NextRequest) {
 
     // Check if business exists
     const business = await prisma.business.findUnique({
-      where: { id: businessIdNum }
+      where: { id: businessIdNum },
+      select: { id: true, name: true }
     })
 
     if (!business) {
@@ -212,56 +224,123 @@ export async function POST(request: NextRequest) {
 
     // Check if user with this email already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email }
-    })
-
-    if (existingUser) {
-      return NextResponse.json({
-        success: false,
-        message: 'User with this email already exists'
-      }, { status: 409 })
-    }
-
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 10)
-
-    // Generate verification code
-    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString()
-    const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
-
-    // Create user
-    const newUser = await prisma.user.create({
-      data: {
-        firstName,
-        lastName,
-        email,
-        phone,
-        passwordHash,
-              isVerified: false, 
-      verificationCode,
-      verificationExpiresAt
-    },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-      phone: true,
-      lastLoginAt: true,
-      createdAt: true
-    }
-    })
-
-    // Create BusinessUser relationship with role and status
-    await prisma.businessUser.create({
-      data: {
-        businessId: businessIdNum,
-        userId: newUser.id,
-        role: role,
-        isActive: isActive !== undefined ? isActive : true,
-        addedBy: authContext.userId
+      where: { email },
+      select: { 
+        id: true, 
+        firstName: true, 
+        lastName: true, 
+        email: true, 
+        phone: true, 
+        isVerified: true,
+        lastLoginAt: true,
+        createdAt: true
       }
     })
+
+    if (inviteExistingUser) {
+      // For existing user invitation
+      if (!existingUser) {
+        return NextResponse.json({
+          success: false,
+          message: 'User with this email does not exist in the system'
+        }, { status: 404 })
+      }
+
+      // Check if user is already a member of this business
+      const existingBusinessUser = await prisma.businessUser.findFirst({
+        where: {
+          userId: existingUser.id,
+          businessId: businessIdNum
+        }
+      })
+
+      if (existingBusinessUser) {
+        return NextResponse.json({
+          success: false,
+          message: 'User is already a member of this business'
+        }, { status: 409 })
+      }
+    } else {
+      // For new user creation
+      if (existingUser) {
+        return NextResponse.json({
+          success: false,
+          message: 'User with this email already exists. Use "Invite Existing User" option instead.'
+        }, { status: 409 })
+      }
+    }
+
+    let targetUser
+    let emailType = 'employee_invitation' // Default for new users
+    let verificationCode: string | undefined // For new users only
+
+    if (inviteExistingUser) {
+      // For existing user invitation
+      if (!existingUser) {
+        return NextResponse.json({
+          success: false,
+          message: 'User not found'
+        }, { status: 404 })
+      }
+
+      targetUser = existingUser
+      emailType = 'business_invitation'
+
+      // Create BusinessUser relationship with role and status
+      await prisma.businessUser.create({
+        data: {
+          businessId: businessIdNum,
+          userId: existingUser.id,
+          role: role,
+          isActive: isActive !== undefined ? isActive : true,
+          addedBy: authContext.userId
+        }
+      })
+    } else {
+      // For new user creation
+      // Hash password
+      const passwordHash = await bcrypt.hash(password, 10)
+
+      // Generate verification code
+      verificationCode = Math.floor(100000 + Math.random() * 900000).toString()
+      const verificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+
+      // Create user
+      const newUser = await prisma.user.create({
+        data: {
+          firstName,
+          lastName,
+          email,
+          phone,
+          passwordHash,
+          isVerified: false, 
+          verificationCode,
+          verificationExpiresAt
+        },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phone: true,
+          lastLoginAt: true,
+          createdAt: true
+        }
+      })
+
+      targetUser = newUser
+
+      // Create BusinessUser relationship with role and status
+      await prisma.businessUser.create({
+        data: {
+          businessId: businessIdNum,
+          userId: newUser.id,
+          role: role,
+          isActive: isActive !== undefined ? isActive : true,
+          addedBy: authContext.userId
+        }
+      })
+    }
 
     // Get current user (admin who created the employee) and business info
     const currentUser = await prisma.user.findUnique({
@@ -269,37 +348,59 @@ export async function POST(request: NextRequest) {
       select: { firstName: true, lastName: true }
     })
 
-    // Send invitation email
+    // Send appropriate email based on email type
     try {
-      await sendEmployeeInvitationEmail({
-        name: `${newUser.firstName} ${newUser.lastName}`,
-        email: newUser.email,
-        code: verificationCode,
-        businessName: business.name,
-        role: role,
-        invitedBy: currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'Administrator'
-      })
+      if (emailType === 'business_invitation') {
+        // Send business invitation email to existing user
+        await sendBusinessInvitationEmail({
+          name: `${targetUser.firstName} ${targetUser.lastName}`,
+          email: targetUser.email,
+          businessName: business.name,
+          role: role,
+          invitedBy: currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'Administrator'
+        })
+      } else {
+        // Send employee invitation email to new user
+        if (!verificationCode) {
+          throw new Error('Verification code is required for new user')
+        }
+        await sendEmployeeInvitationEmail({
+          name: `${targetUser.firstName} ${targetUser.lastName}`,
+          email: targetUser.email,
+          code: verificationCode,
+          businessName: business.name,
+          role: role,
+          invitedBy: currentUser ? `${currentUser.firstName} ${currentUser.lastName}` : 'Administrator'
+        })
+      }
     } catch (emailError) {
       console.error('Failed to send invitation email:', emailError)
       // Don't fail user creation if email fails
     }
 
     // Format response
+    if (!targetUser) {
+      return NextResponse.json({
+        success: false,
+        message: 'Failed to create or find user'
+      }, { status: 500 })
+    }
+
     const userActiveStatus = isActive !== undefined ? isActive : true
     const responseUser = {
-      id: newUser.id,
-      firstName: newUser.firstName,
-      lastName: newUser.lastName,
-      email: newUser.email,
-      phone: newUser.phone,
-      lastLoginAt: newUser.lastLoginAt,
-      createdAt: newUser.createdAt,
+      id: targetUser.id,
+      firstName: targetUser.firstName,
+      lastName: targetUser.lastName,
+      email: targetUser.email,
+      phone: targetUser.phone,
+      lastLoginAt: targetUser.lastLoginAt,
+      createdAt: targetUser.createdAt,
       role,
       isActive: userActiveStatus,
-      name: `${newUser.firstName} ${newUser.lastName}`,
+      name: `${targetUser.firstName} ${targetUser.lastName}`,
       status: userActiveStatus ? 'Active' : 'Inactive',
-      lastLogin: newUser.lastLoginAt ? 
-        newUser.lastLoginAt.toISOString().split('T')[0] : 'Never',
+      lastLogin: targetUser.lastLoginAt ? 
+        targetUser.lastLoginAt.toISOString().split('T')[0] : 'Never',
       isOwner: false
     }
 

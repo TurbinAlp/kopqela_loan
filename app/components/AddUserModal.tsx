@@ -16,6 +16,7 @@ import {
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../contexts/LanguageContext'
+import { useNotifications } from '../contexts/NotificationContext'
 
 interface User {
   id: number
@@ -50,12 +51,14 @@ interface AddUserModalProps {
 
 export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId }: AddUserModalProps) {
   const { language } = useLanguage()
+  const { showSuccess, showError } = useNotifications()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [focusedField, setFocusedField] = useState<string | null>(null)
   const [completedFields, setCompletedFields] = useState<Set<string>>(new Set())
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [inviteExistingUser, setInviteExistingUser] = useState(false)
   
   const [formData, setFormData] = useState<UserForm>({
     firstName: '',
@@ -70,14 +73,22 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
 
 
 
-  // Calculate progress
-  const totalFields = 7 // firstName, lastName, email, password, confirmPassword, role, status
+  // Calculate progress based on user type
+  const totalFields = inviteExistingUser 
+    ? 2 // email, role (for existing users)
+    : 7 // firstName, lastName, email, password, confirmPassword, role, status (for new users)
   const progress = Math.min((completedFields.size / totalFields) * 100, 100)
 
   const translations = {
     en: {
-      title: "Add New User",
-      subtitle: "Create a new user account",
+      title: "Add User",
+      subtitle: "Create new user or invite existing user",
+      
+      // User type options
+      createNewUser: "Create New User",
+      inviteExistingUser: "Invite Existing User",
+      newUserDescription: "Create a brand new user account",
+      existingUserDescription: "Invite an existing system user to this business",
       
       // Form sections
       userInformation: "User Information",
@@ -129,6 +140,11 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
       
       // Success
       userAdded: "User added successfully!",
+      userCreated: "User has been created successfully!",
+      userInvited: "User has been invited to this business successfully!",
+      success: "Success",
+      error: "Error",
+      errorAddingUser: "Error adding user. Please try again.",
       
       // Role descriptions
       adminDescription: "Full system access and user management",
@@ -140,8 +156,14 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
       completed: "Completed"
     },
     sw: {
-      title: "Ongeza Mtumiaji Mpya",
-      subtitle: "Tengeneza akaunti mpya ya mtumiaji",
+      title: "Ongeza Mtumiaji",
+      subtitle: "Tengeneza mtumiaji mpya au alitisha aliyepo",
+      
+      // User type options
+      createNewUser: "Tengeneza Mtumiaji Mpya",
+      inviteExistingUser: "Alitisha Mtumiaji Aliyepo",
+      newUserDescription: "Tengeneza akaunti mpya kabisa",
+      existingUserDescription: "Alitisha mtumiaji aliyepo kwenye mfumo huu biashara",
       
       // Form sections
       userInformation: "Maelezo ya Mtumiaji",
@@ -193,6 +215,11 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
       
       // Success
       userAdded: "Mtumiaji ameongezwa!",
+      userCreated: "Mtumiaji ametengenezwa!",
+      userInvited: "Mtumiaji amealitishwa kwenye biashara hii!",
+      success: "Imefanikiwa",
+      error: "Hitilafu",
+      errorAddingUser: "Hitilafu kuongeza mtumiaji. Tafadhali jaribu tena.",
       
       // Role descriptions
       adminDescription: "Ufikiaji kamili wa mfumo na usimamizi wa watumiaji",
@@ -273,35 +300,41 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
 
-    // Required fields
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = t.firstNameRequired
-    }
+    if (inviteExistingUser) {
+      // For existing users, only email and role are required
+      if (!formData.email.trim()) {
+        newErrors.email = t.emailRequired
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        newErrors.email = t.emailInvalid
+      }
+    } else {
+      // For new users, all fields are required
+      if (!formData.firstName.trim()) {
+        newErrors.firstName = t.firstNameRequired
+      }
 
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = t.lastNameRequired
-    }
+      if (!formData.lastName.trim()) {
+        newErrors.lastName = t.lastNameRequired
+      }
 
-    if (!formData.email.trim()) {
-      newErrors.email = t.emailRequired
-    }
+      if (!formData.email.trim()) {
+        newErrors.email = t.emailRequired
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        newErrors.email = t.emailInvalid
+      }
 
-    // Email validation
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = t.emailInvalid
-    }
+      // Password validation (only for new users)
+      if (!formData.password) {
+        newErrors.password = t.passwordRequired
+      } else if (formData.password.length < 8) {
+        newErrors.password = t.passwordTooShort
+      }
 
-    // Password validation
-    if (!formData.password) {
-      newErrors.password = t.passwordRequired
-    } else if (formData.password.length < 8) {
-      newErrors.password = t.passwordTooShort
-    }
-
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = t.passwordRequired
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = t.passwordsDoNotMatch
+      if (!formData.confirmPassword) {
+        newErrors.confirmPassword = t.passwordRequired
+      } else if (formData.password !== formData.confirmPassword) {
+        newErrors.confirmPassword = t.passwordsDoNotMatch
+      }
     }
 
     setErrors(newErrors)
@@ -328,7 +361,8 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
           phone: formData.phone,
           password: formData.password,
           role: formData.role,
-          isActive: formData.status === 'Active'
+          isActive: formData.status === 'Active',
+          inviteExistingUser: inviteExistingUser
         })
       })
 
@@ -352,19 +386,23 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
           status: 'Active'
         })
         setCompletedFields(new Set())
+        setInviteExistingUser(false)
 
         // Show success message
-        alert(t.userAdded)
+        const successMessage = inviteExistingUser 
+          ? `${data.data.name} - ${t.userInvited}`
+          : `${data.data.name} - ${t.userCreated}`
+        showSuccess(t.success, successMessage)
 
         // Close modal
         onClose()
       } else {
-        alert(data.message || 'Error adding user. Please try again.')
+        showError(t.error, data.message || t.errorAddingUser)
       }
 
     } catch (error) {
       console.error('Error adding user:', error)
-      alert('Error adding user. Please try again.')
+      showError(t.error, t.errorAddingUser)
     } finally {
       setIsSubmitting(false)
     }
@@ -383,6 +421,7 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
     })
     setErrors({})
     setCompletedFields(new Set())
+    setInviteExistingUser(false)
     onClose()
   }
 
@@ -468,6 +507,70 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
                 {/* Form */}
                 <div className="px-6 py-6 max-h-96 overflow-y-auto">
                   <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* User Type Toggle */}
+                    <div className="space-y-3">
+                      <h3 className="text-base font-medium text-gray-900 flex items-center space-x-2">
+                        <UserGroupIcon className="w-4 h-4 text-gray-600" />
+                        <span>User Type</span>
+                      </h3>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Create New User Option */}
+                        <motion.div
+                          className={`relative p-3 border rounded-md cursor-pointer transition-all ${
+                            !inviteExistingUser 
+                              ? 'border-teal-500 bg-teal-50' 
+                              : 'border-gray-200 bg-white hover:border-gray-300'
+                          }`}
+                          onClick={() => setInviteExistingUser(false)}
+                          whileHover={{ scale: 1.01 }}
+                          whileTap={{ scale: 0.99 }}
+                        >
+                          <div className="flex items-center space-x-2">
+                            <div className={`w-3 h-3 rounded-full border ${
+                              !inviteExistingUser 
+                                ? 'border-teal-500 bg-teal-500' 
+                                : 'border-gray-300'
+                            }`}>
+                              {!inviteExistingUser && (
+                                <CheckIcon className="w-2 h-2 text-white" />
+                              )}
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-medium text-gray-900">{t.createNewUser}</h4>
+                            </div>
+                          </div>
+                        </motion.div>
+
+                        {/* Invite Existing User Option */}
+                        <motion.div
+                          className={`relative p-3 border rounded-md cursor-pointer transition-all ${
+                            inviteExistingUser 
+                              ? 'border-teal-500 bg-teal-50' 
+                              : 'border-gray-200 bg-white hover:border-gray-300'
+                          }`}
+                          onClick={() => setInviteExistingUser(true)}
+                          whileHover={{ scale: 1.01 }}
+                          whileTap={{ scale: 0.99 }}
+                        >
+                          <div className="flex items-center space-x-2">
+                            <div className={`w-3 h-3 rounded-full border ${
+                              inviteExistingUser 
+                                ? 'border-teal-500 bg-teal-500' 
+                                : 'border-gray-300'
+                            }`}>
+                              {inviteExistingUser && (
+                                <CheckIcon className="w-2 h-2 text-white" />
+                              )}
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-medium text-gray-900">{t.inviteExistingUser}</h4>
+                            </div>
+                          </div>
+                        </motion.div>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {/* User Information */}
                       <div className="space-y-4">
@@ -476,7 +579,8 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
                           <span>{t.userInformation}</span>
                         </h3>
 
-                        {/* First Name */}
+                        {/* First Name - Only for new users */}
+                        {!inviteExistingUser && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             {t.firstName} <span className="text-red-500">*</span>
@@ -524,8 +628,10 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
                             </motion.p>
                           )}
                         </div>
+                        )}
 
-                        {/* Last Name */}
+                        {/* Last Name - Only for new users */}
+                        {!inviteExistingUser && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             {t.lastName} <span className="text-red-500">*</span>
@@ -573,6 +679,7 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
                             </motion.p>
                           )}
                         </div>
+                        )}
 
                         {/* Email */}
                         <div>
@@ -622,9 +729,30 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
                             </motion.p>
                           )}
                         </div>
+
+                        {/* User Role */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            {t.userRole} <span className="text-red-500">*</span>
+                          </label>
+                          <select
+                            value={formData.role}
+                            onChange={(e) => handleInputChange('role', e.target.value as 'ADMIN' | 'MANAGER' | 'CASHIER')}
+                            className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900 bg-white"
+                            disabled={isSubmitting}
+                            onFocus={() => handleFieldFocus('role')}
+                            onBlur={handleFieldBlur}
+                          >
+                            <option value="CASHIER">{t.cashier}</option>
+                            <option value="MANAGER">{t.manager}</option>
+                            <option value="ADMIN">{t.admin}</option>
+                          </select>
+                          <p className="mt-1 text-sm text-gray-500">{getRoleDescription(formData.role)}</p>
+                        </div>
                       </div>
 
-                      {/* Account Settings */}
+                      {/* Account Settings - Only for new users */}
+                      {!inviteExistingUser && (
                       <div className="space-y-4">
                         <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
                           <ShieldCheckIcon className="w-5 h-5 text-gray-600" />
@@ -711,27 +839,9 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
                           )}
                         </div>
 
-                        {/* User Role */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            {t.userRole} <span className="text-red-500">*</span>
-                          </label>
-                          <select
-                            value={formData.role}
-                            onChange={(e) => handleInputChange('role', e.target.value as 'ADMIN' | 'MANAGER' | 'CASHIER')}
-                            className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900 bg-white"
-                            disabled={isSubmitting}
-                            onFocus={() => handleFieldFocus('role')}
-                            onBlur={handleFieldBlur}
-                          >
-                            <option value="CASHIER">{t.cashier}</option>
-                            <option value="MANAGER">{t.manager}</option>
-                            <option value="ADMIN">{t.admin}</option>
-                          </select>
-                          <p className="mt-1 text-sm text-gray-500">{getRoleDescription(formData.role)}</p>
-                        </div>
 
-                        {/* Phone Number */}
+                        {/* Phone Number - Only for new users */}
+                        {!inviteExistingUser && (
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             {t.phoneNumber}
@@ -749,6 +859,7 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
                             />
                           </div>
                         </div>
+                        )}
 
                         {/* User Status */}
                         <div>
@@ -768,14 +879,15 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
                           </select>
                         </div>
                       </div>
+                      )}
                     </div>
 
                     {/* Form Actions */}
-                    <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 pt-6">
+                    <div className="flex flex-row space-x-3 pt-4">
                       <button
                         type="button"
                         onClick={resetAndClose}
-                        className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors font-medium"
+                        className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors text-sm font-medium"
                         disabled={isSubmitting}
                       >
                         {t.cancel}
@@ -783,17 +895,17 @@ export default function AddUserModal({ isOpen, onClose, onUserAdded, businessId 
                       <button
                         type="submit"
                         disabled={isSubmitting || Object.keys(errors).length > 0}
-                        className="flex-1 px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center space-x-2"
+                        className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium flex items-center justify-center space-x-2"
                       >
                         {isSubmitting ? (
                           <>
-                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                            <span>{t.adding}</span>
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                            <span className="text-white">{t.adding}</span>
                           </>
                         ) : (
                           <>
-                            <UserGroupIcon className="w-5 h-5" />
-                            <span>{t.addUser}</span>
+                            <UserGroupIcon className="w-4 h-4 text-white" />
+                            <span className="text-white">{t.addUser}</span>
                           </>
                         )}
                       </button>

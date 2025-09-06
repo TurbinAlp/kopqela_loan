@@ -87,7 +87,7 @@ export default function ToastContainer() {
   }
 
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-3 max-w-sm">
+    <div className="fixed top-4 right-4 z-[9999] space-y-3 max-w-sm">
       <AnimatePresence>
         {toasts.map((toast) => {
           const Icon = getToastIcon(toast.type)
