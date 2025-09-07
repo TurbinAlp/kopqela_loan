@@ -138,6 +138,13 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
 
   // ==================== BUSINESS MANAGEMENT ====================
   {
+    name: 'business.create',
+    resource: Resource.BUSINESS,
+    action: Action.CREATE,
+    description: 'Create new business',
+    businessSpecific: false // Global permission - anyone can create business
+  },
+  {
     name: 'business.read',
     resource: Resource.BUSINESS,
     action: Action.READ,
@@ -149,6 +156,13 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     resource: Resource.BUSINESS,
     action: Action.UPDATE,
     description: 'Update business information',
+    businessSpecific: true
+  },
+  {
+    name: 'business.delete',
+    resource: Resource.BUSINESS,
+    action: Action.DELETE,
+    description: 'Delete business',
     businessSpecific: true
   },
   {
@@ -405,7 +419,7 @@ export const ROLE_PERMISSIONS = {
     'users.create', 'users.read', 'users.update', 'users.delete',
     'employees.manage',
     'customers.read', 'customers.update',
-    'business.read', 'business.update',
+    'business.create', 'business.read', 'business.update', 'business.delete',
     'business_settings.manage',
     'products.create', 'products.read', 'products.update', 'products.delete',
     'categories.manage',
@@ -428,7 +442,7 @@ export const ROLE_PERMISSIONS = {
     'users.read',
     'employees.manage',
     'customers.read', 'customers.update',
-    'business.read',
+    'business.create', 'business.read',
     'products.create', 'products.read', 'products.update',
     'categories.manage',
     'inventory.read', 'inventory.update',
@@ -445,6 +459,7 @@ export const ROLE_PERMISSIONS = {
   
   CASHIER: [
     // Operational level access
+    'business.create', 'business.read',
     'customers.read',
     'products.read',
     'inventory.read',

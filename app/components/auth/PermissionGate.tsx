@@ -18,17 +18,21 @@ interface PermissionGateProps {
   requiredPermission: string
   fallbackUrl?: string
   showAccessDenied?: boolean
+  businessId?: number // For business-specific permission checks
 }
 
 export default function PermissionGate({ 
   children, 
   requiredPermission, 
   fallbackUrl = '/admin/dashboard',
-  showAccessDenied = true 
+  showAccessDenied = true,
+  businessId 
 }: PermissionGateProps) {
   const { data: session, status } = useSession()
   const { currentBusiness } = useBusiness()
-  const { permissions: businessPermissions, loading: permissionsLoading } = useBusinessPermissions(currentBusiness?.id)
+  // Use specific businessId if provided, otherwise use current business
+  const targetBusinessId = businessId || currentBusiness?.id
+  const { permissions: businessPermissions, loading: permissionsLoading } = useBusinessPermissions(targetBusinessId)
   const { language } = useLanguage()
   const router = useRouter()
   const [hasAccess, setHasAccess] = useState<boolean | null>(null)
@@ -46,7 +50,7 @@ export default function PermissionGate({
       adminRole: "Admin",
       managerRole: "Manager", 
       cashierRole: "Cashier",
-      adminOrManager: "those with specific roles",
+      adminOrManager: "Admin or Manager",
       explanation: "This page is only accessible to"
     },
     sw: {
@@ -61,7 +65,7 @@ export default function PermissionGate({
       adminRole: "Msimamizi",
       managerRole: "Meneja",
       cashierRole: "Mhudumu",
-      adminOrManager: "wale wenye ruhusa husika",
+      adminOrManager: "Msimamizi au Meneja",
       explanation: "Ukurasa huu unaweza kutumika na"
     }
   }
@@ -83,19 +87,19 @@ export default function PermissionGate({
 
   const getRequiredRoles = (permission: string): string => {
     const permissionRoleMap: { [key: string]: string[] } = {
-      // Admin only
-      'users.create': ['ADMIN'],
-      'users.update': ['ADMIN'],
-      'users.delete': ['ADMIN'],
-      'settings.manage': ['ADMIN'],
-      'audit_logs.read': ['ADMIN'],
-      'business_settings.manage': ['ADMIN'],
-      
-      // Admin or Manager
-      'users.read': ['ADMIN', 'MANAGER'],
-      'employees.manage': ['ADMIN', 'MANAGER'],
-      'business.read': ['ADMIN', 'MANAGER'],
-      'business.update': ['ADMIN', 'MANAGER'],
+       // Admin only
+       'users.create': ['ADMIN'],
+       'users.update': ['ADMIN'],
+       'users.delete': ['ADMIN'],
+       'settings.manage': ['ADMIN'],
+       'audit_logs.read': ['ADMIN'],
+       'business_settings.manage': ['ADMIN'],
+       'business.update': ['ADMIN'],
+       'business.delete': ['ADMIN'],
+       
+       // Admin or Manager
+       'users.read': ['ADMIN', 'MANAGER'],
+       'employees.manage': ['ADMIN', 'MANAGER'],
       'products.create': ['ADMIN', 'MANAGER'],
       'products.update': ['ADMIN', 'MANAGER'],
       'products.delete': ['ADMIN', 'MANAGER'],
@@ -111,17 +115,19 @@ export default function PermissionGate({
       'credit_applications.reject': ['ADMIN', 'MANAGER'],
       'credit_assessment.assess_credit': ['ADMIN', 'MANAGER'],
       
-      // All roles (Admin, Manager, Cashier)
-      'dashboard.read': ['ADMIN', 'MANAGER', 'CASHIER'],
-      'products.read': ['ADMIN', 'MANAGER', 'CASHIER'],
-      'customers.read': ['ADMIN', 'MANAGER', 'CASHIER'],
-      'pos.create': ['ADMIN', 'MANAGER', 'CASHIER'],
-      'pos.read': ['ADMIN', 'MANAGER', 'CASHIER'],
-      'payments.create': ['ADMIN', 'MANAGER', 'CASHIER'],
-      'payments.read': ['ADMIN', 'MANAGER', 'CASHIER'],
-      'payments.process_payment': ['ADMIN', 'MANAGER', 'CASHIER'],
-      'credit_applications.read': ['ADMIN', 'MANAGER', 'CASHIER'],
-      'credit_applications.create': ['ADMIN', 'MANAGER', 'CASHIER']
+       // All roles (Admin, Manager, Cashier)
+       'business.create': ['ADMIN', 'MANAGER', 'CASHIER'],
+       'business.read': ['ADMIN', 'MANAGER', 'CASHIER'],
+       'dashboard.read': ['ADMIN', 'MANAGER', 'CASHIER'],
+       'products.read': ['ADMIN', 'MANAGER', 'CASHIER'],
+       'customers.read': ['ADMIN', 'MANAGER', 'CASHIER'],
+       'pos.create': ['ADMIN', 'MANAGER', 'CASHIER'],
+       'pos.read': ['ADMIN', 'MANAGER', 'CASHIER'],
+       'payments.create': ['ADMIN', 'MANAGER', 'CASHIER'],
+       'payments.read': ['ADMIN', 'MANAGER', 'CASHIER'],
+       'payments.process_payment': ['ADMIN', 'MANAGER', 'CASHIER'],
+       'credit_applications.read': ['ADMIN', 'MANAGER', 'CASHIER'],
+       'credit_applications.create': ['ADMIN', 'MANAGER', 'CASHIER']
     }
 
     const requiredRoles = permissionRoleMap[permission] || ['ADMIN']

@@ -3,6 +3,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { 
   BuildingOfficeIcon,
   PlusIcon,
@@ -14,13 +15,50 @@ import {
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useBusiness } from '../../contexts/BusinessContext'
+import { useBusinessPermissions, hasPermissionSync } from '../../hooks/usePermissions'
 import PermissionGate from '../../components/auth/PermissionGate'
 
 
 
+// Component to handle business-specific permission checks
+function BusinessActionButton({ 
+  business, 
+  permission, 
+  onClick, 
+  className, 
+  title, 
+  children 
+}: {
+  business: { id: number }
+  permission: string
+  onClick: () => void
+  className: string
+  title: string
+  children: React.ReactNode
+}) {
+  const { data: session } = useSession()
+  const { permissions: specificBusinessPermissions } = useBusinessPermissions(business.id)
+  
+  const hasPermission = hasPermissionSync(session, permission, specificBusinessPermissions)
+  
+  if (!hasPermission) return null
+  
+  return (
+    <button
+      onClick={onClick}
+      className={className}
+      title={title}
+    >
+      {children}
+    </button>
+  )
+}
+
 function BusinessPageContent() {
   const { language } = useLanguage()
-  const { businesses, isLoading } = useBusiness()
+  const { businesses, isLoading, currentBusiness } = useBusiness()
+  const { data: session } = useSession()
+  const { permissions: businessPermissions } = useBusinessPermissions(currentBusiness?.id)
   const router = useRouter()
 
   const translations = {
@@ -94,13 +132,15 @@ function BusinessPageContent() {
       {/* Action Bar */}
       <div className="mb-8">
         <div className="flex justify-end">
-          <button
-            onClick={handleAddBusiness}
-            className="flex items-center space-x-2 bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition-colors"
-          >
-            <PlusIcon className="w-5 h-5" />
-            <span>{t.addBusiness}</span>
-          </button>
+          {hasPermissionSync(session, 'business.create', businessPermissions) && (
+            <button
+              onClick={handleAddBusiness}
+              className="flex items-center space-x-2 bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition-colors"
+            >
+              <PlusIcon className="w-5 h-5" />
+              <span>{t.addBusiness}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -113,13 +153,15 @@ function BusinessPageContent() {
         <div className="text-center py-12 bg-white rounded-2xl shadow-sm border border-gray-100">
           <BuildingOfficeIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">{t.noBusiness}</h3>
-          <button
-            onClick={handleAddBusiness}
-            className="inline-flex items-center space-x-2 bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition-colors"
-          >
-            <PlusIcon className="w-5 h-5" />
-            <span>{t.addBusiness}</span>
-          </button>
+          {hasPermissionSync(session, 'business.create', businessPermissions) && (
+            <button
+              onClick={handleAddBusiness}
+              className="inline-flex items-center space-x-2 bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition-colors"
+            >
+              <PlusIcon className="w-5 h-5" />
+              <span>{t.addBusiness}</span>
+            </button>
+          )}
         </div>
       ) : (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -176,20 +218,24 @@ function BusinessPageContent() {
                       >
                         <EyeIcon className="w-4 h-4" />
                       </button>
-                      <button
+                      <BusinessActionButton
+                        business={business}
+                        permission="business.update"
                         onClick={() => handleEditBusiness(business)}
                         className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
                         title={t.editBusiness}
                       >
                         <PencilIcon className="w-4 h-4" />
-                      </button>
-                      <button
+                      </BusinessActionButton>
+                      <BusinessActionButton
+                        business={business}
+                        permission="business.delete"
                         onClick={() => handleDeleteBusiness(business)}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title={t.deleteBusiness}
                       >
                         <TrashIcon className="w-4 h-4" />
-                      </button>
+                      </BusinessActionButton>
                     </div>
                   </div>
                 </div>
@@ -233,20 +279,24 @@ function BusinessPageContent() {
                       >
                         {t.manageBusiness}
                       </button>
-                      <button
+                      <BusinessActionButton
+                        business={business}
+                        permission="business.update"
                         onClick={() => handleEditBusiness(business)}
                         className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
                         title={t.editBusiness}
                       >
                         <PencilIcon className="w-4 h-4" />
-                      </button>
-                      <button
+                      </BusinessActionButton>
+                      <BusinessActionButton
+                        business={business}
+                        permission="business.delete"
                         onClick={() => handleDeleteBusiness(business)}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title={t.deleteBusiness}
                       >
                         <TrashIcon className="w-4 h-4" />
-                      </button>
+                      </BusinessActionButton>
                     </div>
                   </div>
                 </div>

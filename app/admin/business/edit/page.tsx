@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { 
   BuildingOfficeIcon,
@@ -16,6 +17,7 @@ import {
 import { useLanguage } from '../../../contexts/LanguageContext'
 import { useNotifications } from '../../../contexts/NotificationContext'
 import { useBusiness } from '../../../contexts/BusinessContext'
+import PermissionGate from '../../../components/auth/PermissionGate'
 import Image from 'next/image'
 
 interface BusinessSettings {
@@ -110,6 +112,9 @@ export default function EditBusinessPage() {
   const { language } = useLanguage()
   const { showSuccess, showError } = useNotifications()
   const { currentBusiness } = useBusiness()
+  const searchParams = useSearchParams()
+  const businessIdFromUrl = searchParams.get('id')
+  const businessId = businessIdFromUrl ? parseInt(businessIdFromUrl) : currentBusiness?.id
   const [activeTab, setActiveTab] = useState('company')
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -623,11 +628,16 @@ export default function EditBusinessPage() {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="w-full max-w-full mx-auto px-4 sm:px-6 lg:px-8"
+    <PermissionGate 
+      requiredPermission="business.update" 
+      businessId={businessId}
+      fallbackUrl="/admin/business"
     >
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="w-full max-w-full mx-auto px-4 sm:px-6 lg:px-8"
+      >
 
 
       {/* Tab Navigation */}
@@ -1790,5 +1800,6 @@ export default function EditBusinessPage() {
         </div>
       </div>
     </motion.div>
+    </PermissionGate>
   )
 } 

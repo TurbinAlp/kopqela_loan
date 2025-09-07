@@ -9,6 +9,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import { useNotifications } from '../../../contexts/NotificationContext'
+import PermissionGate from '../../../components/auth/PermissionGate'
 
 interface BusinessFormData {
   // Business Basic Info
@@ -271,11 +272,15 @@ export default function AddBusinessPage() {
   }, [currentStep])
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8"
+    <PermissionGate 
+      requiredPermission="business.create"
+      fallbackUrl="/admin/business"
     >
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8"
+      >
 
 
       {/* Progress Steps */}
@@ -655,5 +660,6 @@ export default function AddBusinessPage() {
         </div>
       </div>
     </motion.div>
+    </PermissionGate>
   )
 } 
