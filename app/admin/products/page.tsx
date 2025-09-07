@@ -594,21 +594,25 @@ export default function ProductsPage() {
             <span className="hidden sm:inline">{isLoading ? 'Refreshing...' : 'Refresh'}</span>
           </button>
           
-                     <LoadingLink
-             href="/admin/inventory/movements"
-             className="flex items-center space-x-2 px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md transition-colors text-sm"
-           >
-             <ArchiveBoxArrowDownIcon className="w-4 h-4" />
-             <span className="hidden sm:inline">{t.viewMovements}</span>
-           </LoadingLink>
-           
-           <LoadingLink
-             href="/admin/products/add"
-             className="flex items-center space-x-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-md transition-colors text-sm font-medium"
-           >
-             <PlusIcon className="w-4 h-4" />
-             <span>{t.addProduct}</span>
-           </LoadingLink>
+          {hasPermissionSync(session, 'inventory.read', businessPermissions) && (
+            <LoadingLink
+              href="/admin/inventory/movements"
+              className="flex items-center space-x-2 px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md transition-colors text-sm"
+            >
+              <ArchiveBoxArrowDownIcon className="w-4 h-4" />
+              <span className="hidden sm:inline">{t.viewMovements}</span>
+            </LoadingLink>
+          )}
+          
+          {hasPermissionSync(session, 'products.create', businessPermissions) && (
+            <LoadingLink
+              href="/admin/products/add"
+              className="flex items-center space-x-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-md transition-colors text-sm font-medium"
+            >
+              <PlusIcon className="w-4 h-4" />
+              <span>{t.addProduct}</span>
+            </LoadingLink>
+          )}
         </div>
 
         {/* Cache Status */}
@@ -835,41 +839,46 @@ export default function ProductsPage() {
                 <span className="text-sm text-gray-600">
                   {selectedProducts.length} selected
                 </span>
-                <button
-                  onClick={handleBulkDeleteClick}
-                  disabled={bulkDeleting}
-                  className="flex items-center space-x-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 hover:text-red-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {bulkDeleting ? (
-                    <div className="w-4 h-4 border-2 border-red-700 border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <TrashIcon className="w-4 h-4" />
-                  )}
-                  <span>
-                    {bulkDeleting 
-                      ? (language === 'sw' ? 'Inafuta...' : 'Deleting...') 
-                      : t.deleteSelected
-                    }
-                  </span>
-                </button>
-                <button
-                  onClick={handleTransferClick}
-                  className="flex items-center space-x-1 px-3 py-2 bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 hover:text-teal-800 transition-colors font-medium"
-                >
-                  <ArrowRightIcon className="w-4 h-4" />
-                  <span>{t.transferStock}</span>
-                </button>
+                {hasPermissionSync(session, 'products.delete', businessPermissions) && (
+                  <button
+                    onClick={handleBulkDeleteClick}
+                    disabled={bulkDeleting}
+                    className="flex items-center space-x-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 hover:text-red-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {bulkDeleting ? (
+                      <div className="w-4 h-4 border-2 border-red-700 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <TrashIcon className="w-4 h-4" />
+                    )}
+                    <span>
+                      {bulkDeleting 
+                        ? (language === 'sw' ? 'Inafuta...' : 'Deleting...') 
+                        : t.deleteSelected
+                      }
+                    </span>
+                  </button>
+                )}
+                {hasPermissionSync(session, 'inventory.update', businessPermissions) && (
+                  <button
+                    onClick={handleTransferClick}
+                    className="flex items-center space-x-1 px-3 py-2 bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 hover:text-teal-800 transition-colors font-medium"
+                  >
+                    <ArrowRightIcon className="w-4 h-4" />
+                    <span>{t.transferStock}</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
 
           {/* Export Dropdown - Desktop Only */}
-          <div className="hidden sm:block relative group">
-            <button className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-              <DocumentArrowDownIcon className="w-5 h-5" />
-              <span>{t.exportData}</span>
-              <ChevronDownIcon className="w-4 h-4" />
-            </button>
+          {hasPermissionSync(session, 'products.read', businessPermissions) && (
+            <div className="hidden sm:block relative group">
+              <button className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                <DocumentArrowDownIcon className="w-5 h-5" />
+                <span>{t.exportData}</span>
+                <ChevronDownIcon className="w-4 h-4" />
+              </button>
             <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
               <button
                 onClick={() => handleExport('csv')}
@@ -890,7 +899,8 @@ export default function ProductsPage() {
                 {t.exportPDF}
               </button>
             </div>
-          </div>
+            </div>
+          )}
         </motion.div>
       )}
 
