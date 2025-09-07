@@ -1,5 +1,8 @@
 import nodemailer from 'nodemailer'
 
+// Global variable for current year
+const currentYear = new Date().getFullYear()
+
 interface EmailConfig {
   host: string
   port: number
@@ -55,7 +58,7 @@ interface BusinessInvitationEmailData {
 const emailConfig: EmailConfig = {
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false, // Use STARTTLS instead of SSL
+  secure: false, 
   auth: {
     user: process.env.SMTP_USER || '',
     pass: process.env.SMTP_PASS || ''
@@ -67,9 +70,8 @@ const emailConfig: EmailConfig = {
 const transporter = nodemailer.createTransport({
   ...emailConfig,
   tls: {
-    rejectUnauthorized: false // Allow self-signed certificates in development
+    rejectUnauthorized: false 
   },
-  // Add Gmail specific options
   service: process.env.SMTP_HOST?.includes('gmail') ? 'gmail' : undefined
 })
 
@@ -88,11 +90,11 @@ export async function testEmailConnection(): Promise<boolean> {
 // Send verification email
 export async function sendVerificationEmail(data: VerificationEmailData): Promise<boolean> {
   try {
-    // Check if email is properly configured
+    
     if (!emailConfig.auth.user || !emailConfig.auth.pass) {
       console.warn('Email credentials not configured. Logging verification code instead:', data.code)
       console.log(`Verification code for ${data.email}: ${data.code}`)
-      return true // Return true for development
+      return true 
     }
     const htmlContent = `
       <!DOCTYPE html>
@@ -144,7 +146,7 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
           <p>If you didn't create an account with Koppela, please ignore this email.</p>
           
           <div class="footer">
-            <p>© 2025 Koppela. All rights reserved.</p>
+            <p>© ${currentYear} Koppela. All rights reserved.</p>
             <p>This is an automated email, please do not reply.</p>
           </div>
         </div>
@@ -163,7 +165,7 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
       
       If you didn't create an account with Koppela, please ignore this email.
       
-      © 2025 Koppela. All rights reserved.
+      © ${currentYear} Koppela. All rights reserved.
     `
 
     const mailOptions = {
@@ -179,7 +181,7 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
     return true
   } catch (error) {
     console.error('Error sending verification email:', error)
-    // For development, log the code even if email fails
+    
     if (process.env.NODE_ENV === 'development') {
       console.log(`Verification code for ${data.email}: ${data.code}`)
       return true
@@ -232,7 +234,7 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<boolean>
             <a href="${data.loginUrl}" class="button">Access Your Dashboard</a>
           </div>
           
-          <p><strong>Your business URL:</strong> ${process.env.NEXT_PUBLIC_APP_URL}/store/${data.businessSlug}</p>
+          <p><strong>Your business URL:</strong> ${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://koppela.com'}/store/${data.businessSlug}</p>
           
           <p>What you can do now:</p>
           <ul>
@@ -247,7 +249,7 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<boolean>
           <p>Welcome aboard!</p>
           
           <div class="footer">
-            <p>© 2025 Koppela. All rights reserved.</p>
+            <p>© ${currentYear} Koppela. All rights reserved.</p>
             <p>This is an automated email, please do not reply.</p>
           </div>
         </div>
@@ -274,11 +276,10 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<boolean>
 // Send password reset email
 export async function sendPasswordResetEmail(data: PasswordResetEmailData): Promise<boolean> {
   try {
-    // Check if email is properly configured
     if (!emailConfig.auth.user || !emailConfig.auth.pass) {
       console.warn('Email credentials not configured. Logging password reset code instead:', data.code)
       console.log(`Password reset code for ${data.email}: ${data.code}`)
-      return true // Return true for development
+      return true 
     }
     const htmlContent = `
       <!DOCTYPE html>
@@ -330,7 +331,7 @@ export async function sendPasswordResetEmail(data: PasswordResetEmailData): Prom
           <p>If you didn't request a password reset, please ignore this email. Your password will remain unchanged.</p>
           
           <div class="footer">
-            <p>© 2025 Koppela. All rights reserved.</p>
+            <p>© ${currentYear} Koppela. All rights reserved.</p>
             <p>This is an automated email, please do not reply.</p>
           </div>
         </div>
@@ -349,7 +350,7 @@ export async function sendPasswordResetEmail(data: PasswordResetEmailData): Prom
       
       If you didn't request a password reset, please ignore this email.
       
-      © 2025 Koppela. All rights reserved.
+      © ${currentYear} Koppela. All rights reserved.
     `
 
     const mailOptions = {
@@ -365,7 +366,6 @@ export async function sendPasswordResetEmail(data: PasswordResetEmailData): Prom
     return true
   } catch (error) {
     console.error('Error sending password reset email:', error)
-    // For development, log the code even if email fails
     if (process.env.NODE_ENV === 'development') {
       console.log(`Password reset code for ${data.email}: ${data.code}`)
       return true
@@ -377,11 +377,10 @@ export async function sendPasswordResetEmail(data: PasswordResetEmailData): Prom
 // Send employee invitation email
 export async function sendEmployeeInvitationEmail(data: EmployeeInvitationEmailData): Promise<boolean> {
   try {
-    // Check if email is properly configured
     if (!emailConfig.auth.user || !emailConfig.auth.pass) {
       console.warn('Email credentials not configured. Logging verification code instead:', data.code)
       console.log(`Employee invitation code for ${data.email}: ${data.code}`)
-      return true // Return true for development
+      return true 
     }
 
     const roleNames = {
@@ -463,7 +462,7 @@ export async function sendEmployeeInvitationEmail(data: EmployeeInvitationEmailD
           </div>
           
           <div style="text-align: center;">
-            <a href="${process.env.NEXT_PUBLIC_APP_URL}/register?email=${encodeURIComponent(data.email)}" class="button">Verify Your Account</a>
+            <a href="${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://koppela.com'}/register?email=${encodeURIComponent(data.email)}" class="button">Verify Your Account</a>
           </div>
           
           <p>This verification code will expire in 24 hours for security reasons.</p>
@@ -493,7 +492,7 @@ export async function sendEmployeeInvitationEmail(data: EmployeeInvitationEmailD
           <p>Welcome to the team!</p>
           
           <div class="footer">
-            <p>© 2025 Koppela. All rights reserved.</p>
+            <p>© ${currentYear} Koppela. All rights reserved.</p>
             <p>This is an automated email, please do not reply.</p>
           </div>
         </div>
@@ -512,13 +511,13 @@ export async function sendEmployeeInvitationEmail(data: EmployeeInvitationEmailD
       Email: ${data.email}
       Password: Set by administrator (change after first login)
       
-      Verify your account at: ${process.env.NEXT_PUBLIC_APP_URL}/register?email=${encodeURIComponent(data.email)}
+      Verify your account at: ${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://koppela.com'}/register?email=${encodeURIComponent(data.email)}
       
       This code will expire in 24 hours.
       
       Welcome to the team!
       
-      © 2025 Koppela. All rights reserved.
+      © ${currentYear} Koppela. All rights reserved.
     `
 
     const mailOptions = {
@@ -534,7 +533,7 @@ export async function sendEmployeeInvitationEmail(data: EmployeeInvitationEmailD
     return true
   } catch (error) {
     console.error('Error sending employee invitation email:', error)
-    // For development, log the code even if email fails
+    
     if (process.env.NODE_ENV === 'development') {
       console.log(`Employee invitation code for ${data.email}: ${data.code}`)
       return true
@@ -546,11 +545,11 @@ export async function sendEmployeeInvitationEmail(data: EmployeeInvitationEmailD
 // Send business invitation email to existing user
 export async function sendBusinessInvitationEmail(data: BusinessInvitationEmailData): Promise<boolean> {
   try {
-    // Check if email is properly configured
+    
     if (!emailConfig.auth.user || !emailConfig.auth.pass) {
       console.warn('Email credentials not configured. Logging business invitation instead')
       console.log(`Business invitation for ${data.email} to join ${data.businessName} as ${data.role}`)
-      return true // Return true for development
+      return true 
     }
 
     const roleNames = {
@@ -623,7 +622,7 @@ export async function sendBusinessInvitationEmail(data: BusinessInvitationEmailD
           <p>Since you already have a Koppela account, you can immediately access the business dashboard:</p>
           
           <div style="text-align: center;">
-            <a href="${process.env.NEXTAUTH_URL || 'http://koppela.com'}/login" class="button">
+            <a href="${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://koppela.com'}/login" class="button">
               Login to Access Business
             </a>
           </div>
@@ -635,7 +634,7 @@ export async function sendBusinessInvitationEmail(data: BusinessInvitationEmailD
           <div class="footer">
             <p>Welcome to the Koppela family!</p>
             <p>If you have any questions, please contact your business administrator.</p>
-            <p>&copy; 2025 Koppela. All rights reserved.</p>
+            <p>&copy; ${currentYear} Koppela. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -648,7 +647,7 @@ Hi ${data.name},
 You've been invited to join ${data.businessName} as a ${roleName} by ${data.invitedBy}.
 
 Since you already have a Koppela account, you can immediately access the business dashboard by logging in at:
-${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/login
+${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://koppela.com'}/login
 
 Your new role: ${roleName}
 Business: ${data.businessName}
@@ -658,7 +657,7 @@ Welcome to the Koppela family!
 
 If you have any questions, please contact your business administrator.
 
-© 2025 Koppela. All rights reserved.
+© ${currentYear} Koppela. All rights reserved.
     `
 
     const transporter = nodemailer.createTransport(emailConfig)
@@ -676,7 +675,6 @@ If you have any questions, please contact your business administrator.
     return true
   } catch (error) {
     console.error('Error sending business invitation email:', error)
-    // For development, log the invitation details even if email fails
     if (process.env.NODE_ENV === 'development') {
       console.log(`Business invitation for ${data.email} to join ${data.businessName} as ${data.role}`)
       return true

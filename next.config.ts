@@ -6,6 +6,7 @@ const nextConfig = {
     // Set environment variables for development if not already set
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'dev-secret-key-change-in-production',
     NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000',
     JWT_SECRET: process.env.JWT_SECRET || 'jwt-dev-secret-key-change-in-production',
   },
   typescript: {

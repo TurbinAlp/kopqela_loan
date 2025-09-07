@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
         email: updatedUser.email,
         businessName: ownedBusiness.name,
         businessSlug: ownedBusiness.slug,
-        loginUrl: `${process.env.NEXT_PUBLIC_APP_URL}/login`
+        loginUrl: `${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://koppela.com'}/login`
       })
       
       if (!welcomeEmailSent) {

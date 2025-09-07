@@ -187,7 +187,7 @@ export default function CustomerStoreFooter() {
         {/* Bottom Bar */}
         <div className="border-t border-gray-800 mt-8 pt-8 text-center">
           <p className="text-gray-400 text-sm">
-            © 2025 {business.name}. {t.poweredBy}{' '}
+            © {new Date().getFullYear()} {business.name}. {t.poweredBy}{' '}
             <Link href="/" className="text-teal-400 hover:text-teal-300 transition-colors">
               Koppela
             </Link>

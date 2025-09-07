@@ -417,7 +417,7 @@ export default function Home() {
                 Built locally, designed globally.
               </p>
               <div className="text-sm text-gray-400">
-                © 2025 Koppela. All rights reserved.
+                © {new Date().getFullYear()} Koppela. All rights reserved.
               </div>
             </div>
 

@@ -210,7 +210,7 @@ export default function StoreFooter() {
 
         {/* Bottom Bar */}
         <div className="border-t border-gray-700 mt-8 pt-8 flex flex-col sm:flex-row justify-between items-center text-sm text-gray-400">
-          <p>&copy; 2025 {business.name}. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} {business.name}. All rights reserved.</p>
           <p className="mt-2 sm:mt-0">
             {t.poweredBy} <Link href="/" className="text-teal-400 hover:text-teal-300 transition-colors">Koppela</Link>
           </p>
