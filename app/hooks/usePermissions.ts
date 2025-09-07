@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
+import type { Session } from 'next-auth'
 
 interface Permission {
   id: number
@@ -138,9 +139,74 @@ export function usePermissionCheck(permission: string, businessId?: number): Per
     checkPermission()
   }, [session, permission, businessId, checkPermission])
 
-
-
   return result
+}
+
+/**
+ * Hook to get business-specific permissions for current user
+ */
+export function useBusinessPermissions(businessId?: number) {
+  const { data: session } = useSession()
+  const [permissions, setPermissions] = useState<{
+    permissions: string[]
+    userRole: string | null
+    loading: boolean
+    error: string | null
+  }>({
+    permissions: [],
+    userRole: null,
+    loading: true,
+    error: null
+  })
+
+  const fetchBusinessPermissions = useCallback(async () => {
+    if (!session?.user || !businessId) {
+      setPermissions({
+        permissions: [],
+        userRole: null,
+        loading: false,
+        error: null
+      })
+      return
+    }
+
+    try {
+      setPermissions(prev => ({ ...prev, loading: true, error: null }))
+
+      const response = await fetch(`/api/rbac/permissions/business?businessId=${businessId}`)
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch business permissions')
+      }
+
+      const result = await response.json()
+      
+      if (result.success) {
+        setPermissions({
+          permissions: result.data.permissions,
+          userRole: result.data.userRole,
+          loading: false,
+          error: null
+        })
+      } else {
+        throw new Error(result.error || 'Failed to fetch permissions')
+      }
+    } catch (error) {
+      console.error('Error fetching business permissions:', error)
+      setPermissions({
+        permissions: [],
+        userRole: null,
+        loading: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      })
+    }
+  }, [session, businessId])
+
+  useEffect(() => {
+    fetchBusinessPermissions()
+  }, [fetchBusinessPermissions])
+
+  return permissions
 }
 
 /**
@@ -172,28 +238,34 @@ export function useMultiplePermissionCheck(permissions: string[]) {
   }
 }
 
-interface SessionUser {
-  role: string
-  id: number
-  email: string
-}
 
-interface SessionData {
-  user: SessionUser
-}
 
 /**
  * Helper function to check permission synchronously using session data
  */
 export function hasPermissionSync(
-  session: SessionData | null, 
+  session: Session | null, 
   permission: string, 
+  businessPermissions: string[] = [],
   userPermissions: string[] = []
 ): boolean {
   if (!session?.user) return false
 
-  // For now, we'll use role-based checking until we have real-time permissions
-  const role = session.user.role
+  // If business permissions are provided, use them (business-specific)
+  if (businessPermissions.length > 0) {
+    const allPermissions = [...businessPermissions, ...userPermissions]
+    return allPermissions.includes(permission)
+  }
+
+  // Use permissions directly from session if available (all businesses combined)
+  const sessionPermissions = session.user.permissions || []
+  if (sessionPermissions.length > 0) {
+    const allUserPermissions = [...sessionPermissions, ...userPermissions]
+    return allUserPermissions.includes(permission)
+  }
+
+  // Fallback to role-based checking if permissions not loaded
+  const role = 'CASHIER' 
 
   // Basic role-based permission mapping
   const rolePermissions = {
@@ -270,8 +342,8 @@ export function WithRole({
   children: React.ReactNode
   fallback?: React.ReactNode
 }) {
-  const { data: session } = useSession()
-  const userRole = session?.user?.role
+  // For now, we'll use CASHIER as default since we don't have role in session
+  const userRole = 'CASHIER'
   
   const hasRole = userRole && roles.includes(userRole)
   

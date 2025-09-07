@@ -23,6 +23,8 @@ import { useLanguage } from '../../contexts/LanguageContext'
 import { useBusiness } from '../../contexts/BusinessContext'
 import { useRequireAdminAuth } from '../../hooks/useRequireAuth'
 import { useProductsData, ProductsCacheInvalidator } from '../../hooks/useProductsData'
+import { hasPermissionSync, useBusinessPermissions } from '../../hooks/usePermissions'
+import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import LoadingLink from '../../components/ui/LoadingLink'
 import Image from 'next/image'
@@ -39,6 +41,10 @@ export default function ProductsPage() {
   const { showError, showSuccess } = useNotifications()
   const { isLoading: authLoading } = useRequireAdminAuth()
   const { currentBusiness } = useBusiness()
+  const { data: session } = useSession()
+  
+  // Get business-specific permissions
+  const { permissions: businessPermissions } = useBusinessPermissions(currentBusiness?.id)
   
   // 🚀 IMPROVED: Use caching hook with enhanced features
   const { 
@@ -1015,12 +1021,14 @@ export default function ProductsPage() {
               {language === 'sw' ? 'Ondoa Vichujio' : 'Clear Filters'}
             </button>
           )}
-          <Link
-            href="/admin/products/add"
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            {language === 'sw' ? 'Ongeza Bidhaa' : 'Add Product'}
-          </Link>
+          {hasPermissionSync(session, 'products.create', businessPermissions) && (
+            <Link
+              href="/admin/products/add"
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              {language === 'sw' ? 'Ongeza Bidhaa' : 'Add Product'}
+            </Link>
+          )}
         </motion.div>
       ) : viewMode === 'list' ? (
         /* List View */
@@ -1166,25 +1174,29 @@ export default function ProductsPage() {
                              <EyeIcon className="w-4 h-4" />
                            </motion.button>
                          </LoadingLink>
-                         <LoadingLink href={`/admin/products/${product.id}/edit`}>
+                         {hasPermissionSync(session, 'products.update', businessPermissions) && (
+                           <LoadingLink href={`/admin/products/${product.id}/edit`}>
+                             <motion.button
+                               whileHover={{ scale: 1.1 }}
+                               whileTap={{ scale: 0.9 }}
+                               className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                               title={t.edit}
+                             >
+                               <PencilIcon className="w-4 h-4" />
+                             </motion.button>
+                           </LoadingLink>
+                         )}
+                         {hasPermissionSync(session, 'products.delete', businessPermissions) && (
                            <motion.button
                              whileHover={{ scale: 1.1 }}
                              whileTap={{ scale: 0.9 }}
-                             className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                             title={t.edit}
+                             onClick={() => handleDeleteClick(product.id, product.name)}
+                             className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                             title={t.delete}
                            >
-                             <PencilIcon className="w-4 h-4" />
+                             <TrashIcon className="w-4 h-4" />
                            </motion.button>
-                         </LoadingLink>
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => handleDeleteClick(product.id, product.name)}
-                          className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title={t.delete}
-                        >
-                          <TrashIcon className="w-4 h-4" />
-                        </motion.button>
+                         )}
                       </div>
                     </td>
                   </motion.tr>
@@ -1302,25 +1314,29 @@ export default function ProductsPage() {
                      <EyeIcon className="w-4 h-4" />
                    </motion.button>
                  </LoadingLink>
-                 <LoadingLink href={`/admin/products/${product.id}/edit`}>
+                 {hasPermissionSync(session, 'products.update', businessPermissions) && (
+                   <LoadingLink href={`/admin/products/${product.id}/edit`}>
+                     <motion.button
+                       whileHover={{ scale: 1.1 }}
+                       whileTap={{ scale: 0.9 }}
+                       className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                       title={t.edit}
+                     >
+                       <PencilIcon className="w-4 h-4" />
+                     </motion.button>
+                   </LoadingLink>
+                 )}
+                 {hasPermissionSync(session, 'products.delete', businessPermissions) && (
                    <motion.button
                      whileHover={{ scale: 1.1 }}
                      whileTap={{ scale: 0.9 }}
-                     className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                     title={t.edit}
+                     onClick={() => handleDeleteClick(product.id, product.name)}
+                     className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                     title={t.delete}
                    >
-                     <PencilIcon className="w-4 h-4" />
+                     <TrashIcon className="w-4 h-4" />
                    </motion.button>
-                 </LoadingLink>
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => handleDeleteClick(product.id, product.name)}
-                  className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title={t.delete}
-                >
-                  <TrashIcon className="w-4 h-4" />
-                </motion.button>
+                 )}
               </div>
             </motion.div>
           ))}

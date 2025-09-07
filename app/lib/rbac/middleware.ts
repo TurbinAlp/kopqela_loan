@@ -49,15 +49,18 @@ export async function getAuthContext(req: NextRequest): Promise<AuthContext | nu
 
 /**
  * Get all permissions for a user (role-based + explicit permissions)
+ * @param userId - User ID
+ * @param businessId - Optional business ID to get permissions for specific business only
  */
-export async function getUserPermissions(userId: number): Promise<string[]> {
+export async function getUserPermissions(userId: number, businessId?: number): Promise<string[]> {
   try {
     // Get user's business memberships with roles (excluding deleted)
     const businessMemberships = await prisma.businessUser.findMany({
       where: {
         userId,
         isActive: true,
-        isDeleted: false  // Exclude soft-deleted users
+        isDeleted: false,  // Exclude soft-deleted users
+        ...(businessId && { businessId }) // Filter by specific business if provided
       },
       select: {
         role: true,
@@ -69,7 +72,7 @@ export async function getUserPermissions(userId: number): Promise<string[]> {
       return []
     }
 
-    // Collect all permissions from all business roles
+    // Collect all permissions from business roles
     const allPermissions = new Set<string>()
 
     for (const membership of businessMemberships) {
@@ -84,6 +87,7 @@ export async function getUserPermissions(userId: number): Promise<string[]> {
         userId,
         isActive: true,
         granted: true,
+        ...(businessId && { businessId }), // Filter by business if provided
         OR: [
           { expiresAt: null },
           { expiresAt: { gt: new Date() } }
@@ -100,6 +104,40 @@ export async function getUserPermissions(userId: number): Promise<string[]> {
   } catch (error) {
     console.error('Error getting user permissions:', error)
     return []
+  }
+}
+
+/**
+ * Get user role for a specific business
+ */
+export async function getUserRoleForBusiness(userId: number, businessId: number): Promise<string | null> {
+  try {
+    // Check if user is owner
+    const business = await prisma.business.findFirst({
+      where: { id: businessId, ownerId: userId }
+    })
+    
+    if (business) {
+      return 'ADMIN' // Business owner is always admin
+    }
+
+    // Check business membership
+    const businessUser = await prisma.businessUser.findFirst({
+      where: {
+        userId,
+        businessId,
+        isActive: true,
+        isDeleted: false
+      },
+      select: {
+        role: true
+      }
+    })
+
+    return businessUser?.role || null
+  } catch (error) {
+    console.error('Error getting user role for business:', error)
+    return null
   }
 }
 

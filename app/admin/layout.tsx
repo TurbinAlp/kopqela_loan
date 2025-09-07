@@ -23,6 +23,9 @@ import { useLanguage } from '../contexts/LanguageContext'
 import { BusinessProvider } from '../contexts/BusinessContext'
 import { SidebarProvider, useSidebar } from '../contexts/SidebarContext'
 import { usePathname } from 'next/navigation'
+import { hasPermissionSync, useBusinessPermissions } from '../hooks/usePermissions'
+import { useSession } from 'next-auth/react'
+import { useBusiness } from '../contexts/BusinessContext'
 import NotificationCenter from '../components/notifications/NotificationCenter'
 import GlobalSearch from '../components/search/GlobalSearch'
 import UserDropdown from '../components/ui/UserDropdown'
@@ -39,6 +42,11 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { sidebarOpen, setSidebarOpen, closeSidebar } = useSidebar()
+  const { data: session } = useSession()
+  const { currentBusiness } = useBusiness()
+  
+  // Get business-specific permissions
+  const { permissions: businessPermissions } = useBusinessPermissions(currentBusiness?.id)
   
   // Listen for close sidebar events (from LoadingLink)
   useEffect(() => {
@@ -119,35 +127,89 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
 
   const t = translations[language]
 
-  const sidebarItems = [
-    { name: t.dashboard, icon: HomeIcon, href: "/admin/dashboard" },
+  const allSidebarItems = [
+    { 
+      name: t.dashboard, 
+      icon: HomeIcon, 
+      href: "/admin/dashboard",
+      permission: "dashboard.read"
+    },
     { 
       name: t.products, 
       icon: ShoppingBagIcon, 
       href: "/admin/products",
+      permission: "products.read",
       subItems: [
-        { name: t.allProducts, href: "/admin/products" },
-        { name: t.categories, href: "/admin/products/categories" },
-        { name: t.addProduct, href: "/admin/products/add" },
-        { name: t.movementHistory, href: "/admin/inventory/movements" }
+        { name: t.allProducts, href: "/admin/products", permission: "products.read" },
+        { name: t.categories, href: "/admin/products/categories", permission: "categories.manage" },
+        { name: t.addProduct, href: "/admin/products/add", permission: "products.create" },
+        { name: t.movementHistory, href: "/admin/inventory/movements", permission: "inventory.read" }
       ]
     },
-    { name: t.sales, icon: DocumentChartBarIcon, href: "/admin/sales" },
-    { name: t.pos, icon: ComputerDesktopIcon, href: "/admin/pos" },
-    { name: t.customers, icon: UserGroupIcon, href: "/admin/customers" },
-    { name: t.credit, icon: CreditCardIcon, href: "/admin/credit" },
-    { name: t.reports, icon: DocumentTextIcon, href: "/admin/reports" },
-    { name: t.userManagement, icon: UserGroupIcon, href: "/admin/users" },
+    { 
+      name: t.sales, 
+      icon: DocumentChartBarIcon, 
+      href: "/admin/sales",
+      permission: "sales.read"
+    },
+    { 
+      name: t.pos, 
+      icon: ComputerDesktopIcon, 
+      href: "/admin/pos",
+      permission: "pos.create"
+    },
+    { 
+      name: t.customers, 
+      icon: UserGroupIcon, 
+      href: "/admin/customers",
+      permission: "customers.read"
+    },
+    { 
+      name: t.credit, 
+      icon: CreditCardIcon, 
+      href: "/admin/credit",
+      permission: "credit_applications.read"
+    },
+    { 
+      name: t.reports, 
+      icon: DocumentTextIcon, 
+      href: "/admin/reports",
+      permission: "reports.read"
+    },
+    { 
+      name: t.userManagement, 
+      icon: UserGroupIcon, 
+      href: "/admin/users",
+      permission: "users.read"
+    },
     { 
       name: t.settings, 
       icon: CogIcon, 
       href: "/admin/settings",
+      permission: "settings.manage",
       subItems: [
-        { name: t.generalSettings, href: "/admin/settings" }
+        { name: t.generalSettings, href: "/admin/settings", permission: "settings.manage" }
       ]
     },
-    { name: t.business, icon: BuildingOfficeIcon, href: "/admin/business" }
+    { 
+      name: t.business, 
+      icon: BuildingOfficeIcon, 
+      href: "/admin/business",
+      permission: "business.read"
+    }
   ]
+
+  // Filter sidebar items based on business-specific permissions
+  const sidebarItems = allSidebarItems.filter(item => {
+    if (!item.permission) return true // Show items without permission requirements
+    return hasPermissionSync(session, item.permission, businessPermissions)
+  }).map(item => ({
+    ...item,
+    subItems: item.subItems?.filter(subItem => {
+      if (!subItem.permission) return true
+      return hasPermissionSync(session, subItem.permission, businessPermissions)
+    })
+  }))
 
   const isActiveRoute = (href: string) => {
     if (pathname === href) return true
