@@ -15,6 +15,7 @@ import { useRequireAdminAuth } from '../../../hooks/useRequireAuth'
 import { useNotifications } from '../../../contexts/NotificationContext'
 import Image from 'next/image'
 import Spinner from '../../../components/ui/Spinner'
+import PermissionGate from '../../../components/auth/PermissionGate'
 
 interface InventoryMovement {
   id: number
@@ -55,7 +56,7 @@ interface MovementsResponse {
   }
 }
 
-export default function StockMovementHistoryPage() {
+function StockMovementHistoryPageContent() {
   const { language } = useLanguage()
   const { showError } = useNotifications()
   const { isLoading: authLoading } = useRequireAdminAuth()
@@ -523,5 +524,13 @@ export default function StockMovementHistoryPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function StockMovementHistoryPage() {
+  return (
+    <PermissionGate requiredPermission="inventory.read">
+      <StockMovementHistoryPageContent />
+    </PermissionGate>
   )
 }

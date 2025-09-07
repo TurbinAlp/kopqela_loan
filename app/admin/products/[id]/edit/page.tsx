@@ -20,6 +20,7 @@ import { useBusiness } from '../../../../contexts/BusinessContext'
 import Link from 'next/link'
 import { useCategories } from '../../../../hooks/useAdminProducts'
 import Image from 'next/image'
+import PermissionGate from '../../../../components/auth/PermissionGate'
 
 interface ProductForm {
   nameEn: string
@@ -44,7 +45,7 @@ interface ProductForm {
   primaryImageIndex: number
 }
 
-export default function EditProductPage() {
+function EditProductPageContent() {
   const { language } = useLanguage()
   const { showSuccess, showError } = useNotifications()
   const { currentBusiness } = useBusiness()
@@ -1168,5 +1169,13 @@ export default function EditProductPage() {
         </div>
       </div>
     </motion.div>
+  )
+}
+
+export default function EditProductPage() {
+  return (
+    <PermissionGate requiredPermission="products.update">
+      <EditProductPageContent />
+    </PermissionGate>
   )
 }

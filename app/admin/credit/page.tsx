@@ -21,6 +21,7 @@ import {
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useBusiness } from '../../contexts/BusinessContext'
 import { useNotifications } from '../../contexts/NotificationContext'
+import PermissionGate from '../../components/auth/PermissionGate'
 
 interface CreditSale {
   id: number
@@ -63,7 +64,7 @@ interface PaymentHistory {
   notes?: string
 }
 
-export default function CreditSalesManagementPage() {
+function CreditSalesManagementPageContent() {
   const { language } = useLanguage()
   const { currentBusiness } = useBusiness()
   const { showError } = useNotifications()
@@ -1176,5 +1177,13 @@ export default function CreditSalesManagementPage() {
       </motion.div>
       </div>
     </motion.div>
+  )
+}
+
+export default function CreditSalesManagementPage() {
+  return (
+    <PermissionGate requiredPermission="credit_applications.read">
+      <CreditSalesManagementPageContent />
+    </PermissionGate>
   )
 } 

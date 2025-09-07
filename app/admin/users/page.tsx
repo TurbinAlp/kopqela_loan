@@ -13,6 +13,7 @@ import { useNotifications } from '../../contexts/NotificationContext'
 import AddUserModal from '../../components/AddUserModal'
 import EditUserModal from '../../components/EditUserModal'
 import DeleteConfirmModal from '../../components/ui/DeleteConfirmModal'
+import PermissionGate from '../../components/auth/PermissionGate'
 
 interface User {
   id: number
@@ -27,7 +28,7 @@ interface User {
   isOwner?: boolean
 }
 
-export default function UserManagementPage() {
+function UserManagementPageContent() {
   const { language } = useLanguage()
   const { currentBusiness } = useBusiness()
   const { showSuccess, showError } = useNotifications()
@@ -349,5 +350,13 @@ export default function UserManagementPage() {
         itemName={deleteModal.userName}
       />
     </motion.div>
+  )
+}
+
+export default function UserManagementPage() {
+  return (
+    <PermissionGate requiredPermission="users.read">
+      <UserManagementPageContent />
+    </PermissionGate>
   )
 } 

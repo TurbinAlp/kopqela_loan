@@ -17,6 +17,7 @@ import { useLanguage } from '../../../contexts/LanguageContext'
 import { useCategories } from '../../../hooks/useAdminProducts'
 import { useNotifications } from '../../../contexts/NotificationContext'
 import Link from 'next/link'
+import PermissionGate from '../../../components/auth/PermissionGate'
 
 interface Category {
   id: number
@@ -32,7 +33,7 @@ interface CategoryFormData {
   description: string
 }
 
-export default function CategoriesPage() {
+function CategoriesPageContent() {
   const { language } = useLanguage()
   const { showSuccess, showError } = useNotifications()
   const { categories, loading, error, refetch, createCategory, updateCategory, deleteCategory } = useCategories()
@@ -497,5 +498,13 @@ export default function CategoriesPage() {
         </div>
       )}
     </motion.div>
+  )
+}
+
+export default function CategoriesPage() {
+  return (
+    <PermissionGate requiredPermission="categories.manage">
+      <CategoriesPageContent />
+    </PermissionGate>
   )
 } 

@@ -21,6 +21,7 @@ import {
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useBusiness } from '../../contexts/BusinessContext'
 import { useNotifications } from '../../contexts/NotificationContext'
+import PermissionGate from '../../components/auth/PermissionGate'
 
 interface Order {
   id: number
@@ -74,7 +75,7 @@ interface Analytics {
   pendingPayments: number
 }
 
-export default function SalesManagementPage() {
+function SalesManagementPageContent() {
   const { language } = useLanguage()
   const { currentBusiness } = useBusiness()
   const { showError } = useNotifications()
@@ -1036,5 +1037,13 @@ export default function SalesManagementPage() {
       )}
       </div>
     </motion.div>
+  )
+}
+
+export default function SalesManagementPage() {
+  return (
+    <PermissionGate requiredPermission="sales.read">
+      <SalesManagementPageContent />
+    </PermissionGate>
   )
 } 

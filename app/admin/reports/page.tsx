@@ -19,8 +19,9 @@ import {
   ClockIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
+import PermissionGate from '../../components/auth/PermissionGate'
 
-export default function ReportsAnalyticsPage() {
+function ReportsAnalyticsPageContent() {
   const { language } = useLanguage()
   const [isVisible, setIsVisible] = useState(false)
   const [activeTab, setActiveTab] = useState('sales')
@@ -1048,5 +1049,13 @@ export default function ReportsAnalyticsPage() {
         )}
       </div>
     </motion.div>
+  )
+}
+
+export default function ReportsAnalyticsPage() {
+  return (
+    <PermissionGate requiredPermission="reports.read">
+      <ReportsAnalyticsPageContent />
+    </PermissionGate>
   )
 } 

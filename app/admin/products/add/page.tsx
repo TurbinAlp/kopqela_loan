@@ -20,6 +20,7 @@ import { useAddProductForm } from '../../../hooks/useAdminProducts'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import PermissionGate from '../../../components/auth/PermissionGate'
 
 interface ProductForm {
   nameEn: string
@@ -51,7 +52,7 @@ interface Category {
   productCount?: number
 }
 
-export default function AddEditProductPage() {
+function AddEditProductPageContent() {
   const { language } = useLanguage()
   const { showSuccess, showError, showWarning } = useNotifications()
   const { currentBusiness } = useBusiness()
@@ -1196,5 +1197,13 @@ export default function AddEditProductPage() {
         </div>
       </div>
     </motion.div>
+  )
+}
+
+export default function AddEditProductPage() {
+  return (
+    <PermissionGate requiredPermission="products.create">
+      <AddEditProductPageContent />
+    </PermissionGate>
   )
 } 

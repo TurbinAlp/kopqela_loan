@@ -14,10 +14,11 @@ import {
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useBusiness } from '../../contexts/BusinessContext'
+import PermissionGate from '../../components/auth/PermissionGate'
 
 
 
-export default function BusinessPage() {
+function BusinessPageContent() {
   const { language } = useLanguage()
   const { businesses, isLoading } = useBusiness()
   const router = useRouter()
@@ -255,5 +256,13 @@ export default function BusinessPage() {
         </div>
       )}
     </motion.div>
+  )
+}
+
+export default function BusinessPage() {
+  return (
+    <PermissionGate requiredPermission="business.read">
+      <BusinessPageContent />
+    </PermissionGate>
   )
 } 

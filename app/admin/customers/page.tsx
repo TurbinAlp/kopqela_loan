@@ -28,6 +28,7 @@ import { useRequireAdminAuth } from '../../hooks/useRequireAuth'
 import { useBusiness } from '../../contexts/BusinessContext'
 import Spinner from '../../components/ui/Spinner'
 import Link from 'next/link'
+import PermissionGate from '../../components/auth/PermissionGate'
 import AddCustomerModal from '../../components/AddCustomerModal'
 import EditCustomerModal from '../../components/EditCustomerModal'
 
@@ -70,7 +71,7 @@ interface CustomersApiResponse {
   }
 }
 
-export default function CustomerManagementPage() {
+function CustomerManagementPageContent() {
   const { language } = useLanguage()
   const { isLoading: authLoading } = useRequireAdminAuth()
   const { currentBusiness, isLoading: businessLoading } = useBusiness()
@@ -795,5 +796,13 @@ export default function CustomerManagementPage() {
         />
       )}
     </motion.div>
+  )
+}
+
+export default function CustomerManagementPage() {
+  return (
+    <PermissionGate requiredPermission="customers.read">
+      <CustomerManagementPageContent />
+    </PermissionGate>
   )
 } 

@@ -14,8 +14,9 @@ import {
   ServerIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
+import PermissionGate from '../../components/auth/PermissionGate'
 
-export default function SettingsPage() {
+function SettingsPageContent() {
   const { language, setLanguage } = useLanguage()
   const [isVisible, setIsVisible] = useState(false)
   const [activeTab, setActiveTab] = useState('language')
@@ -444,5 +445,13 @@ export default function SettingsPage() {
         </motion.div>
       </div>
     </motion.div>
+  )
+}
+
+export default function SettingsPage() {
+  return (
+    <PermissionGate requiredPermission="settings.manage">
+      <SettingsPageContent />
+    </PermissionGate>
   )
 } 

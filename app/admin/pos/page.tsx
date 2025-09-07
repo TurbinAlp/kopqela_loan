@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useBusiness } from '../../contexts/BusinessContext'
 import { useNotifications } from '../../contexts/NotificationContext'
+import PermissionGate from '../../components/auth/PermissionGate'
 import PaymentSection from '../../components/admin/pos/PaymentSection'
 import ProductsSection from '../../components/admin/pos/ProductsSection'
 import CustomerSection from '../../components/admin/pos/CustomerSection'
@@ -106,7 +107,7 @@ interface EnhancedError extends Error {
   apiData?: ApiErrorData
 }
 
-export default function POSSystem() {
+function POSSystemContent() {
   const { language } = useLanguage()
   const { currentBusiness } = useBusiness()
   const { showSuccess, showError } = useNotifications()
@@ -749,5 +750,13 @@ export default function POSSystem() {
         </AnimatePresence>
       </div>
     </div>
+  )
+}
+
+export default function POSSystem() {
+  return (
+    <PermissionGate requiredPermission="pos.create">
+      <POSSystemContent />
+    </PermissionGate>
   )
 } 
