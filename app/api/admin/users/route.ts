@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user with this email already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: email.toLowerCase() },
       select: { 
         id: true, 
         firstName: true, 
@@ -318,7 +318,7 @@ export async function POST(request: NextRequest) {
         data: {
           firstName,
           lastName,
-          email,
+          email: email.toLowerCase(),
           phone,
           passwordHash,
           isVerified: false, 

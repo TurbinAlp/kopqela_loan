@@ -29,6 +29,7 @@ interface Business {
   }
   _count?: {
     users: number
+    employees: number
   }
 }
 

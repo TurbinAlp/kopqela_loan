@@ -44,7 +44,16 @@ export async function GET(request: NextRequest) {
             country: true
           }
         },
-
+        _count: {
+          select: {
+            employees: {
+              where: {
+                isActive: true,
+                isDeleted: false
+              }
+            }
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc'

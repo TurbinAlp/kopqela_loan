@@ -25,7 +25,7 @@ export const authOptions: NextAuthOptions = {
 
         try {
           const user = await prisma.user.findUnique({
-            where: { email: credentials.email }
+            where: { email: credentials.email.toLowerCase() }
           })
 
           if (!user) {
@@ -77,7 +77,7 @@ export const authOptions: NextAuthOptions = {
         try {
           // Check if user exists
           const existingUser = await prisma.user.findUnique({
-            where: { email: user.email! }
+            where: { email: user.email!.toLowerCase() }
           })
 
           if (existingUser) {
@@ -124,7 +124,7 @@ export const authOptions: NextAuthOptions = {
               data: {
                 firstName,
                 lastName,
-                email: user.email!,
+                email: user.email!.toLowerCase(),
                 googleId: profile?.sub,
                 picture: user.image,
                 provider: 'google',
@@ -170,7 +170,7 @@ export const authOptions: NextAuthOptions = {
         if (account?.provider === 'google') {
           // Handle Google OAuth - fetch user from database
           const dbUser = await prisma.user.findUnique({
-            where: { email: user.email! }
+            where: { email: user.email!.toLowerCase() }
           })
 
           if (dbUser) {

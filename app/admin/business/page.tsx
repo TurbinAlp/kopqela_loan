@@ -159,7 +159,7 @@ export default function BusinessPage() {
                     <div className="text-sm text-gray-900">
                       <div className="flex items-center space-x-1">
                         <UserGroupIcon className="w-4 h-4 text-gray-400" />
-                        <span>1</span>
+                        <span>{business._count?.employees || 0}</span>
                       </div>
                     </div>
                     <div>
