@@ -23,6 +23,8 @@ import { useRequireAdminAuth } from '../../hooks/useRequireAuth'
 import Spinner from '../../components/ui/Spinner'
 import { useBusiness } from '../../contexts/BusinessContext'
 import { useDashboardData } from '../../hooks/useDashboardData'
+import { useBusinessPermissions, hasPermissionSync } from '../../hooks/usePermissions'
+import { useSession } from 'next-auth/react'
 
 // Import types from the hook
 import type { 
@@ -34,7 +36,11 @@ export default function BusinessDashboard() {
   const { language } = useLanguage()
   const { isLoading, user } = useRequireAdminAuth()
   const { currentBusiness } = useBusiness()
+  const { data: session } = useSession()
   const [isVisible, setIsVisible] = useState(false)
+  
+  // Get business-specific permissions and role
+  const { permissions: businessPermissions, userRole: businessRole } = useBusinessPermissions(currentBusiness?.id)
   
   // Use our optimized dashboard hook
   const { 
@@ -60,7 +66,8 @@ export default function BusinessDashboard() {
     )
   }
 
-  const userRole = user?.role?.toLowerCase() || 'admin'
+  // Use business-specific role instead of general user role
+  const userRole = businessRole?.toLowerCase() || 'cashier' // Default to most restrictive
   const userName = user?.firstName && user?.lastName 
     ? `${user.firstName} ${user.lastName}`
     : user?.name || user?.email || 'User'
@@ -398,7 +405,7 @@ export default function BusinessDashboard() {
       )}
 
       {/* Admin sees EVERYTHING - Quick Actions for Admin (includes all cashier actions) */}
-      {userRole === 'admin' && (
+      {hasPermissionSync(session, 'dashboard.admin_view', businessPermissions) && (
         <motion.div variants={itemVariants} className="mb-8">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -484,7 +491,7 @@ export default function BusinessDashboard() {
       </motion.div>
 
       {/* Admin sees BOTH today's and monthly stats */}
-      {userRole === 'admin' && (
+      {hasPermissionSync(session, 'dashboard.admin_view', businessPermissions) && (
         <motion.div variants={itemVariants} className="mb-8">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">Today&apos;s Performance (Cashier View)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -546,7 +553,7 @@ export default function BusinessDashboard() {
       )}
 
       {/* Charts Section - Admin sees EVERYTHING */}
-      {userRole === 'admin' && (
+      {hasPermissionSync(session, 'dashboard.admin_view', businessPermissions) && (
         <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">{t.salesTrend}</h3>
@@ -657,7 +664,7 @@ export default function BusinessDashboard() {
       </motion.div>
 
       {/* Admin ONLY - Recent Transactions (Cashier View) */}
-      {userRole === 'admin' && (
+      {hasPermissionSync(session, 'dashboard.admin_view', businessPermissions) && (
         <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Recent Transactions */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100">

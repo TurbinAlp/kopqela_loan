@@ -366,6 +366,13 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     description: 'Access dashboard and metrics',
     businessSpecific: true
   },
+  {
+    name: 'dashboard.admin_view',
+    resource: Resource.DASHBOARD,
+    action: Action.READ,
+    description: 'Access admin dashboard widgets and advanced metrics',
+    businessSpecific: true
+  },
 
   // ==================== SYSTEM ADMINISTRATION ====================
   {
@@ -411,7 +418,7 @@ export const ROLE_PERMISSIONS = {
     'credit_assessment.assess_credit',
     'reports.read', 'reports.export',
     'analytics.read',
-    'dashboard.read',
+    'dashboard.read', 'dashboard.admin_view',
     'audit_logs.read',
     'settings.manage'
   ],

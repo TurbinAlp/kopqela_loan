@@ -280,7 +280,7 @@ export function hasPermissionSync(
       'payments.create', 'payments.read', 'payments.process_payment', 'payments.refund',
       'credit_applications.read', 'credit_applications.create', 'credit_applications.approve', 'credit_applications.reject',
       'credit_assessment.assess_credit', 'reports.read', 'reports.export',
-      'analytics.read', 'dashboard.read', 'audit_logs.read', 'settings.manage'
+      'analytics.read', 'dashboard.read', 'dashboard.admin_view', 'audit_logs.read', 'settings.manage'
     ],
     MANAGER: [
       'users.read', 'employees.manage', 'customers.read', 'customers.update',
