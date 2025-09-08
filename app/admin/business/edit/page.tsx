@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { 
   BuildingOfficeIcon,
@@ -112,9 +111,17 @@ export default function EditBusinessPage() {
   const { language } = useLanguage()
   const { showSuccess, showError } = useNotifications()
   const { currentBusiness } = useBusiness()
-  const searchParams = useSearchParams()
-  const businessIdFromUrl = searchParams.get('id')
-  const businessId = businessIdFromUrl ? parseInt(businessIdFromUrl) : currentBusiness?.id
+  const [businessId, setBusinessId] = useState<number | undefined>(undefined)
+
+  // Get business ID from URL on client side only
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      const idFromUrl = urlParams.get('id')
+      const id = idFromUrl ? parseInt(idFromUrl) : currentBusiness?.id
+      setBusinessId(id)
+    }
+  }, [currentBusiness?.id])
   const [activeTab, setActiveTab] = useState('company')
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -619,7 +626,7 @@ export default function EditBusinessPage() {
     }
   }, [currentBusiness, loadSettings])
 
-  if (isLoading || !currentBusiness) {
+  if (isLoading || !currentBusiness || businessId === undefined) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500"></div>
