@@ -27,7 +27,7 @@ export default function UserDropdown({ className = '' }: UserDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Get user role from current business (already loaded with business data)
+  // Get user role from current business context (most accurate)
   const userRole = currentBusiness?.userRole?.toLowerCase() || 'customer'
 
   const translations = {
@@ -88,14 +88,15 @@ export default function UserDropdown({ className = '' }: UserDropdownProps) {
     return session?.user?.image || null
   }
 
-  // Get user role display name from current business context
+  // Get user role display name from session (efficient approach)
   const getUserRole = () => {
     const role = userRole || 'customer'
 
     // Debug logging
-    console.log('UserDropdown - Current business:', currentBusiness?.name)
-    console.log('UserDropdown - Dynamic role:', role)
-    console.log('UserDropdown - Business ID:', currentBusiness?.id)
+    // console.log('UserDropdown - Business role:', role)
+    // console.log('UserDropdown - Current business:', currentBusiness?.name)
+    // console.log('UserDropdown - Raw business role:', currentBusiness?.userRole)
+    // console.log('UserDropdown - Session role (fallback):', session?.user?.role)
 
     switch (role) {
       case 'admin':

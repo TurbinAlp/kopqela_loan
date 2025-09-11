@@ -12,6 +12,7 @@ declare module 'next-auth' {
       firstName: string
       lastName: string
       permissions: string[]
+      role: string
     }
   }
 
@@ -23,6 +24,7 @@ declare module 'next-auth' {
     businessId?: number
     firstName: string
     lastName: string
+    role?: string
   }
 }
 
@@ -34,5 +36,6 @@ declare module 'next-auth/jwt' {
     lastName: string
     permissions: string[]
     picture?: string
+    role: string
   }
 } 

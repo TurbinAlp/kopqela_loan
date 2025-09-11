@@ -547,7 +547,7 @@ function POSSystemContent() {
       clearCart()
       
     } catch (error) {
-      console.error('POS - Payment processing error:', error)
+      // console.error('POS - Payment processing error:', error)
       
       // Handle API error responses with custom messages
       if (error instanceof Error && (error as EnhancedError).apiData) {

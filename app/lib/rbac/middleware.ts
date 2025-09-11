@@ -51,33 +51,43 @@ export async function getAuthContext(req: NextRequest): Promise<AuthContext | nu
  * Get all permissions for a user (role-based + explicit permissions)
  * @param userId - User ID
  * @param businessId - Optional business ID to get permissions for specific business only
+ * @param userRole - Optional user role (if already known, avoids DB call)
  */
-export async function getUserPermissions(userId: number, businessId?: number): Promise<string[]> {
+export async function getUserPermissions(userId: number, businessId?: number, userRole?: string): Promise<string[]> {
   try {
-    // Get user's business memberships with roles (excluding deleted)
-    const businessMemberships = await prisma.businessUser.findMany({
-      where: {
-        userId,
-        isActive: true,
-        isDeleted: false,  // Exclude soft-deleted users
-        ...(businessId && { businessId }) // Filter by specific business if provided
-      },
-      select: {
-        role: true,
-        businessId: true
-      }
-    })
+    let userRoles: string[] = []
 
-    if (businessMemberships.length === 0) {
-      return []
+    // If userRole is provided, use it directly (avoids DB call)
+    if (userRole) {
+      userRoles = [userRole]
+    } else {
+      // Get user's business memberships with roles (excluding deleted)
+      const businessMemberships = await prisma.businessUser.findMany({
+        where: {
+          userId,
+          isActive: true,
+          isDeleted: false,  // Exclude soft-deleted users
+          ...(businessId && { businessId }) // Filter by specific business if provided
+        },
+        select: {
+          role: true,
+          businessId: true
+        }
+      })
+
+      if (businessMemberships.length === 0) {
+        return []
+      }
+
+      userRoles = businessMemberships.map(membership => membership.role)
     }
 
     // Collect all permissions from business roles
     const allPermissions = new Set<string>()
 
-    for (const membership of businessMemberships) {
+    for (const role of userRoles) {
       // Get role-based permissions for this business role
-      const rolePermissions = getPermissionsForRole(membership.role as 'ADMIN' | 'MANAGER' | 'CASHIER')
+      const rolePermissions = getPermissionsForRole(role as 'ADMIN' | 'MANAGER' | 'CASHIER')
       rolePermissions.forEach(permission => allPermissions.add(permission))
     }
 

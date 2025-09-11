@@ -63,6 +63,10 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('currentBusinessId', business.id.toString())
     }
 
+    // Role is already available in business.userRole from the API
+    // No need to make additional API call - use the role that's already loaded
+    console.log('Business switched to:', business.name, 'Role:', business.userRole)
+
     // Save as default business preference
     try {
       await fetch('/api/admin/user/preferences', {

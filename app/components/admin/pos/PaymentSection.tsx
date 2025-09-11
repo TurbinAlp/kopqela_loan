@@ -103,8 +103,6 @@ export default function PaymentSection({
     { value: 'bank', label: 'Bank Transfer', labelSwahili: 'Uhamisho wa Benki', icon: 'BuildingLibraryIcon' }
   ]
 
-  // Debug: Check normalized payment methods
-  console.log('PaymentSection - Normalized payment methods:', normalizedPaymentMethods)
   
   const translations = {
     en: {

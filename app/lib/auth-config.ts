@@ -190,19 +190,71 @@ export const authOptions: NextAuthOptions = {
           token.picture = user.image
         }
 
-        // Get user permissions and add to token
+        // Get user role and permissions based on default business
         if (token.userId) {
           try {
-            const permissions = await getUserPermissions(
-              token.userId as number
-            )
-            token.permissions = permissions
+            let userRole: string = 'customer'
+            let userPermissions: string[] = []
 
-            // Note: Role is now fetched dynamically from BusinessUser table
-            // based on current business context, not stored in session
+            // Check if user has a default business preference
+            const defaultBusinessPref = await prisma.userPreference.findFirst({
+              where: {
+                userId: token.userId as number,
+                key: 'default_business'
+              }
+            })
+
+            if (defaultBusinessPref) {
+              const defaultBusinessId = parseInt(JSON.parse(defaultBusinessPref.value))
+
+              // Check if user owns this business
+              const ownedBusiness = await prisma.business.findFirst({
+                where: {
+                  id: defaultBusinessId,
+                  ownerId: token.userId as number
+                }
+              })
+
+              if (ownedBusiness) {
+                userRole = 'admin'
+              } else {
+                // Check user's role in this business
+                const businessUser = await prisma.businessUser.findFirst({
+                  where: {
+                    userId: token.userId as number,
+                    businessId: defaultBusinessId,
+                    isActive: true,
+                    isDeleted: false
+                  },
+                  select: { role: true }
+                })
+
+                if (businessUser) {
+                  userRole = businessUser.role.toLowerCase()
+                }
+              }
+
+              console.log('Login - Default business found:', defaultBusinessId, 'Role:', userRole)
+            } else {
+              console.log('Login - No default business, using customer role')
+            }
+
+            // Store role in token
+            token.role = userRole
+
+            // Get permissions using the determined role
+            userPermissions = await getUserPermissions(
+              token.userId as number,
+              undefined, // no businessId filter
+              userRole // use determined role
+            )
+            token.permissions = userPermissions
+
+            console.log('Login - Final role:', userRole, 'Permissions count:', userPermissions.length)
           } catch (error) {
-            console.error('Error getting permissions for token:', error)
+            console.error('Error getting role/permissions for token:', error)
             token.permissions = []
+            token.role = 'customer'
           }
         }
       }
@@ -215,7 +267,8 @@ export const authOptions: NextAuthOptions = {
         session.user.firstName = token.firstName as string
         session.user.lastName = token.lastName as string
         session.user.permissions = token.permissions as string[]
-        
+        session.user.role = token.role as string
+
         if (token.picture) {
           session.user.image = token.picture as string
         }
