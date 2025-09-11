@@ -142,11 +142,40 @@ export function usePermissionCheck(permission: string, businessId?: number): Per
   return result
 }
 
+// Cache for business permissions to avoid duplicate API calls
+const businessPermissionsCache = new Map<string, {
+  permissions: string[]
+  userRole: string | null
+  timestamp: number
+}>()
+
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
+// Function to clear business permissions cache
+export function clearBusinessPermissionsCache(userId?: string, businessId?: number) {
+  if (userId && businessId) {
+    // Clear specific cache entry
+    const cacheKey = `${userId}-${businessId}`
+    businessPermissionsCache.delete(cacheKey)
+  } else if (userId) {
+    // Clear all cache entries for a specific user
+    for (const [key] of businessPermissionsCache) {
+      if (key.startsWith(`${userId}-`)) {
+        businessPermissionsCache.delete(key)
+      }
+    }
+  } else {
+    // Clear all cache
+    businessPermissionsCache.clear()
+  }
+}
+
 /**
  * Hook to get business-specific permissions for current user
  */
 export function useBusinessPermissions(businessId?: number) {
   const { data: session } = useSession()
+
   const [permissions, setPermissions] = useState<{
     permissions: string[]
     userRole: string | null
@@ -170,24 +199,47 @@ export function useBusinessPermissions(businessId?: number) {
       return
     }
 
+    const cacheKey = `${session.user.id}-${businessId}`
+    const cached = businessPermissionsCache.get(cacheKey)
+
+    // Use cached data if it's still fresh
+    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+      setPermissions({
+        permissions: cached.permissions,
+        userRole: cached.userRole,
+        loading: false,
+        error: null
+      })
+      return
+    }
+
     try {
       setPermissions(prev => ({ ...prev, loading: true, error: null }))
 
       const response = await fetch(`/api/rbac/permissions/business?businessId=${businessId}`)
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch business permissions')
       }
 
       const result = await response.json()
-      
+
       if (result.success) {
-        setPermissions({
+        const newData = {
           permissions: result.data.permissions,
           userRole: result.data.userRole,
           loading: false,
           error: null
+        }
+
+        // Cache the result
+        businessPermissionsCache.set(cacheKey, {
+          permissions: result.data.permissions,
+          userRole: result.data.userRole,
+          timestamp: Date.now()
         })
+
+        setPermissions(newData)
       } else {
         throw new Error(result.error || 'Failed to fetch permissions')
       }
@@ -202,11 +254,58 @@ export function useBusinessPermissions(businessId?: number) {
     }
   }, [session, businessId])
 
+  // Effect to update state when session or businessId changes
   useEffect(() => {
-    fetchBusinessPermissions()
-  }, [fetchBusinessPermissions])
+    const getCurrentState = () => {
+      if (!session?.user || !businessId) {
+        return {
+          permissions: [],
+          userRole: null,
+          loading: false,
+          error: null
+        }
+      }
+
+      const cacheKey = `${session.user.id}-${businessId}`
+      const cached = businessPermissionsCache.get(cacheKey)
+
+      // Use cached data if it's still fresh
+      if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+        return {
+          permissions: cached.permissions,
+          userRole: cached.userRole,
+          loading: false,
+          error: null
+        }
+      }
+
+      return {
+        permissions: [],
+        userRole: null,
+        loading: true,
+        error: null
+      }
+    }
+
+    const currentState = getCurrentState()
+    setPermissions(currentState)
+
+    // Only fetch if we don't have cached data
+    if (currentState.loading) {
+      fetchBusinessPermissions()
+    }
+  }, [session?.user?.id, session?.user, businessId, fetchBusinessPermissions])
 
   return permissions
+}
+
+/**
+ * Helper function to check if business permissions are cached
+ */
+export function hasCachedBusinessPermissions(userId: string, businessId: number): boolean {
+  const cacheKey = `${userId}-${businessId}`
+  const cached = businessPermissionsCache.get(cacheKey)
+  return Boolean(cached && (Date.now() - cached.timestamp) < CACHE_DURATION)
 }
 
 /**

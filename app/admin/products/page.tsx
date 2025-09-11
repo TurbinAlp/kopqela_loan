@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { 
   PlusIcon,
@@ -22,7 +22,6 @@ import {
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useBusiness } from '../../contexts/BusinessContext'
 import { useRequireAdminAuth } from '../../hooks/useRequireAuth'
-import { useProductsData, ProductsCacheInvalidator } from '../../hooks/useProductsData'
 import { hasPermissionSync, useBusinessPermissions } from '../../hooks/usePermissions'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
@@ -46,14 +45,51 @@ export default function ProductsPage() {
   // Get business-specific permissions
   const { permissions: businessPermissions } = useBusinessPermissions(currentBusiness?.id)
   
-  // 🚀 IMPROVED: Use caching hook with enhanced features
-  const { 
-    data: productsData, 
-    isLoading, 
-    lastFetched, 
-    cacheStatus,
-    refreshData
-  } = useProductsData(currentBusiness?.id, !!currentBusiness)
+  // Direct state management for products data
+  const [productsData, setProductsData] = useState<{
+    products: Array<{
+      id: number
+      name: string
+      nameSwahili?: string
+      description?: string
+      category?: {
+        id: number
+        name: string
+        nameSwahili?: string
+      }
+      price: number
+      wholesalePrice?: number
+      costPrice?: number
+      sku?: string
+      barcode?: string
+      unit?: string
+      images?: Array<{
+        id: number
+        url: string
+        filename: string
+        originalName: string
+        size: number
+        mimeType: string
+        isPrimary: boolean
+        sortOrder: number
+      }>
+      isActive: boolean
+      isDraft: boolean
+      inventory?: {
+        quantity: number
+        reservedQuantity?: number
+        reorderPoint?: number
+        maxStock?: number
+        location?: string
+      }
+      createdAt: string
+      updatedAt: string
+    }>
+    categories: string[]
+    totalCount: number
+    lowStockCount: number
+  } | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   
   const [mounted, setMounted] = useState(false)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
@@ -105,15 +141,70 @@ export default function ProductsPage() {
 
 
 
+  // Fetch products data
+  const fetchProductsData = useCallback(async () => {
+    if (!currentBusiness?.id) return
+
+    setIsLoading(true)
+    try {
+      // Fetch products and categories in parallel
+      const [productsResponse, categoriesResponse] = await Promise.all([
+        fetch(`/api/admin/products?businessId=${currentBusiness.id}`),
+        fetch(`/api/admin/categories?businessId=${currentBusiness.id}`)
+      ])
+
+      if (!productsResponse.ok || !categoriesResponse.ok) {
+        throw new Error('Failed to fetch data')
+      }
+
+      const productsData = await productsResponse.json()
+      const categoriesData = await categoriesResponse.json()
+
+      if (!productsData.success || !categoriesData.success) {
+        throw new Error('API request failed')
+      }
+
+      const products = productsData.data?.products || []
+      const categoriesArray = categoriesData.data?.categories || []
+      const categories = categoriesArray.map((cat: { name: string }) => cat.name)
+
+      // Calculate metrics
+      const totalCount = products.length
+      const lowStockCount = products.filter((p: typeof products[0]) => {
+        const stock = p.inventory?.quantity || 0
+        const reorderPoint = p.inventory?.reorderPoint || 10
+        return stock <= reorderPoint
+      }).length
+
+      setProductsData({
+        products,
+        categories,
+        totalCount,
+        lowStockCount
+      })
+    } catch (error) {
+      console.error('Error fetching products:', error)
+      showError('Error', 'Failed to load products data')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [currentBusiness?.id, showError])
+
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Fetch data when business changes
+  useEffect(() => {
+    if (currentBusiness?.id) {
+      fetchProductsData()
+    }
+  }, [currentBusiness?.id, fetchProductsData])
 
   // 🚀 IMPROVED: Process cached data with optimistic updates state
   const [optimisticDeletedIds, setOptimisticDeletedIds] = useState<number[]>([])
   const products = (productsData?.products || []).filter(p => !optimisticDeletedIds.includes(p.id))
   const categories = productsData?.categories || []
-  const loading = isLoading
   const loadingCategories = isLoading
 
   const translations = {
@@ -407,15 +498,15 @@ export default function ProductsPage() {
       const failedCount = results.length - successCount
       
       if (successCount > 0) {
-        // Invalidate cache to trigger re-fetch
-        ProductsCacheInvalidator.onProductChanged(currentBusiness?.id || 0)
+        // Refresh data after successful deletions
+        fetchProductsData()
         setSelectedProducts([])
-        
+
         // Show success message
         const successMessage = language === 'sw'
           ? `Bidhaa ${successCount} zimefutwa kwa mafanikio${failedCount > 0 ? `. ${failedCount} hazikufuta.` : '.'}`
           : `${successCount} products deleted successfully${failedCount > 0 ? `. ${failedCount} failed to delete.` : '.'}`
-        
+
         setSuccessModal({
           isOpen: true,
           title: language === 'sw' ? 'Bidhaa Zimefutwa' : 'Products Deleted',
@@ -465,7 +556,7 @@ export default function ProductsPage() {
 
   const handleTransferComplete = () => {
     // Refresh products data
-    refreshData()
+    fetchProductsData()
     // Clear selected products
     setSelectedProducts([])
   }
@@ -510,8 +601,8 @@ export default function ProductsPage() {
       const data = await response.json()
       
       if (response.ok && data.success) {
-        // 3. Success - invalidate cache and remove from optimistic state
-        ProductsCacheInvalidator.onProductChanged(currentBusiness.id)
+        // 3. Success - refresh data and remove from optimistic state
+        fetchProductsData()
         setOptimisticDeletedIds(prev => prev.filter(id => id !== productId))
       } else {
         console.error('Failed to delete product:', data.message || 'Unknown error')
@@ -581,18 +672,6 @@ export default function ProductsPage() {
       {/* Action Bar */}
       <motion.div variants={itemVariants} className="mb-6">
         <div className="flex items-center justify-end space-x-3">
-          {/* 🚀 IMPROVED: Manual refresh button */}
-          <button
-            onClick={refreshData}
-            disabled={isLoading}
-            className="flex items-center space-x-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-            title="Refresh data"
-          >
-            <svg className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            <span className="hidden sm:inline">{isLoading ? 'Refreshing...' : 'Refresh'}</span>
-          </button>
           
           {hasPermissionSync(session, 'inventory.read', businessPermissions) && (
             <LoadingLink
@@ -615,22 +694,6 @@ export default function ProductsPage() {
           )}
         </div>
 
-        {/* Cache Status */}
-        {lastFetched && (
-          <div className="mt-2 text-right">
-            <p className="text-xs text-gray-500">
-              Last updated: {lastFetched.toLocaleTimeString()}
-              <span className={`ml-2 ${
-                cacheStatus === 'fresh' ? 'text-green-600' :
-                cacheStatus === 'stale' ? 'text-yellow-600' : 'text-gray-600'
-              }`}>
-                {cacheStatus === 'fresh' && '🟢 Fresh'}
-                {cacheStatus === 'stale' && '🟡 Updating...'}
-                {cacheStatus === 'empty' && '⚪ Loading...'}
-              </span>
-            </p>
-          </div>
-        )}
       </motion.div>
 
       {/* Search and Filters */}
@@ -905,7 +968,7 @@ export default function ProductsPage() {
       )}
 
       {/* Products Display */}
-      {loading ? (
+      {isLoading ? (
         /* Skeleton Loader */
         <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm border border-gray-100">
           <div className="overflow-x-auto">

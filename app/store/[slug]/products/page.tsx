@@ -1,11 +1,10 @@
 'use client'
 
-import { useState, useMemo, Suspense } from 'react'
+import { useState, useMemo, Suspense, useCallback } from 'react'
 import Link from 'next/link'
 import { useSearchParams, useParams } from 'next/navigation'
 import { useCustomerBusiness } from '../../../hooks/useCustomerBusiness'
 import { useLanguage } from '../../../contexts/LanguageContext'
-import { useStoreProducts } from '../../../hooks/useProductsWithCache'
 import Image from 'next/image'
 import {
   MagnifyingGlassIcon,
@@ -43,11 +42,113 @@ function ProductCatalogPageContent() {
     lang: language as 'en' | 'sw'
   }), [searchQuery, selectedCategory, priceRange, sortBy, inStockOnly, currentPage, itemsPerPage, language])
 
-  // 🚀 IMPROVED: Fetch products using cached API
-  const { products, pagination, loading, error, cacheStatus, isStale } = useStoreProducts(
-    business?.slug || '', 
-    apiFilters
-  )
+  // Direct state management for products data
+  const [products, setProducts] = useState<Array<{
+    id: number
+    name: string
+    nameEnglish?: string
+    nameSwahili?: string
+    description?: string
+    sku?: string
+    barcode?: string
+    price: number
+    wholesalePrice?: number
+    costPrice?: number
+    unit?: string
+    imageUrl?: string
+    images?: Array<{
+      id: number
+      url: string
+      isPrimary: boolean
+      sortOrder: number
+    }>
+    isActive: boolean
+    category?: {
+      id: number
+      name: string
+    }
+    inventory?: {
+      quantity: number
+      availableQuantity: number
+      reservedQuantity: number
+      reorderPoint?: number
+      maxStock?: number
+      location?: string
+      inStock: boolean
+      lowStock: boolean
+    }
+    createdAt: string
+    updatedAt: string
+  }>>([])
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 12,
+    totalCount: 0,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPreviousPage: false
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch products data
+  const fetchProducts = useCallback(async () => {
+    if (!business?.slug) return
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      // Build query params
+      const params = new URLSearchParams()
+      Object.entries(apiFilters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          params.append(key, value.toString())
+        }
+      })
+
+      const url = `/api/businesses/${business.slug}/products?${params}`
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch products: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to fetch products')
+      }
+
+      setProducts(data.data.products || [])
+      setPagination(data.data.pagination || {
+        page: 1,
+        limit: 12,
+        totalCount: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false
+      })
+    } catch (err) {
+      console.error('Error fetching products:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load products')
+    } finally {
+      setLoading(false)
+    }
+  }, [business?.slug, apiFilters])
+
+  // Fetch data when business or filters change
+  useMemo(() => {
+    if (business?.slug) {
+      fetchProducts()
+    }
+  }, [business?.slug, fetchProducts])
 
   const translations = {
     en: {
@@ -281,20 +382,6 @@ function ProductCatalogPageContent() {
                 <p className="text-sm text-gray-600">
                   {loading ? t.loading : `${pagination.totalCount} ${t.productsFound}`}
                 </p>
-                {/* 🚀 IMPROVED: Cache status indicator */}
-                {cacheStatus && !loading && (
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    cacheStatus === 'fresh' 
-                      ? 'bg-green-100 text-green-800' 
-                      : cacheStatus === 'stale'
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {cacheStatus === 'fresh' && '✓ Fresh Data'}
-                    {cacheStatus === 'stale' && '⟳ Updating...'}
-                    {cacheStatus === 'empty' && '○ Loading'}
-                  </span>
-                )}
               </div>
               <button
                 onClick={() => setShowFilters(!showFilters)}

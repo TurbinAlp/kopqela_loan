@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { prisma } from '../../../../lib/prisma';
 import { getAuthContext, hasPermission } from '../../../../lib/rbac/middleware';
 import { Resource, Action } from '../../../../lib/rbac/permissions';
-import { CacheInvalidator } from '../../../../lib/cache-invalidation';
 
 const updateProductSchema = z.object({
   nameEn: z.string().min(1).max(255).optional(),
@@ -219,21 +218,27 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       
       // Update inventory
       if (data.currentStock !== undefined || data.reorderLevel !== undefined || data.minimumStock !== undefined || data.maxStock !== undefined || data.location !== undefined) {
+        const inventoryLocation = data.location || 'Default';
         await tx.inventory.upsert({
-          where: { businessId_productId: { businessId: existingProduct.businessId, productId } },
+          where: {
+            businessId_productId_location: {
+              businessId: existingProduct.businessId,
+              productId: productId,
+              location: inventoryLocation
+            }
+          },
           create: {
             businessId: existingProduct.businessId,
             productId,
             quantity: data.currentStock !== undefined ? data.currentStock : 0,
             reorderPoint: data.reorderLevel ?? null,
             maxStock: data.maxStock || 1000,
-            location: data.location || 'Default'
+            location: inventoryLocation
           },
           update: {
             ...(data.currentStock !== undefined && { quantity: data.currentStock }),
             ...(data.reorderLevel !== undefined && { reorderPoint: data.reorderLevel ?? null }),
-            ...(data.maxStock !== undefined && { maxStock: data.maxStock }),
-            ...(data.location !== undefined && { location: data.location })
+            ...(data.maxStock !== undefined && { maxStock: data.maxStock })
           }
         });
       }
@@ -283,10 +288,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       
       return product;
     });
-    
-    // 🚀 Invalidate cache after successful product update
-    CacheInvalidator.onProductChanged(existingProduct.businessId)
-    
+
     return NextResponse.json({ success: true, message: 'Product updated', data: updatedProduct });
   } catch (error) {
     console.error('Error updating product:', error);
@@ -457,9 +459,6 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         where: { id: productId },
         data: { isActive: false }
       });
-
-      // 🚀 Invalidate cache after successful product deactivation
-      CacheInvalidator.onProductChanged(existingProduct.businessId)
 
       return NextResponse.json({
         success: true,

@@ -372,7 +372,6 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      // Note: Credit applications removed - now only tracking orders with credit payment plan
 
       return {
         order,

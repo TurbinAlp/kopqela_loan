@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useBusiness } from '../../contexts/BusinessContext'
-import { useBusinessPermissions, hasPermissionSync } from '../../hooks/usePermissions'
+import { useBusinessPermissions, hasPermissionSync, hasCachedBusinessPermissions } from '../../hooks/usePermissions'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { motion } from 'framer-motion'
 import { 
@@ -21,20 +21,21 @@ interface PermissionGateProps {
   businessId?: number // For business-specific permission checks
 }
 
-export default function PermissionGate({ 
-  children, 
-  requiredPermission, 
+export default function PermissionGate({
+  children,
+  requiredPermission,
   fallbackUrl = '/admin/dashboard',
   showAccessDenied = true,
-  businessId 
+  businessId
 }: PermissionGateProps) {
   const { data: session, status } = useSession()
   const { currentBusiness } = useBusiness()
   // Use specific businessId if provided, otherwise use current business
   const targetBusinessId = businessId || currentBusiness?.id
-  const { permissions: businessPermissions, loading: permissionsLoading } = useBusinessPermissions(targetBusinessId)
+  const { permissions: businessPermissions, loading: permissionsLoading, userRole: currentUserRole } = useBusinessPermissions(targetBusinessId)
   const { language } = useLanguage()
   const router = useRouter()
+
   const [hasAccess, setHasAccess] = useState<boolean | null>(null)
 
   const translations = {
@@ -71,8 +72,6 @@ export default function PermissionGate({
   }
 
   const t = translations[language]
-
-  const { userRole: currentUserRole } = useBusinessPermissions(currentBusiness?.id)
 
   const getRoleName = (role: string | null) => {
     if (!role) return t.cashierRole
@@ -144,8 +143,10 @@ export default function PermissionGate({
   }
 
   useEffect(() => {
-    if (status === 'loading' || permissionsLoading) {
-      return // Still loading
+    // Only run when necessary dependencies change
+    if (status === 'loading') {
+      setHasAccess(null)
+      return
     }
 
     if (status === 'unauthenticated') {
@@ -153,20 +154,35 @@ export default function PermissionGate({
       return
     }
 
-    if (status === 'authenticated' && session && !permissionsLoading) {
-      // Check if user has the required permission
-      const access = hasPermissionSync(session, requiredPermission, businessPermissions)
-      setHasAccess(access)
+    if (status === 'authenticated' && session && targetBusinessId) {
+      // Check permissions synchronously if available
+      if (businessPermissions.length > 0 && !permissionsLoading) {
+        const access = hasPermissionSync(session, requiredPermission, businessPermissions)
+        setHasAccess(access)
 
-      // If no access and not showing access denied page, redirect
-      if (!access && !showAccessDenied) {
-        router.replace(fallbackUrl)
+        // Redirect immediately if no access and not showing denied page
+        if (!access && !showAccessDenied) {
+          router.replace(fallbackUrl)
+        }
+      } else if (!permissionsLoading && businessPermissions.length === 0) {
+        // No permissions available, deny access
+        setHasAccess(false)
+        if (!showAccessDenied) {
+          router.replace(fallbackUrl)
+        }
       }
+      // If permissionsLoading is true, hasAccess remains null and loading shows
     }
-  }, [status, session, businessPermissions, permissionsLoading, requiredPermission, router, fallbackUrl, showAccessDenied])
+  }, [status, session, targetBusinessId, businessPermissions, permissionsLoading, requiredPermission, router, fallbackUrl, showAccessDenied])
 
   // Show loading while checking authentication or permissions
-  if (status === 'loading' || permissionsLoading || hasAccess === null) {
+  // Only show loading if we truly need to wait for permissions
+  const shouldShowLoading = status === 'loading' ||
+    (status === 'authenticated' && session && targetBusinessId &&
+     permissionsLoading && hasAccess === null &&
+     !hasCachedBusinessPermissions(String(session.user.id), targetBusinessId))
+
+  if (shouldShowLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { 
   ArrowUpIcon,
@@ -22,15 +22,52 @@ import { useLanguage } from '../../contexts/LanguageContext'
 import { useRequireAdminAuth } from '../../hooks/useRequireAuth'
 import Spinner from '../../components/ui/Spinner'
 import { useBusiness } from '../../contexts/BusinessContext'
-import { useDashboardData } from '../../hooks/useDashboardData'
 import { useBusinessPermissions, hasPermissionSync } from '../../hooks/usePermissions'
 import { useSession } from 'next-auth/react'
 
-// Import types from the hook
-import type { 
-  RecentOrder, 
-  RecentTransaction
-} from '../../hooks/useDashboardData'
+// Define types directly
+interface RecentOrder {
+  id: string
+  customer: string
+  amount: number
+  status: string
+  date: string
+  paymentPlan?: string
+}
+
+interface RecentTransaction {
+  id: string
+  type: string
+  customer: string
+  amount: number
+  time: string
+  paymentMethod?: string
+  status?: string
+}
+
+interface DashboardData {
+  stats: {
+    totalSales: string
+    pendingCreditApps: string
+    lowStock: string
+    outstandingDebt: string
+    todaysSales: string
+    salesCount: string
+    cashPayments: string
+    creditSales: string
+    pendingPayments: string
+  }
+  recentOrders: RecentOrder[]
+  recentTransactions: RecentTransaction[]
+  systemNotifications: Array<{
+    id: number
+    message: string
+    time: string
+    type: string
+  }>
+  loading: boolean
+  lastFetched?: Date
+}
 
 export default function BusinessDashboard() {
   const { language } = useLanguage()
@@ -42,17 +79,85 @@ export default function BusinessDashboard() {
   // Get business-specific permissions and role
   const { permissions: businessPermissions, userRole: businessRole } = useBusinessPermissions(currentBusiness?.id)
   
-  // Use our optimized dashboard hook
-  const { 
-    dashboardData, 
-    isLoading: isDashboardLoading, 
-    lastFetched, 
-    cacheStatus
-  } = useDashboardData(currentBusiness?.id)
+  // Direct state management for dashboard data
+  const [dashboardData, setDashboardData] = useState<DashboardData>({
+    stats: {
+      totalSales: "0",
+      pendingCreditApps: "0",
+      lowStock: "0",
+      outstandingDebt: "0",
+      todaysSales: "0",
+      salesCount: "0",
+      cashPayments: "0",
+      creditSales: "0",
+      pendingPayments: "0"
+    },
+    recentOrders: [],
+    recentTransactions: [],
+    systemNotifications: [],
+    loading: true
+  })
+  const [isDashboardLoading, setIsDashboardLoading] = useState(true)
+
+  // Fetch dashboard data
+  const fetchDashboardData = useCallback(async () => {
+    if (!currentBusiness?.id) return
+
+    setIsDashboardLoading(true)
+    try {
+      // Fetch dashboard statistics and activities in parallel
+      const [statsResponse, activitiesResponse] = await Promise.all([
+        fetch(`/api/admin/dashboard/stats?businessId=${currentBusiness.id}`),
+        fetch(`/api/admin/dashboard/activities?businessId=${currentBusiness.id}&limit=5`)
+      ])
+
+      if (!statsResponse.ok) {
+        throw new Error('Failed to fetch dashboard statistics')
+      }
+
+      if (!activitiesResponse.ok) {
+        throw new Error('Failed to fetch dashboard activities')
+      }
+
+      const statsData = await statsResponse.json()
+      const activitiesData = await activitiesResponse.json()
+
+      if (!statsData.success) {
+        throw new Error(statsData.message || 'Failed to fetch statistics')
+      }
+
+      if (!activitiesData.success) {
+        throw new Error(activitiesData.message || 'Failed to fetch activities')
+      }
+
+      const newData: DashboardData = {
+        stats: statsData.data.stats,
+        recentOrders: activitiesData.data.recentOrders || [],
+        recentTransactions: activitiesData.data.recentTransactions || [],
+        systemNotifications: activitiesData.data.systemNotifications || [],
+        loading: false,
+        lastFetched: new Date()
+      }
+
+      setDashboardData(newData)
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
+      setDashboardData(prev => ({ ...prev, loading: false }))
+    } finally {
+      setIsDashboardLoading(false)
+    }
+  }, [currentBusiness?.id])
 
   useEffect(() => {
     setIsVisible(true)
   }, [])
+
+  // Fetch data when business changes
+  useEffect(() => {
+    if (currentBusiness?.id) {
+      fetchDashboardData()
+    }
+  }, [currentBusiness?.id, fetchDashboardData])
 
   // Show loading while checking authentication
   if (isLoading) {
@@ -365,19 +470,6 @@ export default function BusinessDashboard() {
             <p className="text-gray-600">
               {userRole === 'admin' ? t.businessSummary : t.todaySummary}
             </p>
-            {lastFetched && (
-              <p className="text-xs text-gray-500 mt-1">
-                Last updated: {lastFetched.toLocaleTimeString()} 
-                <span className={`ml-2 ${
-                  cacheStatus === 'fresh' ? 'text-green-600' :
-                  cacheStatus === 'stale' ? 'text-yellow-600' : 'text-gray-600'
-                }`}>
-                  {cacheStatus === 'fresh' && '🟢 Fresh'} 
-                  {cacheStatus === 'stale' && '🟡 Stale (auto-refreshing)'}
-                  {cacheStatus === 'empty' && '⚪ No cache'}
-                </span>
-              </p>
-            )}
           </div>
 
         </div>
