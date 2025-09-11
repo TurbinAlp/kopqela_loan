@@ -13,7 +13,6 @@ interface Product {
   nameSwahili?: string
   price: number
   wholesalePrice?: number
-  costPrice?: number
   category?: string
   image?: string
   stock: number
@@ -59,8 +58,7 @@ export default function ProductsSection({
       outOfStock: "Out of Stock",
       currency: "TZS",
       retailPrice: "Retail",
-      wholesalePrice: "Wholesale",
-      costPrice: "Cost"
+      wholesalePrice: "Wholesale"
     },
     sw: {
       productSearch: "Tafuta bidhaa...",
@@ -70,8 +68,7 @@ export default function ProductsSection({
       outOfStock: "Haijapapo",
       currency: "TSh",
       retailPrice: "Reja Reja",
-      wholesalePrice: "Jumla",
-      costPrice: "Bei ya Ununuzi"
+      wholesalePrice: "Jumla"
     }
   }
 
@@ -165,15 +162,6 @@ export default function ProductsSection({
                 </div>
               )}
 
-              {/* Cost Price */}
-              {product.costPrice && (
-                <div className="text-xs font-medium">
-                  <span className="text-gray-600">{t.costPrice}:</span>
-                  <span className="ml-1 text-gray-500">
-                    {t.currency} {product.costPrice.toLocaleString()}
-                  </span>
-                </div>
-              )}
             </div>
 
             <p className={`text-xs font-medium ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>

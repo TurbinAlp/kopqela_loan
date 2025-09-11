@@ -9,7 +9,6 @@ interface CartItem {
   nameSwahili?: string
   price: number
   wholesalePrice?: number
-  costPrice?: number
   quantity: number
   subtotal: number
 }

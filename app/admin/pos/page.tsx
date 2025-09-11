@@ -20,7 +20,6 @@ interface Product {
   nameSwahili?: string
   price: number
   wholesalePrice?: number
-  costPrice?: number
   category?: string
   image?: string
   stock: number
@@ -48,7 +47,6 @@ interface ApiProduct {
   nameSwahili?: string
   price: number
   wholesalePrice?: number
-  costPrice?: number
   category?: { name: string }
   images?: { url: string }[]
   inventory?: { quantity: number }
@@ -280,7 +278,6 @@ function POSSystemContent() {
             nameSwahili: product.nameSwahili,
             price: Number(product.price) || 0, // Ensure price is a number
             wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : undefined,
-            costPrice: product.costPrice ? Number(product.costPrice) : undefined,
             category: product.category?.name || 'General',
             image: product.images?.[0]?.url,
             stock: product.inventory?.quantity || 0,

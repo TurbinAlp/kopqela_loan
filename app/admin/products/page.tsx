@@ -96,7 +96,6 @@ export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
-  const [selectedLocation, setSelectedLocation] = useState('all')
   const [selectedProducts, setSelectedProducts] = useState<number[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [showFilters, setShowFilters] = useState(false)
@@ -224,10 +223,8 @@ export default function ProductsPage() {
       // Filters
       allCategories: "All Categories",
       allStatuses: "All Statuses",
-      allLocations: "All Locations",
       categoryFilter: "Category",
       statusFilter: "Status",
-      locationFilter: "Location",
       
       // Table headers
       product: "Product",
@@ -235,8 +232,9 @@ export default function ProductsPage() {
       category: "Category", 
       unit: "Unit",
       stock: "Stock",
-      location: "Location",
       price: "Price",
+      retailPrice: "Retail Price",
+      wholesalePrice: "Wholesale Price",
       status: "Status",
       actions: "Actions",
       createdAt: "Created",
@@ -310,10 +308,8 @@ export default function ProductsPage() {
       // Filters
       allCategories: "Makundi Yote",
       allStatuses: "Hali Zote",
-      allLocations: "Mahali Yote",
       categoryFilter: "Kundi",
       statusFilter: "Hali",
-      locationFilter: "Mahali",
       
       // Table headers
       product: "Bidhaa",
@@ -321,8 +317,9 @@ export default function ProductsPage() {
       category: "Kundi",
       unit: "Kipimo",
       stock: "Hisa",
-      location: "Mahali",
       price: "Bei",
+      retailPrice: "Bei ya Reja Reja",
+      wholesalePrice: "Bei ya Jumla",
       status: "Hali",
       actions: "Vitendo",
       createdAt: "Ilipotengenezwa",
@@ -393,16 +390,6 @@ export default function ProductsPage() {
                          sku.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesCategory = selectedCategory === 'all' || categoryName === selectedCategory
     
-    // Location filtering logic
-    let matchesLocation = true
-    if (selectedLocation !== 'all') {
-      const inventoryArray = Array.isArray(product.inventory) ? product.inventory : (product.inventory ? [product.inventory] : [])
-      if (selectedLocation === 'main_store') {
-        matchesLocation = inventoryArray.some(inv => inv.location === 'main_store' && inv.quantity > 0)
-      } else if (selectedLocation === 'retail_store') {
-        matchesLocation = inventoryArray.some(inv => inv.location === 'retail_store' && inv.quantity > 0)
-      }
-    }
     
     // Status logic: compute status based on combined inventory from both locations
     let status: string = 'inStock'
@@ -433,7 +420,7 @@ export default function ProductsPage() {
     }
     
     const matchesStatus = selectedStatus === 'all' || status === selectedStatus
-    return matchesSearch && matchesCategory && matchesLocation && matchesStatus
+    return matchesSearch && matchesCategory && matchesStatus
   })
 
   // Pagination
@@ -875,19 +862,6 @@ export default function ProductsPage() {
                 </select>
               </div>
 
-              {/* Location Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{t.locationFilter}</label>
-                <select
-                  value={selectedLocation}
-                  onChange={(e) => setSelectedLocation(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
-                >
-                  <option value="all">{t.allLocations}</option>
-                  <option value="main_store">{t.mainStore}</option>
-                  <option value="retail_store">{t.retailStore}</option>
-                </select>
-              </div>
             </div>
           </motion.div>
         )}
@@ -988,7 +962,10 @@ export default function ProductsPage() {
                     <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
                   </th>
                   <th className="text-left py-4 px-6">
-                    <div className="h-4 bg-gray-200 rounded animate-pulse w-12"></div>
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
+                  </th>
+                  <th className="text-left py-4 px-6">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
                   </th>
                   <th className="text-left py-4 px-6">
                     <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
@@ -1001,6 +978,12 @@ export default function ProductsPage() {
                   </th>
                   <th className="text-left py-4 px-6">
                     <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
+                  </th>
+                  <th className="text-left py-4 px-6">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
+                  </th>
+                  <th className="text-left py-4 px-6">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
                   </th>
                   <th className="text-center py-4 px-6">
                     <div className="h-4 bg-gray-200 rounded animate-pulse w-20 mx-auto"></div>
@@ -1035,7 +1018,10 @@ export default function ProductsPage() {
                       <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
                     </td>
                     <td className="py-4 px-6">
-                      <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
+                      <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
                     </td>
                     <td className="py-4 px-6">
                       <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
@@ -1064,13 +1050,13 @@ export default function ProductsPage() {
         >
           <ArchiveBoxIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            {searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all' || selectedLocation !== 'all'
+            {searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all'
               ? (language === 'sw' ? 'Hakuna Bidhaa Zilizopatikana' : 'No Products Found')
               : (language === 'sw' ? 'Hakuna Bidhaa' : 'No Products Yet')
             }
           </h3>
           <p className="text-gray-600 mb-4">
-            {searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all' || selectedLocation !== 'all'
+            {searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all'
               ? (language === 'sw' 
                   ? 'Jaribu kubadilisha vichujio vyako au utafute kitu kingine.'
                   : 'Try adjusting your filters or search for something else.'
@@ -1081,13 +1067,12 @@ export default function ProductsPage() {
                 )
             }
           </p>
-          {(searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all' || selectedLocation !== 'all') && (
+          {(searchQuery || selectedCategory !== 'all' || selectedStatus !== 'all') && (
             <button
               onClick={() => {
                 setSearchQuery('')
                 setSelectedCategory('all')
                 setSelectedStatus('all')
-                setSelectedLocation('all')
               }}
               className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors mr-3"
             >
@@ -1123,8 +1108,8 @@ export default function ProductsPage() {
                   <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.category}</th>
                   <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.unit}</th>
                   <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.stock}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.location}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.price}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.retailPrice}</th>
+                  <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.wholesalePrice}</th>
                   <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.status}</th>
                   <th className="text-center py-4 px-6 font-semibold text-gray-800">{t.actions}</th>
                 </tr>
@@ -1199,10 +1184,14 @@ export default function ProductsPage() {
                       })()}
                     </td>
                     <td className="py-4 px-6">
-                      <span className="text-gray-700 text-sm">{product.inventory?.location || '—'}</span>
+                      <span className="font-semibold text-teal-600">{t.currency} {product.price.toLocaleString()}</span>
                     </td>
                     <td className="py-4 px-6">
-                      <span className="font-semibold text-gray-800">{t.currency} {product.price}</span>
+                      {product.wholesalePrice ? (
+                        <span className="font-semibold text-blue-600">{t.currency} {product.wholesalePrice.toLocaleString()}</span>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
                     </td>
                     <td className="py-4 px-6">
                       {(() => {
@@ -1287,7 +1276,7 @@ export default function ProductsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300"
+              className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 min-h-[400px]"
             >
               <div className="flex items-center justify-between mb-4">
                 <input
@@ -1327,7 +1316,7 @@ export default function ProductsPage() {
                 })()}
               </div>
 
-              <div className="w-full h-32 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden mb-4">
+              <div className="w-full h-36 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden mb-4">
                 {(() => {
                   // Find primary image first
                   const primaryImage = product.images?.find(img => img.isPrimary);
@@ -1370,9 +1359,26 @@ export default function ProductsPage() {
                     )
                   })()}
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">{t.location}: {product.inventory?.location || '—'}</span>
-                  <span className="font-semibold text-gray-800">{t.currency} {product.price}</span>
+
+                {/* Price Display Section */}
+                <div className="space-y-1">
+                  {/* Retail Price - Primary */}
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-600 font-medium">{t.retailPrice}:</span>
+                    <span className="font-bold text-teal-600">
+                      {t.currency} {product.price.toLocaleString()}
+                    </span>
+                  </div>
+
+                  {/* Wholesale Price */}
+                  {product.wholesalePrice && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-600 font-medium">{t.wholesalePrice}:</span>
+                      <span className="font-semibold text-blue-600">
+                        {t.currency} {product.wholesalePrice.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
