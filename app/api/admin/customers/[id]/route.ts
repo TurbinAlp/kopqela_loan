@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '../../../../generated/prisma'
 import { Decimal } from '@prisma/client/runtime/library'
+import { getAuthContext } from '../../../../lib/rbac/middleware'
 
 const prisma = new PrismaClient()
 
@@ -10,11 +11,20 @@ export async function GET(
 ) {
   try {
     const customerId = parseInt(params.id)
-    
+
     if (isNaN(customerId)) {
       return NextResponse.json(
         { error: 'Invalid customer ID' },
         { status: 400 }
+      )
+    }
+
+    // Get auth context to validate business access
+    const authContext = await getAuthContext(request)
+    if (!authContext) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
       )
     }
 
@@ -48,6 +58,32 @@ export async function GET(
       return NextResponse.json(
         { error: 'Customer not found' },
         { status: 404 }
+      )
+    }
+
+    // Validate that user has access to this customer's business
+    const hasBusinessAccess = await prisma.business.findFirst({
+      where: {
+        id: customer.businessId,
+        OR: [
+          { ownerId: authContext.userId },
+          {
+            employees: {
+              some: {
+                userId: authContext.userId,
+                isActive: true,
+                isDeleted: false
+              }
+            }
+          }
+        ]
+      }
+    })
+
+    if (!hasBusinessAccess) {
+      return NextResponse.json(
+        { error: 'Forbidden: You do not have access to this customer' },
+        { status: 403 }
       )
     }
 
@@ -135,6 +171,54 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const customerId = parseInt(params.id)
     const body = await request.json()
     const { name, email, phone, address, idNumber, dateOfBirth, occupation, creditLimit, status, customerNotes } = body
+
+    // Get auth context to validate business access
+    const authContext = await getAuthContext(request)
+    if (!authContext) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    // First fetch the customer to validate business access
+    const existingCustomer = await prisma.customer.findUnique({
+      where: { id: customerId },
+      select: { businessId: true }
+    })
+
+    if (!existingCustomer) {
+      return NextResponse.json(
+        { error: 'Customer not found' },
+        { status: 404 }
+      )
+    }
+
+    // Validate that user has access to this customer's business
+    const hasBusinessAccess = await prisma.business.findFirst({
+      where: {
+        id: existingCustomer.businessId,
+        OR: [
+          { ownerId: authContext.userId },
+          {
+            employees: {
+              some: {
+                userId: authContext.userId,
+                isActive: true,
+                isDeleted: false
+              }
+            }
+          }
+        ]
+      }
+    })
+
+    if (!hasBusinessAccess) {
+      return NextResponse.json(
+        { error: 'Forbidden: You do not have access to this customer' },
+        { status: 403 }
+      )
+    }
 
     const customer = await prisma.customer.update({
       where: { id: customerId },
