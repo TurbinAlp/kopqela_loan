@@ -499,6 +499,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
               className="w-full"
             />
           </div>
+
         </header>
 
         {/* Page Content */}

@@ -34,6 +34,7 @@ model User {
   grantedPermissions    UserPermission[] @relation("PermissionGrantedBy")
   userPermissions       UserPermission[]
   sessions              UserSession[]
+  userPreferences       UserPreference[]
   inventoryMovements    InventoryMovement[]
 
   @@map("users")
@@ -105,6 +106,20 @@ model UserSession {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_sessions")
+}
+
+model UserPreference {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @map("user_id")
+  key            String   @db.VarChar(100) // e.g., 'default_business'
+  value          String   @db.Text // JSON string for complex values
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@map("user_preferences")
 }
 
 model Business {

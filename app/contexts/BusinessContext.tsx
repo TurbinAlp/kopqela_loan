@@ -50,15 +50,32 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false)
   const isClient = useIsClient()
 
-  // Switch current business (localStorage only)
-  const setCurrentBusiness = (business: Business | null) => {
+  // Switch current business and save as default
+  const setCurrentBusiness = async (business: Business | null) => {
     if (!business) return
-    
+
     console.log('Switching to business:', business.name)
     setCurrentBusinessState(business)
+
     // Only access localStorage on client
     if (isClient) {
       localStorage.setItem('currentBusinessId', business.id.toString())
+    }
+
+    // Save as default business preference
+    try {
+      await fetch('/api/admin/user/preferences', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          key: 'default_business',
+          value: business.id.toString()
+        })
+      })
+    } catch (error) {
+      console.error('Error saving default business:', error)
     }
   }
 
@@ -86,32 +103,68 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     }
   }, [currentBusiness?.id])
 
+  // Load user default business preference
+  const loadDefaultBusiness = useCallback(async (userId: number, businesses: Business[]): Promise<Business | null> => {
+    try {
+      const response = await fetch('/api/admin/user/preferences?key=default_business')
+      const data = await response.json()
+
+      if (data.success && data.data && data.data.value) {
+        const defaultBusinessId = parseInt(data.data.value)
+        const defaultBusiness = businesses.find((b: Business) => b.id === defaultBusinessId)
+        if (defaultBusiness) {
+          return defaultBusiness
+        }
+      }
+    } catch (error) {
+      console.error('Error loading default business:', error)
+    }
+    return null
+  }, [])
+
   // Load businesses from API
   const loadBusinesses = useCallback(async () => {
     try {
       setIsLoading(true)
       const response = await fetch('/api/admin/businesses')
       const data = await response.json()
-      
+
       if (data.success && data.data) {
         setBusinesses(data.data)
-        
+
         // Set default business if none selected
         if (!currentBusiness && data.data.length > 0) {
-          // Try to get from localStorage first (only on client)
-          if (isClient) {
+          let businessToSelect: Business | null = null
+
+          // First, try to get user's default business from database
+          try {
+            const defaultBusiness = await loadDefaultBusiness(0, data.data) // userId will be validated in API
+            if (defaultBusiness) {
+              businessToSelect = defaultBusiness
+            }
+          } catch (error) {
+            console.error('Error loading default business:', error)
+          }
+
+          // If no default business found, try localStorage (for backward compatibility)
+          if (!businessToSelect && isClient) {
             const savedBusinessId = localStorage.getItem('currentBusinessId')
             if (savedBusinessId) {
               const savedBusiness = data.data.find((b: Business) => b.id === parseInt(savedBusinessId))
               if (savedBusiness) {
-                setCurrentBusinessState(savedBusiness)
-                return
+                businessToSelect = savedBusiness
               }
             }
           }
-          
-          // Otherwise use first business as default
-          setCurrentBusinessState(data.data[0])
+
+          // If still no business selected, use first business as fallback
+          if (!businessToSelect) {
+            businessToSelect = data.data[0]
+          }
+
+          if (businessToSelect) {
+            setCurrentBusinessState(businessToSelect)
+          }
         }
       }
     } catch (error) {
@@ -119,7 +172,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false)
     }
-  }, [currentBusiness, isClient])
+  }, [currentBusiness, isClient, loadDefaultBusiness])
 
   // Load businesses on mount
   useEffect(() => {
