@@ -19,6 +19,8 @@ interface Product {
   name: string
   nameSwahili?: string
   price: number
+  wholesalePrice?: number
+  costPrice?: number
   category?: string
   image?: string
   stock: number
@@ -45,6 +47,8 @@ interface ApiProduct {
   name: string
   nameSwahili?: string
   price: number
+  wholesalePrice?: number
+  costPrice?: number
   category?: { name: string }
   images?: { url: string }[]
   inventory?: { quantity: number }
@@ -275,6 +279,8 @@ function POSSystemContent() {
             name: product.name,
             nameSwahili: product.nameSwahili,
             price: Number(product.price) || 0, // Ensure price is a number
+            wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : undefined,
+            costPrice: product.costPrice ? Number(product.costPrice) : undefined,
             category: product.category?.name || 'General',
             image: product.images?.[0]?.url,
             stock: product.inventory?.quantity || 0,
@@ -356,13 +362,18 @@ function POSSystemContent() {
   const addToCart = (product: Product) => {
     const existingItem = cart.find(item => item.id === product.id)
 
+    // Get the correct price based on order type
+    const itemPrice = orderType === 'WHOLESALE' && product.wholesalePrice
+      ? product.wholesalePrice
+      : product.price
+
     if (existingItem) {
       updateQuantity(product.id, existingItem.quantity + 1)
     } else {
       const cartItem: CartItem = {
         ...product,
         quantity: 1,
-        subtotal: Number(product.price) // Ensure subtotal is a number
+        subtotal: Number(itemPrice) // Ensure subtotal is a number
       }
       setCart([...cart, cartItem])
     }
@@ -373,13 +384,17 @@ function POSSystemContent() {
       removeFromCart(productId)
       return
     }
-    
 
-    setCart(cart.map(item => 
-      item.id === productId 
-        ? { ...item, quantity: newQuantity, subtotal: Number(item.price) * newQuantity }
+    setCart(cart.map(item => {
+      // Get the correct price based on order type
+      const itemPrice = orderType === 'WHOLESALE' && item.wholesalePrice
+        ? item.wholesalePrice
+        : item.price
+
+      return item.id === productId
+        ? { ...item, quantity: newQuantity, subtotal: Number(itemPrice) * newQuantity }
         : item
-    ))
+    }))
   }
 
   const removeFromCart = (productId: number) => {
@@ -640,6 +655,7 @@ function POSSystemContent() {
 
             <CartSection
               cart={cart}
+              orderType={orderType}
               onUpdateQuantity={updateQuantity}
               onRemoveFromCart={removeFromCart}
             />

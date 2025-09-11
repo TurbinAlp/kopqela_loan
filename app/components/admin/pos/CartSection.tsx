@@ -8,18 +8,22 @@ interface CartItem {
   name: string
   nameSwahili?: string
   price: number
+  wholesalePrice?: number
+  costPrice?: number
   quantity: number
   subtotal: number
 }
 
 interface CartSectionProps {
   cart: CartItem[]
+  orderType: 'RETAIL' | 'WHOLESALE'
   onUpdateQuantity: (productId: number, newQuantity: number) => void
   onRemoveFromCart: (productId: number) => void
 }
 
 export default function CartSection({
   cart,
+  orderType,
   onUpdateQuantity,
   onRemoveFromCart
 }: CartSectionProps) {
@@ -38,6 +42,14 @@ export default function CartSection({
 
   const t = translations[language]
 
+  // Helper function to get the correct price based on order type
+  const getDisplayPrice = (item: CartItem) => {
+    if (orderType === 'WHOLESALE' && item.wholesalePrice) {
+      return item.wholesalePrice
+    }
+    return item.price
+  }
+
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm">
       <h3 className="font-semibold mb-4 flex items-center text-gray-900">
@@ -53,7 +65,7 @@ export default function CartSection({
                 {language === 'sw' && item.nameSwahili ? item.nameSwahili : item.name}
               </p>
               <p className="text-xs text-gray-600 text-gray-900">
-                {t.currency} {item.price.toLocaleString()} x {item.quantity}
+                {t.currency} {getDisplayPrice(item).toLocaleString()} x {item.quantity}
               </p>
             </div>
             <div className="flex items-center space-x-2">

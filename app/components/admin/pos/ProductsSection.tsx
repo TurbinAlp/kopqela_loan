@@ -12,6 +12,8 @@ interface Product {
   name: string
   nameSwahili?: string
   price: number
+  wholesalePrice?: number
+  costPrice?: number
   category?: string
   image?: string
   stock: number
@@ -55,7 +57,10 @@ export default function ProductsSection({
       all: "All",
       inStock: "In Stock",
       outOfStock: "Out of Stock",
-      currency: "TZS"
+      currency: "TZS",
+      retailPrice: "Retail",
+      wholesalePrice: "Wholesale",
+      costPrice: "Cost"
     },
     sw: {
       productSearch: "Tafuta bidhaa...",
@@ -63,7 +68,10 @@ export default function ProductsSection({
       all: "Yote",
       inStock: "Ipo Hifadhini",
       outOfStock: "Haijapapo",
-      currency: "TSh"
+      currency: "TSh",
+      retailPrice: "Reja Reja",
+      wholesalePrice: "Jumla",
+      costPrice: "Bei ya Ununuzi"
     }
   }
 
@@ -115,25 +123,60 @@ export default function ProductsSection({
       </div>
 
       {/* Products Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {filteredProducts.map(product => (
           <motion.div
             key={product.id}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="bg-gray-50 rounded-lg p-4 cursor-pointer hover:bg-gray-100 transition-colors"
+            className="bg-white rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition-colors border border-gray-200 shadow-sm w-full"
             onClick={() => onAddToCart(product)}
           >
-            <div className="aspect-square bg-gray-200 rounded-lg mb-3 flex items-center justify-center">
-                <Image src={product?.image || ''} alt={product.name} width={200} height={200} />
+            <div className="aspect-square bg-gray-100 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                <Image
+                  src={product?.image || '/images/placeholder-product.svg'}
+                  alt={product.name}
+                  width={80}
+                  height={80}
+                  className="object-cover rounded"
+                />
             </div>
-            <h3 className="font-medium text-sm mb-1 line-clamp-2">
+            <h3 className="font-medium text-sm mb-2 line-clamp-2 leading-tight">
               {language === 'sw' && product.nameSwahili ? product.nameSwahili : product.name}
             </h3>
-            <p className="text-lg font-bold text-teal-600 mb-1">
-              {t.currency} {product.price.toLocaleString()}
-            </p>
-            <p className={`text-xs ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+
+            {/* Price Display Section */}
+            <div className="mb-3 space-y-1">
+              {/* Retail Price - Primary */}
+              <div className="text-xs font-medium">
+                <span className="text-gray-600">{t.retailPrice}:</span>
+                <span className="ml-1 font-bold text-teal-600">
+                  {t.currency} {product.price.toLocaleString()}
+                </span>
+              </div>
+
+              {/* Wholesale Price */}
+              {product.wholesalePrice && (
+                <div className="text-xs font-medium">
+                  <span className="text-gray-600">{t.wholesalePrice}:</span>
+                  <span className="ml-1 font-semibold text-blue-600">
+                    {t.currency} {product.wholesalePrice.toLocaleString()}
+                  </span>
+                </div>
+              )}
+
+              {/* Cost Price */}
+              {product.costPrice && (
+                <div className="text-xs font-medium">
+                  <span className="text-gray-600">{t.costPrice}:</span>
+                  <span className="ml-1 text-gray-500">
+                    {t.currency} {product.costPrice.toLocaleString()}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <p className={`text-xs font-medium ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
               {product.stock > 0 ? `${t.inStock}: ${product.stock}` : t.outOfStock}
             </p>
           </motion.div>
