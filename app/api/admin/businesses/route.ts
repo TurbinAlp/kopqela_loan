@@ -20,16 +20,16 @@ export async function GET(request: NextRequest) {
     const businesses = await prisma.business.findMany({
       where: {
         OR: [
-          { ownerId: authContext.userId }, 
-          { 
+          { ownerId: authContext.userId },
+          {
             employees: {
               some: {
                 userId: authContext.userId,
                 isActive: true,
-                isDeleted: false 
+                isDeleted: false
               }
             }
-          } 
+          }
         ]
       },
       include: {
@@ -42,6 +42,16 @@ export async function GET(request: NextRequest) {
             city: true,
             region: true,
             country: true
+          }
+        },
+        employees: {
+          where: {
+            userId: authContext.userId,
+            isActive: true,
+            isDeleted: false
+          },
+          select: {
+            role: true
           }
         },
         _count: {
@@ -60,9 +70,17 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Add user role to each business
+    const businessesWithRoles = businesses.map(business => ({
+      ...business,
+      userRole: business.ownerId === authContext.userId
+        ? 'ADMIN'
+        : (business.employees[0]?.role || 'CUSTOMER')
+    }))
+
     return NextResponse.json({
       success: true,
-      data: businesses
+      data: businessesWithRoles
     })
 
   } catch (error) {

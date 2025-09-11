@@ -16,6 +16,7 @@ interface Business {
   slug: string
   businessType: string
   createdAt: string
+  userRole: string
   businessSetting?: {
     description?: string
     email?: string

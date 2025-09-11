@@ -197,6 +197,9 @@ export const authOptions: NextAuthOptions = {
               token.userId as number
             )
             token.permissions = permissions
+
+            // Note: Role is now fetched dynamically from BusinessUser table
+            // based on current business context, not stored in session
           } catch (error) {
             console.error('Error getting permissions for token:', error)
             token.permissions = []

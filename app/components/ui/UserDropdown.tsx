@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
-import { 
+import {
   ChevronDownIcon,
   UserIcon,
   ArrowRightOnRectangleIcon,
@@ -26,6 +26,9 @@ export default function UserDropdown({ className = '' }: UserDropdownProps) {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Get user role from current business (already loaded with business data)
+  const userRole = currentBusiness?.userRole?.toLowerCase() || 'customer'
 
   const translations = {
     en: {
@@ -85,10 +88,15 @@ export default function UserDropdown({ className = '' }: UserDropdownProps) {
     return session?.user?.image || null
   }
 
-  // Get user role display name from session
+  // Get user role display name from current business context
   const getUserRole = () => {
-    const role = session?.user?.role?.toLowerCase()
-    
+    const role = userRole || 'customer'
+
+    // Debug logging
+    console.log('UserDropdown - Current business:', currentBusiness?.name)
+    console.log('UserDropdown - Dynamic role:', role)
+    console.log('UserDropdown - Business ID:', currentBusiness?.id)
+
     switch (role) {
       case 'admin':
         return t.administrator
@@ -98,6 +106,7 @@ export default function UserDropdown({ className = '' }: UserDropdownProps) {
         return t.cashier
       case 'customer':
       default:
+        console.warn('UserDropdown - Unknown role, defaulting to customer:', role)
         return t.customer // Default fallback
     }
   }
@@ -183,7 +192,7 @@ export default function UserDropdown({ className = '' }: UserDropdownProps) {
         {/* User Info - Hidden on small screens */}
         <div className="hidden lg:block text-left">
           <p className="text-sm font-medium text-gray-800">
-            {session?.user?.firstName && session?.user?.lastName 
+            {session?.user?.firstName && session?.user?.lastName
               ? `${session.user.firstName} ${session.user.lastName}`
               : session?.user?.name || session?.user?.email || 'User'}
           </p>
