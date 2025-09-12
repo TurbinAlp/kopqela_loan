@@ -37,6 +37,7 @@ interface ProductsSectionProps {
   setSelectedCategory: (category: string) => void
   onAddToCart: (product: Product) => void
   businessType?: 'RETAIL' | 'WHOLESALE' | 'BOTH'
+  orderType?: 'RETAIL' | 'WHOLESALE'
 }
 
 export default function ProductsSection({
@@ -47,10 +48,12 @@ export default function ProductsSection({
   selectedCategory,
   setSelectedCategory,
   onAddToCart,
-  businessType
+  businessType,
+  orderType
 }: ProductsSectionProps) {
   const { language } = useLanguage()
   const normalizedBusinessType = (businessType || 'RETAIL').toUpperCase() as 'RETAIL' | 'WHOLESALE' | 'BOTH'
+  const selectedOrderType = (orderType || (normalizedBusinessType === 'WHOLESALE' ? 'WHOLESALE' : 'RETAIL')) as 'RETAIL' | 'WHOLESALE'
   
   const translations = {
     en: {
@@ -148,18 +151,18 @@ export default function ProductsSection({
             {/* Price Display Section */}
             <div className="mb-3 space-y-1">
               {normalizedBusinessType !== 'WHOLESALE' && (
-                <div className="text-xs font-medium">
+                <div className={`text-xs ${normalizedBusinessType === 'BOTH' && selectedOrderType === 'RETAIL' ? 'font-extrabold text-teal-700' : 'font-medium'}`}>
                   <span className="text-gray-600">{t.retailPrice}:</span>
-                  <span className="ml-1 font-bold text-teal-600">
+                  <span className={`ml-1 ${normalizedBusinessType === 'BOTH' && selectedOrderType === 'RETAIL' ? 'font-extrabold text-teal-700' : 'font-bold text-teal-600'}`}>
                     {t.currency} {product.price.toLocaleString()}
                   </span>
                 </div>
               )}
 
               {normalizedBusinessType !== 'RETAIL' && product.wholesalePrice && (
-                <div className="text-xs font-medium">
+                <div className={`text-xs ${normalizedBusinessType === 'BOTH' && selectedOrderType === 'WHOLESALE' ? 'font-extrabold text-blue-700' : 'font-medium'}`}>
                   <span className="text-gray-600">{t.wholesalePrice}:</span>
-                  <span className="ml-1 font-semibold text-blue-600">
+                  <span className={`ml-1 ${normalizedBusinessType === 'BOTH' && selectedOrderType === 'WHOLESALE' ? 'font-extrabold text-blue-700' : 'font-semibold text-blue-600'}`}>
                     {t.currency} {product.wholesalePrice.toLocaleString()}
                   </span>
                 </div>

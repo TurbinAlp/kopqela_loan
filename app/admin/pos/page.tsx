@@ -615,6 +615,7 @@ function POSSystemContent() {
               setSelectedCategory={setSelectedCategory}
               onAddToCart={addToCart}
               businessType={allowOrderTypeSwitch ? 'BOTH' : (orderType as 'RETAIL' | 'WHOLESALE')}
+              orderType={orderType}
             />
           </div>
 
