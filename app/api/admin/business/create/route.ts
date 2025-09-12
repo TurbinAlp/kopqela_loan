@@ -65,10 +65,10 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Restrict businessType to RETAIL or WHOLESALE only
-    const allowedTypes = ['RETAIL', 'WHOLESALE']
+    // Restrict businessType to RETAIL, WHOLESALE or BOTH
+    const allowedTypes = ['RETAIL', 'WHOLESALE', 'BOTH']
     if (!allowedTypes.includes(String(businessType).toUpperCase())) {
-      return NextResponse.json({ success: false, message: 'Invalid business type. Use RETAIL or WHOLESALE.' }, { status: 400 })
+      return NextResponse.json({ success: false, message: 'Invalid business type. Use RETAIL, WHOLESALE or BOTH.' }, { status: 400 })
     }
 
     // Check if slug already exists

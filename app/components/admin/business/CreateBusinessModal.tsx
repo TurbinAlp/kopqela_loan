@@ -21,7 +21,8 @@ type BusinessTypeOption = {
 
 const BUSINESS_TYPES: BusinessTypeOption[] = [
   { value: 'RETAIL', label: 'Retail', labelSw: 'Rejareja' },
-  { value: 'WHOLESALE', label: 'Wholesale', labelSw: 'Jumla' }
+  { value: 'WHOLESALE', label: 'Wholesale', labelSw: 'Jumla' },
+  { value: 'BOTH', label: 'Both (Wholesale & Retail)', labelSw: 'Zote (Jumla & Rejareja)' }
 ]
 
 type BusinessCategoryOption = {

@@ -44,6 +44,7 @@ function RegisterPageContent() {
     acceptTerms: false,
     businessName: '',
     businessType: '',
+    businessCategory: '',
     businessDescription: '',
     registrationNumber: '',
     businessAddress: '',
@@ -94,8 +95,10 @@ function RegisterPageContent() {
       businessName: "Business Name",
       businessType: "Business Type",
       selectBusinessType: "Select business type",
+      businessCategory: "Business Category",
+      selectBusinessCategory: "Select business category",
       businessDescription: "Business Description",
-      registrationNumber: "Registration Number (Optional)",
+      registrationNumber: "Registration Number",
       businessAddress: "Business Address",
       verifyEmail: "Verify Your Email",
       verificationSubtitle: "We sent a code to",
@@ -112,14 +115,15 @@ function RegisterPageContent() {
       alreadyHaveAccount: "Already have an account?",
       signIn: "Sign in",
       // Business Types
-      retail: "Retail Store",
+      retail: "Retail",
       wholesale: "Wholesale",
+      both: "Both (Wholesale & Retail)",
       electronics: "Electronics",
-      fashion: "Fashion & Clothing",
-      food: "Food & Beverages",
-      health: "Health & Beauty",
-      automotive: "Automotive",
-      service: "Service Provider",
+      fashion: "Fashion",
+      pharmacy: "Pharmacy",
+      restaurant: "Restaurant",
+      grocery: "Grocery",
+      service: "Service",
       other: "Other",
       // Validation messages
       nameRequired: "Full name is required",
@@ -155,8 +159,10 @@ function RegisterPageContent() {
       businessName: "Jina la Biashara",
       businessType: "Aina ya Biashara",
       selectBusinessType: "Chagua aina ya biashara",
+      businessCategory: "Kundi la Biashara",
+      selectBusinessCategory: "Chagua kundi la biashara",
       businessDescription: "Maelezo ya Biashara",
-      registrationNumber: "Namba ya Usajili (Si Lazima)",
+      registrationNumber: "Namba ya Usajili ",
       businessAddress: "Anwani ya Biashara",
       verifyEmail: "Thibitisha Email Yako",
       verificationSubtitle: "Tumetuma nambari kwa",
@@ -173,14 +179,15 @@ function RegisterPageContent() {
       alreadyHaveAccount: "Tayari una akaunti?",
       signIn: "Ingia",
       // Business Types
-      retail: "Duka la Rejareja",
-      wholesale: "Biashara ya Jumla",
+      retail: "Rejareja",
+      wholesale: "Jumla",
+      both: "Zote (Jumla & Rejareja)",
       electronics: "Vifaa vya Umeme",
-      fashion: "Mavazi na Mapambo",
-      food: "Chakula na Vinywaji",
-      health: "Afya na Urembo",
-      automotive: "Magari na Vipuri",
-      service: "Mtoa Huduma",
+      fashion: "Nguo & Mitindo",
+      pharmacy: "Duka la Dawa",
+      restaurant: "Mgahawa",
+      grocery: "Vyakula & Mboga",
+      service: "Huduma",
       other: "Nyingine",
       // Validation messages
       nameRequired: "Jina kamili linahitajika",
@@ -202,15 +209,19 @@ function RegisterPageContent() {
   const t = translations[language]
 
   const businessTypes = [
-    { value: 'retail', label: t.retail },
-    { value: 'wholesale', label: t.wholesale },
-    { value: 'electronics', label: t.electronics },
-    { value: 'fashion', label: t.fashion },
-    { value: 'food', label: t.food },
-    { value: 'health', label: t.health },
-    { value: 'automotive', label: t.automotive },
-    { value: 'service', label: t.service },
-    { value: 'other', label: t.other }
+    { value: 'RETAIL', label: t.retail },
+    { value: 'WHOLESALE', label: t.wholesale },
+    { value: 'BOTH', label: t.both }
+  ]
+
+  const businessCategories = [
+    { value: 'GROCERY', label: t.grocery },
+    { value: 'ELECTRONICS', label: t.electronics },
+    { value: 'FASHION', label: t.fashion },
+    { value: 'PHARMACY', label: t.pharmacy },
+    { value: 'RESTAURANT', label: t.restaurant },
+    { value: 'SERVICE', label: t.service },
+    { value: 'OTHER', label: t.other }
   ]
 
   // API Integration Functions
@@ -250,7 +261,8 @@ function RegisterPageContent() {
           confirmPassword: formData.confirmPassword,
           phone: formData.phone || undefined,
           businessName: formData.businessName,
-          businessType: formData.businessType,
+          businessType: String(formData.businessType || '').toUpperCase(),
+          businessCategory: formData.businessCategory || undefined,
           businessDescription: formData.businessDescription,
           businessAddress: formData.businessAddress,
           businessPhone: formData.phone || undefined,
@@ -567,7 +579,7 @@ function RegisterPageContent() {
         <motion.div variants={floatingVariants} animate="animate" style={{ animationDelay: "3s" }} className="absolute bottom-24 left-1/3 w-44 h-44 bg-white/5 rounded-full blur-2xl" />
       </div>
 
-      <motion.div variants={containerVariants} initial="hidden" animate={isVisible ? "visible" : "hidden"} className="w-full max-w-lg relative z-10">
+      <motion.div variants={containerVariants} initial="hidden" animate={isVisible ? "visible" : "hidden"} className="w-full max-w-md relative z-10">
         {/* Language Toggle */}
         <motion.div variants={itemVariants} className="flex justify-end mb-6">
           <LanguageToggle />
@@ -582,11 +594,11 @@ function RegisterPageContent() {
 
           {/* Header */}
           <div className="text-center mb-8 mt-4">
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200, delay: 0.2 }} className="w-16 h-16 bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl mx-auto mb-4 flex items-center justify-center">
-              <SparklesIcon className="w-8 h-8 text-white" />
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 200, delay: 0.2 }} className="w-20 h-20 bg-gradient-to-br from-teal-500 to-teal-600 rounded-2xl mx-auto mb-4 flex items-center justify-center">
+              <SparklesIcon className="w-10 h-10 text-white" />
             </motion.div>
-            <motion.h1 key={currentStep} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-2xl font-bold text-gray-800 mb-2">{getStepTitle()}</motion.h1>
-            <motion.p key={`${currentStep}-subtitle`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="text-gray-600 text-sm">{getStepSubtitle()}</motion.p>
+            <motion.h1 key={currentStep} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-3xl font-bold text-gray-800 mb-2">{getStepTitle()}</motion.h1>
+            <motion.p key={`${currentStep}-subtitle`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="text-gray-600">{getStepSubtitle()}</motion.p>
             
             {/* General Error Display */}
             {errors.general && (
@@ -719,14 +731,14 @@ function RegisterPageContent() {
               {currentStep === 'business' && (
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.businessName}</label>
-                    <motion.input whileFocus={{ scale: 1.02 }} type="text" value={formData.businessName} onChange={(e) => updateFormData({ businessName: e.target.value })} className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-300 text-gray-900 placeholder-gray-400 ${errors.businessName ? 'border-red-500' : 'border-gray-300'}`} placeholder="ABC Trading Ltd" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t.businessName}</label>
+                    <motion.input whileFocus={{ scale: 1.02 }} type="text" value={formData.businessName} onChange={(e) => updateFormData({ businessName: e.target.value })} className={`w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-300 text-gray-900 placeholder-gray-400 ${errors.businessName ? 'border-red-500' : 'border-gray-300'}`} placeholder="ABC Trading Ltd" />
                     {errors.businessName && <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center text-red-500 text-sm mt-1"><XCircleIcon className="w-4 h-4 mr-1" />{errors.businessName}</motion.div>}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.businessType}</label>
-                    <motion.select whileFocus={{ scale: 1.02 }} value={formData.businessType} onChange={(e) => updateFormData({ businessType: e.target.value })} className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-300 text-gray-900 bg-white ${errors.businessType ? 'border-red-500' : 'border-gray-300'}`}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t.businessType}</label>
+                    <motion.select whileFocus={{ scale: 1.02 }} value={formData.businessType} onChange={(e) => updateFormData({ businessType: e.target.value })} className={`w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-300 text-gray-900 bg-white ${errors.businessType ? 'border-red-500' : 'border-gray-300'}`}>
                       <option value="" className="text-gray-400">{t.selectBusinessType}</option>
                       {businessTypes.map((type) => (
                         <option key={type.value} value={type.value} className="text-gray-900">{type.label}</option>
@@ -736,20 +748,30 @@ function RegisterPageContent() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.businessDescription}</label>
-                    <motion.textarea whileFocus={{ scale: 1.02 }} value={formData.businessDescription} onChange={(e) => updateFormData({ businessDescription: e.target.value })} rows={3} className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-300 resize-none text-gray-900 placeholder-gray-400 ${errors.businessDescription ? 'border-red-500' : 'border-gray-300'}`} placeholder="Brief description of your business..." />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t.businessCategory}</label>
+                    <motion.select whileFocus={{ scale: 1.02 }} value={formData.businessCategory} onChange={(e) => updateFormData({ businessCategory: e.target.value })} className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-300 text-gray-900 bg-white border-gray-300">
+                      <option value="" className="text-gray-400">{t.selectBusinessCategory}</option>
+                      {businessCategories.map((cat) => (
+                        <option key={cat.value} value={cat.value} className="text-gray-900">{cat.label}</option>
+                      ))}
+                    </motion.select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t.businessDescription}</label>
+                    <motion.textarea whileFocus={{ scale: 1.02 }} value={formData.businessDescription} onChange={(e) => updateFormData({ businessDescription: e.target.value })} rows={3} className={`w-full px-3 py-3 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-300 resize-none text-gray-900 placeholder-gray-400 ${errors.businessDescription ? 'border-red-500' : 'border-gray-300'}`} placeholder="Brief description of your business..." />
                     {errors.businessDescription && <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center text-red-500 text-sm mt-1"><XCircleIcon className="w-4 h-4 mr-1" />{errors.businessDescription}</motion.div>}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.businessAddress}</label>
-                    <motion.textarea whileFocus={{ scale: 1.02 }} value={formData.businessAddress} onChange={(e) => updateFormData({ businessAddress: e.target.value })} rows={2} className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-300 resize-none text-gray-900 placeholder-gray-400 ${errors.businessAddress ? 'border-red-500' : 'border-gray-300'}`} placeholder="Business physical address..." />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t.businessAddress}</label>
+                    <motion.textarea whileFocus={{ scale: 1.02 }} value={formData.businessAddress} onChange={(e) => updateFormData({ businessAddress: e.target.value })} rows={2} className={`w-full px-3 py-3 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-300 resize-none text-gray-900 placeholder-gray-400 ${errors.businessAddress ? 'border-red-500' : 'border-gray-300'}`} placeholder="Business physical address..." />
                     {errors.businessAddress && <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center text-red-500 text-sm mt-1"><XCircleIcon className="w-4 h-4 mr-1" />{errors.businessAddress}</motion.div>}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.registrationNumber}</label>
-                    <motion.input whileFocus={{ scale: 1.02 }} type="text" value={formData.registrationNumber} onChange={(e) => updateFormData({ registrationNumber: e.target.value })} className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-300 text-gray-900 placeholder-gray-400" placeholder="REG123456" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t.registrationNumber}</label>
+                    <motion.input whileFocus={{ scale: 1.02 }} type="text" value={formData.registrationNumber} onChange={(e) => updateFormData({ registrationNumber: e.target.value })} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-300 text-gray-900 placeholder-gray-400" placeholder="REG123456" />
                   </div>
                 </div>
               )}

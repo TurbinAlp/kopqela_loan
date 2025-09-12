@@ -146,6 +146,7 @@ export function usePermissionCheck(permission: string, businessId?: number): Per
 const businessPermissionsCache = new Map<string, {
   permissions: string[]
   userRole: string | null
+  businessType: string | null
   timestamp: number
 }>()
 
@@ -179,11 +180,13 @@ export function useBusinessPermissions(businessId?: number) {
   const [permissions, setPermissions] = useState<{
     permissions: string[]
     userRole: string | null
+    businessType: string | null
     loading: boolean
     error: string | null
   }>({
     permissions: [],
     userRole: null,
+    businessType: null,
     loading: true,
     error: null
   })
@@ -193,6 +196,7 @@ export function useBusinessPermissions(businessId?: number) {
       setPermissions({
         permissions: [],
         userRole: null,
+        businessType: null,
         loading: false,
         error: null
       })
@@ -207,6 +211,7 @@ export function useBusinessPermissions(businessId?: number) {
       setPermissions({
         permissions: cached.permissions,
         userRole: cached.userRole,
+        businessType: cached.businessType,
         loading: false,
         error: null
       })
@@ -228,6 +233,7 @@ export function useBusinessPermissions(businessId?: number) {
         const newData = {
           permissions: result.data.permissions,
           userRole: result.data.userRole,
+          businessType: result.data.businessType || null,
           loading: false,
           error: null
         }
@@ -236,6 +242,7 @@ export function useBusinessPermissions(businessId?: number) {
         businessPermissionsCache.set(cacheKey, {
           permissions: result.data.permissions,
           userRole: result.data.userRole,
+          businessType: result.data.businessType || null,
           timestamp: Date.now()
         })
 
@@ -248,6 +255,7 @@ export function useBusinessPermissions(businessId?: number) {
       setPermissions({
         permissions: [],
         userRole: null,
+        businessType: null,
         loading: false,
         error: error instanceof Error ? error.message : 'Unknown error'
       })
@@ -261,6 +269,7 @@ export function useBusinessPermissions(businessId?: number) {
         return {
           permissions: [],
           userRole: null,
+          businessType: null,
           loading: false,
           error: null
         }
@@ -274,6 +283,7 @@ export function useBusinessPermissions(businessId?: number) {
         return {
           permissions: cached.permissions,
           userRole: cached.userRole,
+          businessType: cached.businessType,
           loading: false,
           error: null
         }
@@ -282,6 +292,7 @@ export function useBusinessPermissions(businessId?: number) {
       return {
         permissions: [],
         userRole: null,
+        businessType: null,
         loading: true,
         error: null
       }

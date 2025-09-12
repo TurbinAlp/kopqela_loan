@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthContext, getUserPermissions, getUserRoleForBusiness } from '../../../../lib/rbac/middleware'
+import { prisma } from '../../../../lib/prisma'
 
 /**
  * GET /api/rbac/permissions/business?businessId=123
@@ -33,13 +34,20 @@ export async function GET(req: NextRequest) {
     // Get user role for this business
     const userRole = await getUserRoleForBusiness(authContext.userId, businessIdNum)
 
+    // Get business type
+    const business = await prisma.business.findUnique({
+      where: { id: businessIdNum },
+      select: { businessType: true }
+    })
+
     return NextResponse.json({
       success: true,
       data: {
         businessId: businessIdNum,
         userRole,
         permissions: businessPermissions,
-        userId: authContext.userId
+        userId: authContext.userId,
+        businessType: business?.businessType || null
       }
     })
 
