@@ -114,10 +114,10 @@ export default function Home() {
               <span className="ml-3 text-2xl font-bold text-gray-900">Koppela</span>
             </div>
             <div className="flex space-x-4">
-              <Link href="/login" className="px-4 py-2 text-teal-600 hover:text-teal-700 font-medium">
+              <Link href="/login" className="px-4 py-2 text-teal-600 hover:text-teal-700 font-medium text-sm">
                 Login
               </Link>
-              <Link href="/register" className="px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 font-medium transition-colors">
+              <Link href="/register" className="px-5 py-2.5 bg-teal-600 text-white rounded-md hover:bg-teal-700 font-medium text-sm transition-colors">
                 Get Started
               </Link>
             </div>
@@ -126,7 +126,7 @@ export default function Home() {
       </header>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-teal-50 via-white to-teal-50 py-20">
+      <section className="bg-gradient-to-br from-teal-50 via-white to-teal-50 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <motion.div
@@ -134,11 +134,11 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6">
+              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
                 <span className="text-teal-600">Koppela</span> Sales
                 <br />& Credit Management
               </h1>
-              <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+              <p className="text-base md:text-lg text-gray-600 mb-6 max-w-3xl mx-auto">
                 Complete business solution for sales processing, credit management, and customer relationships. 
                 Built for Tanzanian businesses with multilingual support and modern features.
               </p>
@@ -147,7 +147,7 @@ export default function Home() {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="px-8 py-4 bg-teal-600 text-white rounded-xl font-semibold text-lg hover:bg-teal-700 transition-colors shadow-lg"
+                    className="px-5 py-2.5 bg-teal-600 text-white rounded-md font-medium text-sm hover:bg-teal-700 transition-colors"
                   >
                     Start Free Trial
                   </motion.button>
@@ -156,7 +156,7 @@ export default function Home() {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="px-8 py-4 border-2 border-teal-600 text-teal-600 rounded-xl font-semibold text-lg hover:bg-teal-50 transition-colors"
+                    className="px-5 py-2.5 border border-teal-600 text-teal-600 rounded-md font-medium text-sm hover:bg-teal-50 transition-colors"
                   >
                     View Demo
                   </motion.button>
@@ -168,7 +168,7 @@ export default function Home() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-white">
+      <section className="py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
@@ -179,8 +179,8 @@ export default function Home() {
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 className="text-center"
               >
-                <div className="text-3xl md:text-4xl font-bold text-teal-600 mb-2">{stat.number}</div>
-                <div className="text-gray-600 font-medium">{stat.label}</div>
+                <div className="text-2xl md:text-3xl font-bold text-teal-600 mb-1">{stat.number}</div>
+                <div className="text-gray-600 text-sm md:text-base">{stat.label}</div>
               </motion.div>
             ))}
           </div>
@@ -188,29 +188,29 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-12 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Powerful Features</h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Powerful Features</h2>
+            <p className="text-base md:text-lg text-gray-600 max-w-2xl mx-auto">
               Everything you need to manage your business efficiently and grow your revenue
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-shadow"
+                className="bg-white rounded-lg p-4 shadow hover:shadow-md transition-shadow"
               >
-                <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mb-4">
-                  <feature.icon className="w-6 h-6 text-teal-600" />
+                <div className="w-10 h-10 bg-teal-100 rounded-md flex items-center justify-center mb-3">
+                  <feature.icon className="w-5 h-5 text-teal-600" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">{feature.title}</h3>
+                <p className="text-gray-600 text-sm md:text-base">{feature.description}</p>
               </motion.div>
             ))}
           </div>
@@ -218,16 +218,16 @@ export default function Home() {
       </section>
 
       {/* User Types Section */}
-      <section className="py-20 bg-white">
+      <section className="py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Built for Everyone</h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Built for Everyone</h2>
+            <p className="text-base md:text-lg text-gray-600 max-w-2xl mx-auto">
               Tailored experiences for different user roles in your business
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {userTypes.map((user, index) => (
               <motion.div
                 key={index}
@@ -236,17 +236,17 @@ export default function Home() {
                 transition={{ duration: 0.5, delay: index * 0.2 }}
                 className="relative"
               >
-                <div className={`bg-gradient-to-br ${user.color} rounded-2xl p-8 text-white h-full`}>
+                <div className={`bg-gradient-to-br ${user.color} rounded-xl p-6 text-white h-full`}>
                   <div className="mb-6">
                     <div className="text-sm font-medium opacity-90 mb-2">{user.type}</div>
-                    <h3 className="text-2xl font-bold mb-3">{user.title}</h3>
-                    <p className="text-white/90 mb-6">{user.description}</p>
+                    <h3 className="text-xl font-bold mb-2">{user.title}</h3>
+                    <p className="text-white/90 mb-5 text-sm md:text-base">{user.description}</p>
                   </div>
                   
                   <div className="space-y-2 mb-8">
                     {user.features.map((feature, featureIndex) => (
                       <div key={featureIndex} className="flex items-center">
-                        <CheckCircleIcon className="w-5 h-5 mr-2 text-white/80" />
+                        <CheckCircleIcon className="w-4 h-4 mr-2 text-white/80" />
                         <span className="text-sm text-white/90">{feature}</span>
                       </div>
                     ))}
@@ -256,7 +256,7 @@ export default function Home() {
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="w-full bg-white/20 backdrop-blur-sm text-white font-semibold py-3 px-6 rounded-lg hover:bg-white/30 transition-colors"
+                      className="w-full bg-white/20 backdrop-blur-sm text-white font-medium py-2.5 px-4 rounded-md hover:bg-white/30 transition-colors text-sm"
                     >
                       Access {user.type} Portal
                     </motion.button>
@@ -269,16 +269,16 @@ export default function Home() {
       </section>
 
       {/* Benefits Section */}
-      <section className="py-20 bg-teal-50">
+      <section className="py-12 bg-teal-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Why Choose Koppela?</h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Why Choose Koppela?</h2>
+            <p className="text-base md:text-lg text-gray-600 max-w-2xl mx-auto">
               Designed specifically for Tanzanian businesses with local needs in mind
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {benefits.map((benefit, index) => (
               <motion.div
                 key={index}
@@ -287,11 +287,11 @@ export default function Home() {
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 className="text-center"
               >
-                <div className="w-16 h-16 bg-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                  <benefit.icon className="w-8 h-8 text-white" />
+                <div className="w-12 h-12 bg-teal-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <benefit.icon className="w-6 h-6 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">{benefit.title}</h3>
-                <p className="text-gray-600">{benefit.description}</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{benefit.title}</h3>
+                <p className="text-gray-600 text-sm md:text-base">{benefit.description}</p>
               </motion.div>
             ))}
           </div>
@@ -299,36 +299,36 @@ export default function Home() {
       </section>
 
       {/* Testimonial Section */}
-      <section className="py-20 bg-white">
+      <section className="py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Trusted by Businesses</h2>
-            <p className="text-xl text-gray-600">See what our customers say about Koppela</p>
+          <div className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Trusted by Businesses</h2>
+            <p className="text-base md:text-lg text-gray-600">See what our customers say about Koppela</p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
-              className="bg-gray-50 rounded-xl p-8"
+              className="bg-gray-50 rounded-lg p-6"
             >
               <div className="flex items-center mb-4">
                 {[...Array(5)].map((_, i) => (
-                  <StarIcon key={i} className="w-5 h-5 text-yellow-400 fill-current" />
+                  <StarIcon key={i} className="w-4 h-4 text-yellow-400 fill-current" />
                 ))}
               </div>
-                             <p className="text-gray-700 mb-6 italic">
-                 &ldquo;Koppela has transformed how we manage our electronics store. The credit management system 
-                 alone has increased our sales by 40%. The multilingual support makes it easy for all our staff.&rdquo;
-               </p>
+              <p className="text-gray-700 mb-5 italic text-sm md:text-base">
+                &ldquo;Koppela has transformed how we manage our electronics store. The credit management system 
+                alone has increased our sales by 40%. The multilingual support makes it easy for all our staff.&rdquo;
+              </p>
               <div className="flex items-center">
                 <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center mr-4">
                   <span className="text-teal-600 font-semibold">JM</span>
                 </div>
                 <div>
-                  <div className="font-semibold text-gray-900">John Mwalimu</div>
-                  <div className="text-gray-600">TechWorld Electronics, Dar es Salaam</div>
+                  <div className="font-semibold text-gray-900 text-sm md:text-base">John Mwalimu</div>
+                  <div className="text-gray-600 text-sm">TechWorld Electronics, Dar es Salaam</div>
                 </div>
               </div>
             </motion.div>
@@ -337,24 +337,24 @@ export default function Home() {
               initial={{ opacity: 0, x: 20 }}
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
-              className="bg-gray-50 rounded-xl p-8"
+              className="bg-gray-50 rounded-lg p-6"
             >
               <div className="flex items-center mb-4">
                 {[...Array(5)].map((_, i) => (
-                  <StarIcon key={i} className="w-5 h-5 text-yellow-400 fill-current" />
+                  <StarIcon key={i} className="w-4 h-4 text-yellow-400 fill-current" />
                 ))}
               </div>
-                             <p className="text-gray-700 mb-6 italic">
-                 &ldquo;The point of sale system is incredibly fast and the inventory management keeps us organized. 
-                 Our customers love the online portal where they can track their orders and payments.&rdquo;
-               </p>
+              <p className="text-gray-700 mb-5 italic text-sm md:text-base">
+                &ldquo;The point of sale system is incredibly fast and the inventory management keeps us organized. 
+                Our customers love the online portal where they can track their orders and payments.&rdquo;
+              </p>
               <div className="flex items-center">
                 <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-4">
                   <span className="text-green-600 font-semibold">AS</span>
                 </div>
                 <div>
-                  <div className="font-semibold text-gray-900">Amina Salum</div>
-                  <div className="text-gray-600">Mama Amina General Store, Arusha</div>
+                  <div className="font-semibold text-gray-900 text-sm md:text-base">Amina Salum</div>
+                  <div className="text-gray-600 text-sm">Mama Amina General Store, Arusha</div>
                 </div>
               </div>
             </motion.div>
@@ -363,17 +363,17 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-br from-teal-600 to-teal-700">
+      <section className="py-12 bg-gradient-to-br from-teal-600 to-teal-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h2 className="text-4xl font-bold text-white mb-6">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
               Ready to Transform Your Business?
             </h2>
-            <p className="text-xl text-teal-100 mb-8 max-w-2xl mx-auto">
+            <p className="text-base md:text-lg text-teal-100 mb-6 max-w-2xl mx-auto">
               Join hundreds of Tanzanian businesses already using Koppela to streamline 
               their operations and increase revenue.
             </p>
@@ -382,7 +382,7 @@ export default function Home() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-8 py-4 bg-white text-teal-600 rounded-xl font-semibold text-lg hover:bg-gray-100 transition-colors shadow-lg"
+                  className="px-5 py-2.5 bg-white text-teal-600 rounded-md font-medium text-sm hover:bg-gray-100 transition-colors"
                 >
                   Start Your Free Trial
                 </motion.button>
@@ -391,7 +391,7 @@ export default function Home() {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="px-8 py-4 border-2 border-white text-white rounded-xl font-semibold text-lg hover:bg-white/10 transition-colors"
+                  className="px-5 py-2.5 border border-white text-white rounded-md font-medium text-sm hover:bg-white/10 transition-colors"
                 >
                   Schedule Demo
                 </motion.button>
@@ -402,15 +402,15 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-16">
+      <footer className="bg-gray-900 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center mb-4">
                 <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center">
-                  <span className="text-xl font-bold text-white">K</span>
+                  <span className="text-lg font-bold text-white">K</span>
                 </div>
-                <span className="ml-3 text-2xl font-bold">Koppela</span>
+                <span className="ml-3 text-xl font-bold">Koppela</span>
               </div>
               <p className="text-gray-300 mb-6 max-w-md">
                 Empowering Tanzanian businesses with modern sales and credit management solutions. 
