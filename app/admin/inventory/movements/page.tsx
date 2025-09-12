@@ -275,7 +275,6 @@ function StockMovementHistoryPageContent() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Spinner size="lg" color="teal" className="mx-auto mb-4" />
-          <p className="text-gray-600">{language === 'sw' ? 'Inakagua uhakiki...' : 'Checking authentication...'}</p>
         </div>
       </div>
     )

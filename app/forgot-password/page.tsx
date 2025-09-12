@@ -184,7 +184,6 @@ export default function ForgotPasswordPage() {
       <div className="min-h-screen bg-gradient-to-br from-teal-400 via-teal-500 to-teal-600 flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
           <Spinner size="lg" color="white" />
-          <div className="text-white text-lg font-medium">Checking authentication...</div>
         </div>
       </div>
     )

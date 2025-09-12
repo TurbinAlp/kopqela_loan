@@ -391,7 +391,6 @@ function CustomerManagementPageContent() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Spinner size="lg" />
-          <p className="mt-4 text-gray-600">Checking authentication...</p>
         </div>
       </div>
     )

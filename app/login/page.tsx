@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline'
 import { useLanguage, LanguageToggle } from '../contexts/LanguageContext'
@@ -15,6 +16,7 @@ function LoginPageContent() {
   const { showError, showSuccess } = useNotifications()
   const { isLoading: authLoading } = useAuthRedirect()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [isVisible, setIsVisible] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
@@ -122,7 +124,7 @@ function LoginPageContent() {
       if (!checkData.success) {
         if (checkData.error === 'UNVERIFIED_EMAIL') {
           // Redirect to existing verification page
-          window.location.href = `/register?email=${encodeURIComponent(email)}`
+          router.push(`/register?email=${encodeURIComponent(email)}`)
           return
         } else if (checkData.error === 'ACCOUNT_INACTIVE') {
           showError(
@@ -156,7 +158,7 @@ function LoginPageContent() {
         )
       } else if (result?.ok) {
         // Login successful, redirect manually
-        window.location.href = result.url || '/admin/dashboard'
+        router.push(result.url || '/admin/dashboard')
       }
 
     } catch (error) {
@@ -225,20 +227,7 @@ function LoginPageContent() {
     }
   }
 
-  // Show loading screen while checking authentication - prevents flash
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-teal-400 via-teal-500 to-teal-600 flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <Spinner size="lg" color="white" />
-          <div className="text-white text-lg font-medium">Checking authentication...</div>
-        </div>
-      </div>
-    )
-  }
-
-  // If authenticated, the useAuthRedirect hook will handle the redirect
-  // This component will not render for authenticated users
+  if (authLoading) return null
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-400 via-teal-500 to-teal-600 flex items-center justify-center p-4 relative overflow-hidden">
@@ -506,13 +495,12 @@ function LoginPageContent() {
             className="text-center mt-8"
           >
             <span className="text-gray-600">{t.noAccount} </span>
-            <motion.a
-              whileHover={{ scale: 1.05 }}
+            <Link
               href="/register"
               className="text-teal-600 hover:text-teal-700 font-semibold"
             >
               {t.signUp}
-            </motion.a>
+            </Link>
           </motion.div>
         </motion.div>
       </motion.div>

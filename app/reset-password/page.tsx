@@ -208,7 +208,7 @@ function ResetPasswordForm() {
       <div className="min-h-screen bg-gradient-to-br from-red-400 via-red-500 to-red-600 flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
           <Spinner size="lg" color="white" />
-          <div className="text-white text-lg font-medium">Checking authentication...</div>
+          {/*<div className="text-white text-lg font-medium">Checking authentication...</div>*/}
         </div>
       </div>
     )

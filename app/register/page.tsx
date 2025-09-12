@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   EyeIcon, 
@@ -25,6 +26,7 @@ function RegisterPageContent() {
   const { showWarning, showError, showSuccess } = useNotifications()
   const { isLoading: authLoading } = useAuthRedirect()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [currentStep, setCurrentStep] = useState<RegistrationStep>('method')
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
@@ -350,7 +352,7 @@ function RegisterPageContent() {
           language === 'en' ? 'Redirecting to your dashboard...' : 'Inakuelekeza kwenye dashibodi yako...'
         )
         // Redirect to the callback URL
-        window.location.href = result.url
+        router.push(result.url)
       }
     } catch (error) {
       console.error('Google signup error:', error)
@@ -436,15 +438,13 @@ function RegisterPageContent() {
           // Register the business owner
           const registrationResult = await registerBusinessOwner()
           if (!registrationResult.success) {
-            // If there's a specific field error, set it to that field
+            showError(
+              language === 'en' ? 'Registration Failed' : 'Usajili Umeshindikana',
+              registrationResult.message
+            )
+            // Attach field-specific error as well for inline display when returning to that step
             if (registrationResult.field) {
               setErrors({ [registrationResult.field]: registrationResult.message })
-            } else {
-              // Show general error as toast
-              showError(
-                language === 'en' ? 'Registration Failed' : 'Usajili Umeshindwa',
-                registrationResult.message
-              )
             }
             return
           }
@@ -460,10 +460,9 @@ function RegisterPageContent() {
           }
           
           setCurrentStep('verification')
-          setVerificationTimer(60) // Start timer for resend
+          setVerificationTimer(60) 
           break
         case 'verification':
-          // Verify email with the provided code
           const verificationResult = await verifyEmail(formData.verificationCode)
           if (!verificationResult.success) {
             setErrors({ verificationCode: verificationResult.message })
@@ -475,7 +474,7 @@ function RegisterPageContent() {
             language === 'en' ? 'Your account has been verified successfully. Redirecting to login...' : 'Akaunti yako imethibitishwa kikamilifu. Tunakuelekeza kwenye kuingia...'
           )
           setTimeout(() => {
-            window.location.href = '/login'
+            router.push('/login')
           }, 2000)
           break
       }
@@ -558,17 +557,8 @@ function RegisterPageContent() {
     }
   }
 
-  // Show loading screen while checking authentication - prevents flash
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-teal-400 via-teal-500 to-teal-600 flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <Spinner size="lg" color="white" />
-          <div className="text-white text-lg font-medium">Checking authentication...</div>
-        </div>
-      </div>
-    )
-  }
+  // Defer to global loader
+  if (authLoading) return null
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-400 via-teal-500 to-teal-600 flex items-center justify-center p-4 relative overflow-hidden">
@@ -865,9 +855,9 @@ function RegisterPageContent() {
           <div className="text-center mt-8 pt-6 border-t border-gray-200">
             <p className="text-sm text-gray-600">
               {t.alreadyHaveAccount}{' '}
-              <a href="/login" className="text-teal-600 hover:text-teal-700 font-semibold transition-colors">
+              <Link href="/login" className="text-teal-600 hover:text-teal-700 font-semibold transition-colors">
                 {t.signIn}
-              </a>
+              </Link>
             </p>
           </div>
         </motion.div>
