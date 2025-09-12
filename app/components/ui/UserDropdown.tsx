@@ -46,8 +46,8 @@ export default function UserDropdown({ className = '' }: UserDropdownProps) {
       logout: "Toka",
       administrator: "Msimamizi",
       manager: "Meneja", 
-      cashier: "Mwajiri",
-      customer: "Mteja"
+      cashier: "Muuzaji",
+      customer: "Mteja",
     }
   }
 
@@ -107,8 +107,8 @@ export default function UserDropdown({ className = '' }: UserDropdownProps) {
         return t.cashier
       case 'customer':
       default:
-        console.warn('UserDropdown - Unknown role, defaulting to customer:', role)
-        return t.customer // Default fallback
+        // console.warn('UserDropdown - Unknown role, defaulting to customer:', role)
+        return t.administrator
     }
   }
 

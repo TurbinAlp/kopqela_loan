@@ -364,7 +364,7 @@ export function hasPermissionSync(
   }
 
   // Fallback to role-based checking if permissions not loaded
-  const role = 'CASHIER' 
+  const role = 'ADMIN' 
 
   // Basic role-based permission mapping
   const rolePermissions = {

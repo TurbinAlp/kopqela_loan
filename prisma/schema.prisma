@@ -126,6 +126,7 @@ model Business {
   id                 Int                 @id @default(autoincrement())
   name               String              @db.VarChar(255)
   businessType       String              @map("business_type") @db.VarChar(100)
+  businessCategory   String?             @map("business_category") @db.VarChar(100)
   slug               String              @unique @db.VarChar(100)
   ownerId            Int?                @map("owner_id")
   status             BusinessStatus      @default(PENDING)

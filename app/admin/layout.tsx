@@ -29,6 +29,7 @@ import { useBusiness } from '../contexts/BusinessContext'
 import NotificationCenter from '../components/notifications/NotificationCenter'
 import GlobalSearch from '../components/search/GlobalSearch'
 import UserDropdown from '../components/ui/UserDropdown'
+import CreateBusinessModal from '../components/admin/business/CreateBusinessModal'
 
 
 
@@ -43,7 +44,8 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
   const router = useRouter()
   const { sidebarOpen, setSidebarOpen, closeSidebar } = useSidebar()
   const { data: session } = useSession()
-  const { currentBusiness } = useBusiness()
+  const { currentBusiness, businesses, loadBusinesses, setCurrentBusiness } = useBusiness()
+  const [showCreateBusiness, setShowCreateBusiness] = useState(false)
   
   // Get business-specific permissions
   const { permissions: businessPermissions } = useBusinessPermissions(currentBusiness?.id)
@@ -59,6 +61,24 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
       window.removeEventListener('closeSidebar', handleCloseSidebar)
     }
   }, [closeSidebar])
+
+  // Block UI for users without any businesses: force create business modal
+  useEffect(() => {
+    if (Array.isArray(businesses)) {
+      setShowCreateBusiness(businesses.length === 0)
+    }
+  }, [businesses])
+
+  const handleBusinessCreated = async (businessId: number) => {
+    // Reload businesses, select the newly created as current
+    await loadBusinesses()
+    // After loadBusinesses updates provider state, pick created business
+    const created = (businesses || []).find(b => b.id === businessId)
+    if (created) {
+      await setCurrentBusiness(created)
+    }
+    setShowCreateBusiness(false)
+  }
 
   const [expandedItems, setExpandedItems] = useState<string[]>(() => {
     // Auto-expand items based on current route
@@ -507,6 +527,13 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
           {children}
         </main>
       </div>
+
+      {/* Blocking modal for creating first business */}
+      <CreateBusinessModal
+        isOpen={showCreateBusiness}
+        onClose={() => { /* Block manual close to force business creation */ }}
+        onCreated={handleBusinessCreated}
+      />
 
       {/* Sidebar Overlay */}
       {sidebarOpen && (

@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
       // Basic Business Info
       name,
       businessType,
+      businessCategory,
       slug,
       
       // Business Settings
@@ -64,6 +65,12 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
+    // Restrict businessType to RETAIL or WHOLESALE only
+    const allowedTypes = ['RETAIL', 'WHOLESALE']
+    if (!allowedTypes.includes(String(businessType).toUpperCase())) {
+      return NextResponse.json({ success: false, message: 'Invalid business type. Use RETAIL or WHOLESALE.' }, { status: 400 })
+    }
+
     // Check if slug already exists
     const existingSlug = await prisma.business.findUnique({
       where: { slug }
@@ -83,7 +90,8 @@ export async function POST(request: NextRequest) {
       const business = await tx.business.create({
         data: {
           name,
-          businessType,
+          businessType: String(businessType).toUpperCase(),
+          businessCategory,
           slug,
           ownerId: authContext.userId,
           status: 'ACTIVE',

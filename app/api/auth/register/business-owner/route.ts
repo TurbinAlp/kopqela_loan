@@ -27,6 +27,7 @@ interface BusinessOwnerRegistrationData {
   businessName: string
   businessDescription?: string
   businessType: string
+  businessCategory?: string
   businessAddress: string
   businessPhone?: string
   registrationNumber?: string
@@ -127,7 +128,9 @@ export async function POST(request: NextRequest) {
       const business = await tx.business.create({
         data: {
           name: body.businessName,
-          businessType: body.businessType,
+          businessType: String(body.businessType).toUpperCase(),
+          // @ts-expect-error field added by migration
+          businessCategory: body.businessCategory,
           slug: businessSlug,
           ownerId: user.id, // Set business owner
           status: 'PENDING',
