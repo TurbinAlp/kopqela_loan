@@ -11,7 +11,6 @@ const createProductSchema = z.object({
   descriptionEn: z.string().optional(),
   descriptionSw: z.string().optional(),
   category: z.string().min(1, 'Category is required'),
-  productType: z.enum(['wholesale', 'retail', 'both']),
   wholesalePrice: z.number().min(0).optional(),
   retailPrice: z.number().min(0).optional(),
   costPrice: z.number().min(0).optional(),
@@ -238,31 +237,38 @@ export async function POST(request: NextRequest) {
     
     console.log('Received product data:', JSON.stringify(body, null, 2))
     
-    // Handle price logic based on product type
+    // Handle price logic based on business type (no productType in payload)
+    const business = await prisma.business.findUnique({ where: { id: businessIdNum }, select: { businessType: true } })
+    if (!business) {
+      return NextResponse.json({ success: false, message: 'Business not found' }, { status: 404 })
+    }
+    const bType = String(business.businessType || 'RETAIL').toUpperCase()
+    const wholesalePriceParsed = productData.wholesalePrice !== undefined ? parseFloat(productData.wholesalePrice) : undefined
+    const retailPriceParsed = productData.retailPrice !== undefined ? parseFloat(productData.retailPrice) : undefined
+
     let finalPrice: number
-    if (productData.productType === 'wholesale' && productData.wholesalePrice) {
-      finalPrice = parseFloat(productData.wholesalePrice)
-    } else if (productData.productType === 'retail' && productData.retailPrice) {
-      finalPrice = parseFloat(productData.retailPrice)
-    } else if (productData.productType === 'both') {
-      // Use retail price as primary price for 'both' type
-      finalPrice = productData.retailPrice ? parseFloat(productData.retailPrice) : parseFloat(productData.wholesalePrice)
+    if (bType === 'WHOLESALE') {
+      if (!wholesalePriceParsed || wholesalePriceParsed <= 0) {
+        return NextResponse.json({ success: false, message: 'Wholesale price is required for wholesale businesses' }, { status: 400 })
+      }
+      finalPrice = wholesalePriceParsed
+    } else if (bType === 'RETAIL') {
+      if (!retailPriceParsed || retailPriceParsed <= 0) {
+        return NextResponse.json({ success: false, message: 'Retail price is required for retail businesses' }, { status: 400 })
+      }
+      finalPrice = retailPriceParsed
     } else {
-      console.error('Price validation failed:', {
-        productType: productData.productType,
-        wholesalePrice: productData.wholesalePrice,
-        retailPrice: productData.retailPrice
-      })
-      return NextResponse.json({
-        success: false,
-        message: 'Invalid price configuration for product type'
-      }, { status: 400 })
+      // BOTH
+      if (!retailPriceParsed || retailPriceParsed <= 0) {
+        return NextResponse.json({ success: false, message: 'Retail price is required for businesses supporting both' }, { status: 400 })
+      }
+      finalPrice = retailPriceParsed
     }
 
     const validationData = {
       ...productData,
-      wholesalePrice: productData.wholesalePrice ? parseFloat(productData.wholesalePrice) : undefined,
-      retailPrice: productData.retailPrice ? parseFloat(productData.retailPrice) : undefined,
+      wholesalePrice: wholesalePriceParsed,
+      retailPrice: retailPriceParsed,
       costPrice: productData.costPrice ? parseFloat(productData.costPrice) : undefined,
       currentStock: productData.currentStock ? parseInt(productData.currentStock.toString()) : 0,
       minimumStock: productData.minimumStock ? parseInt(productData.minimumStock.toString()) : undefined,
@@ -288,7 +294,7 @@ export async function POST(request: NextRequest) {
 
     const {
       nameEn, nameSw, descriptionEn, category,
-      productType, wholesalePrice, costPrice,
+      wholesalePrice, costPrice,
       sku, barcode, unit,
       currentStock, reorderLevel, maxStock,
       images, isDraft
@@ -404,7 +410,6 @@ export async function POST(request: NextRequest) {
         costPrice: result.costPrice,
 
         isActive: result.isActive,
-        productType,
         isDraft,
         createdAt: result.createdAt,
         updatedAt: result.updatedAt

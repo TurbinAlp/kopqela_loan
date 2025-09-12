@@ -28,7 +28,6 @@ interface ProductForm {
   descriptionEn: string
   descriptionSw: string
   category: string
-  productType: 'wholesale' | 'retail' | 'both'
   sku: string
   barcode: string
   unit: string
@@ -69,7 +68,6 @@ function EditProductPageContent() {
     descriptionEn: '',
     descriptionSw: '',
     category: '',
-    productType: 'both',
     sku: '',
     barcode: '',
     unit: '',
@@ -129,7 +127,7 @@ function EditProductPageContent() {
             description?: string;
             category?: { id: number; name: string; nameSwahili?: string } | null;
             categoryId?: number;
-            productType?: 'wholesale' | 'retail' | 'both';
+            // productType removed; derived from business
             sku?: string;
             barcode?: string;
             unit?: string;
@@ -164,7 +162,7 @@ function EditProductPageContent() {
             descriptionEn: product.description || '',
             descriptionSw: '',
             category: product.categoryId?.toString() || product.category?.id?.toString() || '',
-            productType: product.productType || 'both',
+            // productType removed; derive UI from business type
             sku: product.sku || '',
             barcode: product.barcode || '',
             unit: product.unit || '',
@@ -224,7 +222,7 @@ function EditProductPageContent() {
       productDescriptionSw: "Description (Swahili)",
       category: "Category",
       selectCategory: "Select a category",
-      productType: "Product Type",
+      // productType removed
       sku: "SKU / Product Code",
       barcode: "Barcode",
       unit: "Unit of Measurement",
@@ -306,7 +304,7 @@ function EditProductPageContent() {
       productDescriptionSw: "Maelezo (Kiswahili)",
       category: "Kundi",
       selectCategory: "Chagua kundi",
-      productType: "Aina ya Bidhaa",
+      // productType removed
       sku: "Nambari ya Bidhaa",
       barcode: "Barcode",
       unit: "Kipimo cha Bidhaa",
@@ -791,16 +789,14 @@ function EditProductPageContent() {
                   </div>
                   <div className="min-w-0">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t.productType}
+                      {/* product type removed */}
                     </label>
                     <select
-                      value={formData.productType}
-                      onChange={(e) => handleInputChange('productType', e.target.value)}
+                      value={''}
+                      onChange={() => {}}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
                     >
-                      <option value="wholesale">{t.wholesale}</option>
-                      <option value="retail">{t.retail}</option>
-                      <option value="both">{t.both}</option>
+                      <option value="">—</option>
                     </select>
                   </div>
                 </div>
@@ -863,7 +859,7 @@ function EditProductPageContent() {
                     />
                   </div>
                   
-                  {(formData.productType === 'wholesale' || formData.productType === 'both') && (
+                  {String(currentBusiness?.businessType || 'RETAIL').toUpperCase() !== 'RETAIL' && (
                     <div className="min-w-0">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         {t.wholesalePrice} ({t.currency})
@@ -878,7 +874,7 @@ function EditProductPageContent() {
                     </div>
                   )}
                   
-                  {(formData.productType === 'retail' || formData.productType === 'both') && (
+                  {String(currentBusiness?.businessType || 'RETAIL').toUpperCase() !== 'WHOLESALE' && (
                     <div className="min-w-0">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         {t.retailPrice} ({t.currency})

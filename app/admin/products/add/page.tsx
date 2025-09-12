@@ -28,7 +28,6 @@ interface ProductForm {
   descriptionEn: string
   descriptionSw: string
   category: string
-  productType: 'wholesale' | 'retail' | 'both'
   wholesalePrice: string
   retailPrice: string
   costPrice: string
@@ -73,7 +72,6 @@ function AddEditProductPageContent() {
     descriptionEn: '',
     descriptionSw: '',
     category: '',
-    productType: 'both',
     wholesalePrice: '',
     retailPrice: '',
     costPrice: '',
@@ -427,14 +425,18 @@ function AddEditProductPageContent() {
         errors.push({ field: 'unit', message: t.unit, tab: 'info' })
       }
 
-      // At least one price must be provided based on product type
-      if (formData.productType === 'wholesale' || formData.productType === 'both') {
+      // Pricing validation driven by business type
+      const bType = String(currentBusiness?.businessType || 'RETAIL').toUpperCase()
+      if (bType === 'WHOLESALE') {
         if (!formData.wholesalePrice || parseFloat(formData.wholesalePrice) <= 0) {
           errors.push({ field: 'wholesalePrice', message: t.wholesalePrice, tab: 'pricing' })
         }
-      }
-      
-      if (formData.productType === 'retail' || formData.productType === 'both') {
+      } else if (bType === 'RETAIL') {
+        if (!formData.retailPrice || parseFloat(formData.retailPrice) <= 0) {
+          errors.push({ field: 'retailPrice', message: t.retailPrice, tab: 'pricing' })
+        }
+      } else {
+        // BOTH
         if (!formData.retailPrice || parseFloat(formData.retailPrice) <= 0) {
           errors.push({ field: 'retailPrice', message: t.retailPrice, tab: 'pricing' })
         }
@@ -656,7 +658,7 @@ function AddEditProductPageContent() {
                   </div>
                 </div>
 
-                {/* Category & Product Type */}
+                {/* Category */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div className="min-w-0">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -687,20 +689,7 @@ function AddEditProductPageContent() {
                       <p className="text-red-500 text-xs mt-1">{t.required}</p>
                     )}
                   </div>
-                  <div className="min-w-0">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t.productType}
-                    </label>
-                    <select
-                      value={formData.productType}
-                      onChange={(e) => handleInputChange('productType', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
-                    >
-                      <option value="wholesale">{t.wholesale}</option>
-                      <option value="retail">{t.retail}</option>
-                      <option value="both">{t.both}</option>
-                    </select>
-                  </div>
+                  {/* Product type removed; driven by business settings */}
                 </div>
 
                 {/* SKU, Barcode & Unit */}
@@ -815,7 +804,7 @@ function AddEditProductPageContent() {
                     />
                   </div>
                   
-                  {(formData.productType === 'wholesale' || formData.productType === 'both') && (
+                  {String(currentBusiness?.businessType || 'RETAIL').toUpperCase() !== 'RETAIL' && (
                     <div className="min-w-0">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         {t.wholesalePrice} ({t.currency}) <span className="text-red-500">*</span>
@@ -835,7 +824,7 @@ function AddEditProductPageContent() {
                     </div>
                   )}
                   
-                  {(formData.productType === 'retail' || formData.productType === 'both') && (
+                  {String(currentBusiness?.businessType || 'RETAIL').toUpperCase() !== 'WHOLESALE' && (
                     <div className="min-w-0">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         {t.retailPrice} ({t.currency}) <span className="text-red-500">*</span>

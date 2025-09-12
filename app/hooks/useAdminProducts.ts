@@ -15,7 +15,6 @@ interface ProductFormData {
   descriptionEn: string
   descriptionSw: string
   category: string
-  productType: 'wholesale' | 'retail' | 'both'
   wholesalePrice: string
   retailPrice: string
   costPrice: string
@@ -329,7 +328,6 @@ export function useProductManagement() {
         descriptionEn: formData.descriptionEn || undefined,
         descriptionSw: formData.descriptionSw || undefined,
         category: formData.category,
-        productType: formData.productType,
         wholesalePrice: formData.wholesalePrice ? parseFloat(formData.wholesalePrice) : undefined,
         retailPrice: formData.retailPrice ? parseFloat(formData.retailPrice) : undefined,
         costPrice: formData.costPrice ? parseFloat(formData.costPrice) : undefined,

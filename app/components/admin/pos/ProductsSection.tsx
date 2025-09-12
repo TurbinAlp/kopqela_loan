@@ -36,6 +36,7 @@ interface ProductsSectionProps {
   selectedCategory: string
   setSelectedCategory: (category: string) => void
   onAddToCart: (product: Product) => void
+  businessType?: 'RETAIL' | 'WHOLESALE' | 'BOTH'
 }
 
 export default function ProductsSection({
@@ -45,9 +46,11 @@ export default function ProductsSection({
   setSearchQuery,
   selectedCategory,
   setSelectedCategory,
-  onAddToCart
+  onAddToCart,
+  businessType
 }: ProductsSectionProps) {
   const { language } = useLanguage()
+  const normalizedBusinessType = (businessType || 'RETAIL').toUpperCase() as 'RETAIL' | 'WHOLESALE' | 'BOTH'
   
   const translations = {
     en: {
@@ -144,16 +147,16 @@ export default function ProductsSection({
 
             {/* Price Display Section */}
             <div className="mb-3 space-y-1">
-              {/* Retail Price - Primary */}
-              <div className="text-xs font-medium">
-                <span className="text-gray-600">{t.retailPrice}:</span>
-                <span className="ml-1 font-bold text-teal-600">
-                  {t.currency} {product.price.toLocaleString()}
-                </span>
-              </div>
+              {normalizedBusinessType !== 'WHOLESALE' && (
+                <div className="text-xs font-medium">
+                  <span className="text-gray-600">{t.retailPrice}:</span>
+                  <span className="ml-1 font-bold text-teal-600">
+                    {t.currency} {product.price.toLocaleString()}
+                  </span>
+                </div>
+              )}
 
-              {/* Wholesale Price */}
-              {product.wholesalePrice && (
+              {normalizedBusinessType !== 'RETAIL' && product.wholesalePrice && (
                 <div className="text-xs font-medium">
                   <span className="text-gray-600">{t.wholesalePrice}:</span>
                   <span className="ml-1 font-semibold text-blue-600">
@@ -161,7 +164,6 @@ export default function ProductsSection({
                   </span>
                 </div>
               )}
-
             </div>
 
             <p className={`text-xs font-medium ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>

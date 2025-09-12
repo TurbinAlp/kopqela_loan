@@ -438,10 +438,10 @@ function RegisterPageContent() {
           // Register the business owner
           const registrationResult = await registerBusinessOwner()
           if (!registrationResult.success) {
-            showError(
+              showError(
               language === 'en' ? 'Registration Failed' : 'Usajili Umeshindikana',
-              registrationResult.message
-            )
+                registrationResult.message
+              )
             // Attach field-specific error as well for inline display when returning to that step
             if (registrationResult.field) {
               setErrors({ [registrationResult.field]: registrationResult.message })

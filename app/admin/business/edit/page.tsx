@@ -23,6 +23,7 @@ interface BusinessSettings {
   // Basic Business Info
   name: string
   businessType: string
+  businessCategory?: string
   
   // Company Information
   description: string
@@ -130,6 +131,7 @@ export default function EditBusinessPage() {
   const [settings, setSettings] = useState<BusinessSettings>({
     name: '',
     businessType: '',
+    businessCategory: '',
     description: '',
     email: '',
     phone: '',
@@ -222,6 +224,18 @@ export default function EditBusinessPage() {
       // Basic Info
       businessName: 'Business Name',
       businessType: 'Business Type',
+      businessCategory: 'Business Category (Optional)',
+      selectBusinessCategory: 'Select business category',
+      retail: 'Retail',
+      wholesale: 'Wholesale',
+      both: 'Both (Wholesale & Retail)',
+      grocery: 'Grocery',
+      electronics: 'Electronics',
+      fashion: 'Fashion',
+      pharmacy: 'Pharmacy',
+      restaurant: 'Restaurant',
+      service: 'Service',
+      other: 'Other',
       
       // Company Info
       description: 'Business Description',
@@ -321,6 +335,18 @@ export default function EditBusinessPage() {
       // Basic Info
       businessName: 'Jina la Biashara',
       businessType: 'Aina ya Biashara',
+      businessCategory: 'Kundi la Biashara (Hiari)',
+      selectBusinessCategory: 'Chagua kundi la biashara',
+      retail: 'Rejareja',
+      wholesale: 'Jumla',
+      both: 'Zote (Jumla & Rejareja)',
+      grocery: 'Duka la Vyakula',
+      electronics: 'Vifaa vya Elektroniki',
+      fashion: 'Mitindo',
+      pharmacy: 'Duka la Dawa',
+      restaurant: 'Mgahawa',
+      service: 'Huduma',
+      other: 'Nyingine',
       
       // Company Info
       description: 'Maelezo ya Biashara',
@@ -432,6 +458,7 @@ export default function EditBusinessPage() {
         setSettings({
           name: business.name,
           businessType: business.businessType,
+          businessCategory: business.businessCategory || '',
           description: business.description,
           email: business.email,
           phone: business.phone,
@@ -715,12 +742,35 @@ export default function EditBusinessPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t.businessType}
               </label>
-              <input
-                type="text"
+              <select
                 value={settings.businessType}
-                onChange={(e) => handleInputChange('businessType', e.target.value)}
+                onChange={(e) => handleInputChange('businessType', e.target.value.toUpperCase())}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
-              />
+              >
+                <option value="RETAIL">{t.retail}</option>
+                <option value="WHOLESALE">{t.wholesale}</option>
+                <option value="BOTH">{t.both}</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t.businessCategory}
+              </label>
+              <select
+                value={settings.businessCategory || ''}
+                onChange={(e) => handleInputChange('businessCategory', e.target.value || '')}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+              >
+                <option value="">{t.selectBusinessCategory}</option>
+                <option value="GROCERY">{t.grocery}</option>
+                <option value="ELECTRONICS">{t.electronics}</option>
+                <option value="FASHION">{t.fashion}</option>
+                <option value="PHARMACY">{t.pharmacy}</option>
+                <option value="RESTAURANT">{t.restaurant}</option>
+                <option value="SERVICE">{t.service}</option>
+                <option value="OTHER">{t.other}</option>
+              </select>
             </div>
             
             <div>

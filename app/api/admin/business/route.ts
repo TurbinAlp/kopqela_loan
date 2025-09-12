@@ -86,6 +86,7 @@ export async function GET(request: NextRequest) {
           id: business.id,
           name: business.name,
           businessType: business.businessType,
+          businessCategory: business.businessCategory,
           slug: business.slug,
           status: business.status,
           isActive: business.isActive,
@@ -220,6 +221,7 @@ export async function PUT(request: NextRequest) {
       name,
       description,
       businessType,
+      businessCategory,
       address,
       city,
       region,
@@ -284,9 +286,10 @@ export async function PUT(request: NextRequest) {
     } = updateData
 
     // Update business basic info
-    const businessUpdate: { name?: string; businessType?: string } = {}
+    const businessUpdate: { name?: string; businessType?: string; businessCategory?: string | null } = {}
     if (name) businessUpdate.name = name
     if (businessType) businessUpdate.businessType = businessType
+    if (businessCategory !== undefined) businessUpdate.businessCategory = businessCategory || null
 
     // Update business settings
     const settingsUpdate: {

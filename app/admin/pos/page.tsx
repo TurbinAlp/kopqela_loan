@@ -139,6 +139,16 @@ function POSSystemContent() {
   const [includeTax, setIncludeTax] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [orderType, setOrderType] = useState<'RETAIL' | 'WHOLESALE'>('RETAIL')
+  const businessType = String(currentBusiness?.businessType || 'RETAIL').toUpperCase()
+  const allowOrderTypeSwitch = businessType === 'BOTH'
+
+  // Sync order type with selected business type
+  useEffect(() => {
+    if (!allowOrderTypeSwitch) {
+      const enforcedType = (businessType === 'WHOLESALE' ? 'WHOLESALE' : 'RETAIL') as 'RETAIL' | 'WHOLESALE'
+      setOrderType(enforcedType)
+    }
+  }, [businessType, allowOrderTypeSwitch])
   
   const translations = {
     en: {
@@ -604,6 +614,7 @@ function POSSystemContent() {
               selectedCategory={selectedCategory}
               setSelectedCategory={setSelectedCategory}
               onAddToCart={addToCart}
+              businessType={allowOrderTypeSwitch ? 'BOTH' : (orderType as 'RETAIL' | 'WHOLESALE')}
             />
           </div>
 
@@ -618,37 +629,38 @@ function POSSystemContent() {
               onAddCustomerClick={() => setShowCustomerModal(true)}
             />
 
-            {/* Order Type Selection */}
-            <div className="bg-white rounded-xl p-6 shadow-sm">
-              <h3 className="font-semibold mb-4 flex items-center text-gray-900">
-                <svg className="w-5 h-5 mr-2 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                {t.orderType}
-              </h3>
-              
-              <div className="flex gap-2">
-                {[
-                  { value: 'RETAIL', label: t.retail, icon: '🏪' },
-                  { value: 'WHOLESALE', label: t.wholesale, icon: '🏭' }
-                ].map((type) => (
-                  <button
-                    key={type.value}
-                    onClick={() => setOrderType(type.value as 'RETAIL' | 'WHOLESALE')}
-                    className={`flex-1 px-3 py-2 rounded-lg border text-center transition-all text-xs ${
-                      orderType === type.value
-                        ? 'border-teal-500 bg-teal-50 text-teal-800'
-                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-center space-x-1">
-                      <span className="text-sm">{type.icon}</span>
-                      <span className="font-medium">{type.label}</span>
-                    </div>
-                  </button>
-                ))}
+            {/* Order Type Selection - Show only when business supports BOTH */}
+            {allowOrderTypeSwitch && (
+              <div className="bg-white rounded-xl p-6 shadow-sm">
+                <h3 className="font-semibold mb-4 flex items-center text-gray-900">
+                  <svg className="w-5 h-5 mr-2 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  {t.orderType}
+                </h3>
+                <div className="flex gap-2">
+                  {[
+                    { value: 'RETAIL', label: t.retail, icon: '🏪' },
+                    { value: 'WHOLESALE', label: t.wholesale, icon: '🏭' }
+                  ].map((type) => (
+                    <button
+                      key={type.value}
+                      onClick={() => setOrderType(type.value as 'RETAIL' | 'WHOLESALE')}
+                      className={`flex-1 px-3 py-2 rounded-lg border text-center transition-all text-xs ${
+                        orderType === type.value
+                          ? 'border-teal-500 bg-teal-50 text-teal-800'
+                          : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center space-x-1">
+                        <span className="text-sm">{type.icon}</span>
+                        <span className="font-medium">{type.label}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <CartSection
               cart={cart}
