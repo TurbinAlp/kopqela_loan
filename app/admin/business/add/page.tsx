@@ -15,6 +15,7 @@ interface BusinessFormData {
   // Business Basic Info
   name: string
   businessType: string
+  businessCategory: string
   slug: string
   
   // Business Settings
@@ -51,7 +52,8 @@ export default function AddBusinessPage() {
   
   const [formData, setFormData] = useState<BusinessFormData>({
     name: '',
-    businessType: '',
+    businessType: 'RETAIL',
+    businessCategory: '',
     slug: '',
     description: '',
     email: '',
@@ -84,8 +86,10 @@ export default function AddBusinessPage() {
       // Basic Info
       businessName: 'Business Name',
       businessType: 'Business Type',
+      businessCategory: 'Business Category (optional)',
       businessSlug: 'Business Slug',
       slugHelper: 'URL-friendly identifier (auto-generated from name)',
+      selectOption: 'Select...',
       
       // Business Details  
       description: 'Business Description',
@@ -131,8 +135,10 @@ export default function AddBusinessPage() {
       // Basic Info
       businessName: 'Jina la Biashara',
       businessType: 'Aina ya Biashara',
+      businessCategory: 'Kundi la Biashara (hiari)',
       businessSlug: 'Kitambulisho cha Biashara',
       slugHelper: 'Kitambulisho cha URL (kinaundwa kiotomatiki kutoka jina)',
+      selectOption: 'Chagua...',
       
       // Business Details
       description: 'Maelezo ya Biashara',
@@ -171,6 +177,23 @@ export default function AddBusinessPage() {
   }
 
   const t = translations[language]
+
+  type BusinessTypeOption = { value: string; label: string; labelSw: string }
+  const BUSINESS_TYPES: BusinessTypeOption[] = [
+    { value: 'RETAIL', label: 'Retail', labelSw: 'Rejareja' },
+    { value: 'WHOLESALE', label: 'Wholesale', labelSw: 'Jumla' }
+  ]
+
+  type BusinessCategoryOption = { value: string; label: string; labelSw: string }
+  const BUSINESS_CATEGORIES: BusinessCategoryOption[] = [
+    { value: 'GROCERY', label: 'Grocery', labelSw: 'Vyakula & Mboga' },
+    { value: 'ELECTRONICS', label: 'Electronics', labelSw: 'Vifaa vya Umeme' },
+    { value: 'FASHION', label: 'Fashion', labelSw: 'Nguo & Mitindo' },
+    { value: 'PHARMACY', label: 'Pharmacy', labelSw: 'Duka la Dawa' },
+    { value: 'RESTAURANT', label: 'Restaurant', labelSw: 'Mgahawa' },
+    { value: 'SERVICE', label: 'Service', labelSw: 'Huduma' },
+    { value: 'OTHER', label: 'Other', labelSw: 'Nyingine' }
+  ]
 
   const generateSlug = (name: string) => {
     return name
@@ -371,18 +394,34 @@ export default function AddBusinessPage() {
               </label>
               <select
                 value={formData.businessType}
-                onChange={(e) => handleInputChange('businessType', e.target.value)}
+                onChange={(e) => handleInputChange('businessType', e.target.value.toUpperCase())}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
                 required
               >
-                <option value="">Select business type</option>
-                <option value="Retail">Retail</option>
-                <option value="Electronics">Electronics</option>
-                <option value="Fashion">Fashion</option>
-                <option value="Food & Beverage">Food & Beverage</option>
-                <option value="Pharmacy">Pharmacy</option>
-                <option value="Services">Services</option>
-                <option value="Other">Other</option>
+                <option value="">{t.selectOption}</option>
+                {BUSINESS_TYPES.map(opt => (
+                  <option key={opt.value} value={opt.value}>
+                    {language === 'sw' ? opt.labelSw : opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t.businessCategory}
+              </label>
+              <select
+                value={formData.businessCategory}
+                onChange={(e) => handleInputChange('businessCategory', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
+              >
+                <option value="">{t.selectOption}</option>
+                {BUSINESS_CATEGORIES.map(opt => (
+                  <option key={opt.value} value={opt.value}>
+                    {language === 'sw' ? opt.labelSw : opt.label}
+                  </option>
+                ))}
               </select>
             </div>
 

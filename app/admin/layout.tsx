@@ -44,11 +44,11 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
   const router = useRouter()
   const { sidebarOpen, setSidebarOpen, closeSidebar } = useSidebar()
   const { data: session } = useSession()
-  const { currentBusiness, businesses, loadBusinesses, setCurrentBusiness } = useBusiness()
+  const { currentBusiness, businesses, loadBusinesses, setCurrentBusiness, isLoading } = useBusiness()
   const [showCreateBusiness, setShowCreateBusiness] = useState(false)
   
   // Get business-specific permissions
-  const { permissions: businessPermissions } = useBusinessPermissions(currentBusiness?.id)
+  const { permissions: businessPermissions, loading: permissionsLoading } = useBusinessPermissions(currentBusiness?.id)
   
   // Listen for close sidebar events (from LoadingLink)
   useEffect(() => {
@@ -64,10 +64,13 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
 
   // Block UI for users without any businesses: force create business modal
   useEffect(() => {
-    if (Array.isArray(businesses)) {
-      setShowCreateBusiness(businesses.length === 0)
+    // Show the blocking modal only after businesses have finished loading
+    if (isLoading) {
+      setShowCreateBusiness(false)
+    } else {
+      setShowCreateBusiness((businesses?.length || 0) === 0)
     }
-  }, [businesses])
+  }, [isLoading, businesses])
 
   const handleBusinessCreated = async (businessId: number) => {
     // Reload businesses, select the newly created as current
@@ -363,7 +366,12 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto mt-6 px-3 pb-6 sidebar-scroll">
-          {sidebarItems.map((item, index) => (
+          {currentBusiness?.id && permissionsLoading ? (
+            <div className="flex justify-center items-center py-6">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600" />
+            </div>
+          ) : (
+          sidebarItems.map((item, index) => (
             <div key={item.name}>
               {item.subItems ? (
                 // Menu item with dropdown
@@ -433,7 +441,8 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
                 </LoadingLink>
               )}
             </div>
-          ))}
+          ))
+          )}
         </nav>
       </div>
 

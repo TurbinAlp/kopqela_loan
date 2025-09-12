@@ -72,12 +72,12 @@ interface DashboardData {
 export default function BusinessDashboard() {
   const { language } = useLanguage()
   const { isLoading, user } = useRequireAdminAuth()
-  const { currentBusiness } = useBusiness()
+  const { currentBusiness, isLoading: bizLoading } = useBusiness()
   const { data: session } = useSession()
   const [isVisible, setIsVisible] = useState(false)
   
   // Get business-specific permissions and role
-  const { permissions: businessPermissions, userRole: businessRole } = useBusinessPermissions(currentBusiness?.id)
+  const { permissions: businessPermissions, userRole: businessRole, loading: permissionsLoading } = useBusinessPermissions(currentBusiness?.id)
   
   // Direct state management for dashboard data
   const [dashboardData, setDashboardData] = useState<DashboardData>({
@@ -167,6 +167,15 @@ export default function BusinessDashboard() {
           <Spinner size="lg" />
           <p className="mt-4 text-gray-600">Checking authentication...</p>
         </div>
+      </div>
+    )
+  }
+
+  // Prevent content flicker: wait for business context and permissions to finish loading
+  if (bizLoading || (currentBusiness?.id && permissionsLoading)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600" />
       </div>
     )
   }

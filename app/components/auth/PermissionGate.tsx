@@ -11,14 +11,13 @@ import {
   LockClosedIcon,
   ArrowLeftIcon 
 } from '@heroicons/react/24/outline'
-import Spinner from '../ui/Spinner'
 
 interface PermissionGateProps {
   children: React.ReactNode
   requiredPermission: string
   fallbackUrl?: string
   showAccessDenied?: boolean
-  businessId?: number // For business-specific permission checks
+  businessId?: number 
 }
 
 export default function PermissionGate({
@@ -29,7 +28,7 @@ export default function PermissionGate({
   businessId
 }: PermissionGateProps) {
   const { data: session, status } = useSession()
-  const { currentBusiness } = useBusiness()
+  const { currentBusiness, isLoading } = useBusiness()
   // Use specific businessId if provided, otherwise use current business
   const targetBusinessId = businessId || currentBusiness?.id
   const { permissions: businessPermissions, loading: permissionsLoading, userRole: currentUserRole } = useBusinessPermissions(targetBusinessId)
@@ -154,6 +153,17 @@ export default function PermissionGate({
       return
     }
 
+    // If authenticated but business context is still loading, don't decide yet
+    if (status === 'authenticated' && session && !targetBusinessId) {
+      if (isLoading) {
+        setHasAccess(null)
+        return
+      }
+      // No business selected/available; keep null to avoid flicker
+      setHasAccess(null)
+      return
+    }
+
     if (status === 'authenticated' && session && targetBusinessId) {
       // Check permissions synchronously if available
       if (businessPermissions.length > 0 && !permissionsLoading) {
@@ -173,27 +183,29 @@ export default function PermissionGate({
       }
       // If permissionsLoading is true, hasAccess remains null and loading shows
     }
-  }, [status, session, targetBusinessId, businessPermissions, permissionsLoading, requiredPermission, router, fallbackUrl, showAccessDenied])
+  }, [status, session, targetBusinessId, businessPermissions, permissionsLoading, requiredPermission, router, fallbackUrl, showAccessDenied, isLoading])
 
   // Show loading while checking authentication or permissions
   // Only show loading if we truly need to wait for permissions
-  const shouldShowLoading = status === 'loading' ||
-    (status === 'authenticated' && session && targetBusinessId &&
-     permissionsLoading && hasAccess === null &&
-     !hasCachedBusinessPermissions(String(session.user.id), targetBusinessId))
+  const shouldShowLoading =
+    status === 'loading' ||
+    (status === 'authenticated' && session && (
+      // Still loading business context
+      isLoading ||
+      // Or loading permissions for the selected business
+      (targetBusinessId && permissionsLoading && hasAccess === null &&
+        !hasCachedBusinessPermissions(String(session.user.id), targetBusinessId))
+    ))
 
   if (shouldShowLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Spinner size="lg" />
-          <p className="mt-4 text-gray-600">{t.loading}</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600" />
       </div>
     )
   }
 
-  if (!hasAccess && showAccessDenied) {
+  if (hasAccess === false && showAccessDenied) {
     return (
       <div className="max-w-screen-full mx-auto flex items-center justify-center bg-gray-50">
         <motion.div 
