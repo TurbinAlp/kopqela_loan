@@ -198,11 +198,8 @@ export default function PermissionGate({
     ))
 
   if (shouldShowLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600" />
-      </div>
-    )
+    // Global loader in layout handles the visual loading; avoid local loaders to prevent UX flicker
+    return null
   }
 
   if (hasAccess === false && showAccessDenied) {

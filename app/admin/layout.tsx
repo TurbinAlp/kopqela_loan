@@ -43,7 +43,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { sidebarOpen, setSidebarOpen, closeSidebar } = useSidebar()
-  const { data: session } = useSession()
+  const { data: session, status: authStatus } = useSession()
   const { currentBusiness, businesses, loadBusinesses, setCurrentBusiness, isLoading } = useBusiness()
   const [showCreateBusiness, setShowCreateBusiness] = useState(false)
   
@@ -149,6 +149,17 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
   }
 
   const t = translations[language]
+
+  // Global loading gate to avoid flicker across sidebar/header/content
+  const globalLoading = authStatus === 'loading' || isLoading || (currentBusiness?.id ? permissionsLoading : false)
+
+  if (globalLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600" />
+      </div>
+    )
+  }
 
   const allSidebarItems = [
     { 
@@ -366,12 +377,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto mt-6 px-3 pb-6 sidebar-scroll">
-          {currentBusiness?.id && permissionsLoading ? (
-            <div className="flex justify-center items-center py-6">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600" />
-            </div>
-          ) : (
-          sidebarItems.map((item, index) => (
+          {sidebarItems.map((item, index) => (
             <div key={item.name}>
               {item.subItems ? (
                 // Menu item with dropdown
@@ -441,8 +447,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
                 </LoadingLink>
               )}
             </div>
-          ))
-          )}
+          ))}
         </nav>
       </div>
 

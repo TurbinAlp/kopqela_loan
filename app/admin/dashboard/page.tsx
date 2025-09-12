@@ -20,7 +20,6 @@ import {
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useRequireAdminAuth } from '../../hooks/useRequireAuth'
-import Spinner from '../../components/ui/Spinner'
 import { useBusiness } from '../../contexts/BusinessContext'
 import { useBusinessPermissions, hasPermissionSync } from '../../hooks/usePermissions'
 import { useSession } from 'next-auth/react'
@@ -71,13 +70,13 @@ interface DashboardData {
 
 export default function BusinessDashboard() {
   const { language } = useLanguage()
-  const { isLoading, user } = useRequireAdminAuth()
-  const { currentBusiness, isLoading: bizLoading } = useBusiness()
+  const { user } = useRequireAdminAuth()
+  const { currentBusiness } = useBusiness()
   const { data: session } = useSession()
   const [isVisible, setIsVisible] = useState(false)
   
   // Get business-specific permissions and role
-  const { permissions: businessPermissions, userRole: businessRole, loading: permissionsLoading } = useBusinessPermissions(currentBusiness?.id)
+  const { permissions: businessPermissions, userRole: businessRole } = useBusinessPermissions(currentBusiness?.id)
   
   // Direct state management for dashboard data
   const [dashboardData, setDashboardData] = useState<DashboardData>({
@@ -159,29 +158,8 @@ export default function BusinessDashboard() {
     }
   }, [currentBusiness?.id, fetchDashboardData])
 
-  // Show loading while checking authentication
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Spinner size="lg" />
-          <p className="mt-4 text-gray-600">Checking authentication...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Prevent content flicker: wait for business context and permissions to finish loading
-  if (bizLoading || (currentBusiness?.id && permissionsLoading)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600" />
-      </div>
-    )
-  }
-
-  // Use business-specific role instead of general user role
-  const userRole = businessRole?.toLowerCase() || 'cashier' // Default to most restrictive
+  // Use business-specific role 
+  const userRole = businessRole?.toLowerCase() || 'cashier'
   const userName = user?.firstName && user?.lastName 
     ? `${user.firstName} ${user.lastName}`
     : user?.name || user?.email || 'User'
