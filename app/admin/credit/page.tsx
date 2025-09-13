@@ -13,15 +13,16 @@ import {
   BellIcon,
   FunnelIcon,
   ChevronDownIcon,
-  DocumentArrowDownIcon,
   ShieldExclamationIcon,
   ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon
+  ArrowTrendingDownIcon,
+  TableCellsIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useBusiness } from '../../contexts/BusinessContext'
 import { useNotifications } from '../../contexts/NotificationContext'
 import PermissionGate from '../../components/auth/PermissionGate'
+import { exportCreditSalesToExcel, type ExcelCreditSale } from '../../utils/excelExport'
 
 interface CreditSale {
   id: number
@@ -204,6 +205,21 @@ function CreditSalesManagementPageContent() {
     }
   }, [activeTab, selectedStatus, currentBusiness?.id, fetchCreditSales, fetchPaymentHistory])
 
+  // Export function
+  const exportToExcel = () => {
+    const filteredData = creditSales.filter(sale => {
+      const matchesSearch = searchQuery === '' || 
+        sale.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        sale.saleNumber.toLowerCase().includes(searchQuery.toLowerCase())
+      
+      const matchesStatus = selectedStatus === 'all' || sale.status === selectedStatus
+      
+      return matchesSearch && matchesStatus
+    })
+
+    exportCreditSalesToExcel(filteredData as unknown as ExcelCreditSale[], t, 'Credit_Sales_Export')
+  }
+
   const translations = {
     en: {
       pageTitle: "Credit Sales Management",
@@ -288,6 +304,7 @@ function CreditSalesManagementPageContent() {
       noLoans: "No active credit sales found",
       selectAll: "Select All",
       selected: "selected",
+      exportExcel: "Export Excel",
       
       // Pagination
       showing: "Showing",
@@ -373,6 +390,7 @@ function CreditSalesManagementPageContent() {
       noLoans: "Hakuna mauzo ya mkopo hai",
       selectAll: "Chagua Yote",
       selected: "imechaguliwa",
+      exportExcel: "Hamisha Excel",
       
       // Pagination
       showing: "Inaonyesha",
@@ -466,9 +484,12 @@ function CreditSalesManagementPageContent() {
             </div>
             
             <div className="flex items-center space-x-3">
-              <button className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                <DocumentArrowDownIcon className="w-5 h-5" />
-                <span>Export</span>
+              <button 
+                onClick={exportToExcel}
+                className="flex items-center space-x-2 px-4 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium text-sm"
+              >
+                <TableCellsIcon className="w-4 h-4 text-white" />
+                <span className="text-white">{t.exportExcel}</span>
               </button>
             </div>
           </div>
@@ -520,7 +541,7 @@ function CreditSalesManagementPageContent() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center space-x-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 hover:text-gray-900"
+              className="flex items-center space-x-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 hover:text-gray-900 font-medium text-sm"
             >
               <FunnelIcon className="w-5 h-5 text-gray-600" />
               <span>{t.filters}</span>
@@ -588,11 +609,11 @@ function CreditSalesManagementPageContent() {
                     {selectedSales.length} {t.selected}
                   </span>
                   <div className="flex items-center space-x-2">
-                    <button className="flex items-center space-x-2 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors">
+                    <button className="flex items-center space-x-2 px-4 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium text-sm">
                       <CheckIcon className="w-4 h-4" />
                       <span>{t.markPaid}</span>
                     </button>
-                    <button className="flex items-center space-x-2 px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">
+                    <button className="flex items-center space-x-2 px-4 py-2.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors font-medium text-sm">
                       <BellIcon className="w-4 h-4" />
                       <span>{t.sendReminder}</span>
                     </button>
@@ -602,9 +623,9 @@ function CreditSalesManagementPageContent() {
 
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-teal-600 border-b border-teal-700">
                     <tr>
-                      <th className="text-left py-4 px-4 lg:px-6">
+                      <th className="text-left py-3 px-4">
                         <input
                           type="checkbox"
                           checked={selectedSales.length === filteredCreditSales.length}
@@ -618,13 +639,13 @@ function CreditSalesManagementPageContent() {
                           className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
                         />
                       </th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.saleNumber}</th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.customer}</th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.totalAmount}</th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.outstandingBalance}</th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.saleDate}</th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.status}</th>
-                      <th className="text-center py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.actions}</th>
+                      <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.saleNumber}</th>
+                      <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.customer}</th>
+                      <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.totalAmount}</th>
+                      <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.outstandingBalance}</th>
+                      <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.saleDate}</th>
+                      <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.status}</th>
+                      <th className="text-center py-3 px-4 font-bold text-white text-sm">{t.actions}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -791,15 +812,15 @@ function CreditSalesManagementPageContent() {
             >
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-teal-600 border-b border-teal-700">
                     <tr>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.saleNumber}</th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.customer}</th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">Payment Date</th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">Amount</th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">Method</th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.status}</th>
-                      <th className="text-center py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.actions}</th>
+                      <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.saleNumber}</th>
+                      <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.customer}</th>
+                      <th className="text-left py-3 px-4 font-bold text-white text-sm">Payment Date</th>
+                      <th className="text-left py-3 px-4 font-bold text-white text-sm">Amount</th>
+                      <th className="text-left py-3 px-4 font-bold text-white text-sm">Method</th>
+                      <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.status}</th>
+                      <th className="text-center py-3 px-4 font-bold text-white text-sm">{t.actions}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -921,15 +942,15 @@ function CreditSalesManagementPageContent() {
             >
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-teal-600 border-b border-teal-700">
                     <tr>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.saleNumber}</th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.customer}</th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.totalAmount}</th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.outstandingBalance}</th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">Days Overdue</th>
-                      <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.status}</th>
-                      <th className="text-center py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.actions}</th>
+                      <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.saleNumber}</th>
+                      <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.customer}</th>
+                      <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.totalAmount}</th>
+                      <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.outstandingBalance}</th>
+                      <th className="text-left py-3 px-4 font-bold text-white text-sm">Days Overdue</th>
+                      <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.status}</th>
+                      <th className="text-center py-3 px-4 font-bold text-white text-sm">{t.actions}</th>
                     </tr>
                   </thead>
                   <tbody>

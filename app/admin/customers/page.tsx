@@ -12,8 +12,7 @@ import {
   PhoneIcon,
   EnvelopeIcon,
   FunnelIcon,
-  ChevronDownIcon,
-  DocumentArrowDownIcon,
+  TableCellsIcon,
   ClockIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
@@ -23,6 +22,7 @@ import {
   CalendarDaysIcon,
   ArchiveBoxArrowDownIcon
 } from '@heroicons/react/24/outline'
+import { exportCustomersToExcel, type ExcelCustomer } from '../../utils/excelExport'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useRequireAdminAuth } from '../../hooks/useRequireAuth'
 import { useBusiness } from '../../contexts/BusinessContext'
@@ -154,9 +154,7 @@ function CustomerManagementPageContent() {
       searchCustomers: "Search customers...",
       filters: "Filters",
       exportData: "Export Data",
-      exportCSV: "Export CSV",
-      exportExcel: "Export Excel",
-      exportPDF: "Export PDF",
+      exportExcel: "Export to Excel",
       
       // Filters & Sort
       customerStatus: "Customer Status",
@@ -234,9 +232,7 @@ function CustomerManagementPageContent() {
       searchCustomers: "Tafuta wateja...",
       filters: "Vichujio",
       exportData: "Hamisha Data",
-      exportCSV: "Hamisha CSV",
-      exportExcel: "Hamisha Excel",
-      exportPDF: "Hamisha PDF",
+      exportExcel: "Hamisha kwenye Excel",
       
       // Filters & Sort
       customerStatus: "Hali ya Mteja",
@@ -352,8 +348,8 @@ function CustomerManagementPageContent() {
     }
   }
 
-  const handleExport = (format: string) => {
-    console.log('Exporting customers data as:', format)
+  const exportToExcel = () => {
+    exportCustomersToExcel(customers as unknown as ExcelCustomer[], t, 'Customers_Export')
   }
 
   const containerVariants = {
@@ -412,34 +408,16 @@ function CustomerManagementPageContent() {
           </div>
           
           <div className="flex items-center space-x-3">
-            {/* Export Dropdown */}
-            <div className="relative group">
-              <button className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                <DocumentArrowDownIcon className="w-5 h-5" />
-                <span>{t.exportData}</span>
-                <ChevronDownIcon className="w-4 h-4" />
-              </button>
-              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                <button
-                  onClick={() => handleExport('csv')}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-50 first:rounded-t-lg text-gray-900 hover:text-gray-900"
-                >
-                  {t.exportCSV}
-                </button>
-                <button
-                  onClick={() => handleExport('excel')}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-900 hover:text-gray-900"
-                >
-                  {t.exportExcel}
-                </button>
-                <button
-                  onClick={() => handleExport('pdf')}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-50 last:rounded-b-lg text-gray-900 hover:text-gray-900"
-                >
-                  {t.exportPDF}
-                </button>
-              </div>
-            </div>
+            {/* Export to Excel Button */}
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={exportToExcel}
+              className="flex items-center space-x-2 px-4 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 hover:text-white transition-colors font-medium text-sm"
+            >
+              <TableCellsIcon className="w-4 h-4 text-white" />
+              <span className="text-white">{t.exportExcel}</span>
+            </motion.button>
 
             {/* Add Customer Button */}
             <button
@@ -515,7 +493,7 @@ function CustomerManagementPageContent() {
               placeholder={t.searchCustomers}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-gray-900 placeholder-gray-400 bg-white text-sm"
             />
           </div>
 
@@ -523,9 +501,9 @@ function CustomerManagementPageContent() {
           <motion.button
             whileHover={{ scale: 1.02 }}
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center space-x-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 hover:text-gray-900"
+            className="flex items-center space-x-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 hover:text-gray-900 text-sm"
           >
-            <FunnelIcon className="w-5 h-5 text-gray-600" />
+            <FunnelIcon className="w-4 h-4 text-gray-600" />
             <span>{t.filters}</span>
           </motion.button>
         </div>
@@ -545,7 +523,7 @@ function CustomerManagementPageContent() {
                 <select
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white text-sm"
                 >
                   {statusOptions.map((status) => (
                     <option key={status.value} value={status.value} className="text-gray-900">
@@ -561,7 +539,7 @@ function CustomerManagementPageContent() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white text-sm"
                 >
                   {sortOptions.map((option) => (
                     <option key={option.value} value={option.value} className="text-gray-900">
@@ -577,7 +555,7 @@ function CustomerManagementPageContent() {
                 <select
                   value={sortOrder}
                   onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white text-sm"
                 >
                   <option value="asc" className="text-gray-900">{t.ascending}</option>
                   <option value="desc" className="text-gray-900">{t.descending}</option>
@@ -598,16 +576,16 @@ function CustomerManagementPageContent() {
         ) : (
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-teal-600 border-b border-teal-700">
               <tr>
-                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.customer}</th>
-                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.contact}</th>
-                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.status}</th>
-                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.orders}</th>
-                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.spent}</th>
-                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.credit}</th>
-                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.lastOrderDate}</th>
-                <th className="text-center py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.actions}</th>
+                <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.customer}</th>
+                <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.contact}</th>
+                <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.status}</th>
+                <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.orders}</th>
+                <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.spent}</th>
+                <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.credit}</th>
+                <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.lastOrderDate}</th>
+                <th className="text-center py-3 px-4 font-bold text-white text-sm">{t.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -619,7 +597,7 @@ function CustomerManagementPageContent() {
                   transition={{ delay: index * 0.05 }}
                   className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                 >
-                  <td className="py-4 px-4 lg:px-6">
+                  <td className="py-3 px-4">
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center">
                         <span className="text-white font-medium text-sm">
@@ -632,7 +610,7 @@ function CustomerManagementPageContent() {
                       </div>
                     </div>
                   </td>
-                  <td className="py-4 px-4 lg:px-6">
+                  <td className="py-3 px-4">
                     <div className="space-y-1">
                       <div className="flex items-center space-x-2">
                         <EnvelopeIcon className="w-4 h-4 text-gray-400" />
@@ -644,21 +622,21 @@ function CustomerManagementPageContent() {
                       </div>
                     </div>
                   </td>
-                  <td className="py-4 px-4 lg:px-6">
+                  <td className="py-3 px-4">
                     <span className={`px-2 py-1 text-xs rounded-full font-medium ${getStatusColor(customer.status)}`}>
                       {t[customer.status as keyof typeof t]}
                     </span>
                   </td>
-                  <td className="py-4 px-4 lg:px-6">
+                  <td className="py-3 px-4">
                     <div className="flex items-center space-x-2">
                       <ArchiveBoxArrowDownIcon className="w-4 h-4 text-gray-400" />
                       <span className="text-gray-700">{customer.totalOrders}</span>
                     </div>
                   </td>
-                  <td className="py-4 px-4 lg:px-6">
+                  <td className="py-3 px-4">
                     <span className="font-semibold text-gray-800">{t.currency} {customer.totalSpent.toLocaleString()}</span>
                   </td>
-                  <td className="py-4 px-4 lg:px-6">
+                  <td className="py-3 px-4">
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-gray-500">{t.creditLimitLabel}:</span>
@@ -675,48 +653,48 @@ function CustomerManagementPageContent() {
                       </span>
                     </div>
                   </td>
-                  <td className="py-4 px-4 lg:px-6">
+                  <td className="py-3 px-4">
                     <div className="flex items-center space-x-2">
                       <CalendarDaysIcon className="w-4 h-4 text-gray-400" />
                       <span className="text-sm text-gray-700">{customer.lastOrderDate || t.never}</span>
                     </div>
                   </td>
-                  <td className="py-4 px-4 lg:px-6">
+                  <td className="py-3 px-4">
                     <div className="flex items-center justify-center space-x-1">
                       <Link href={`/admin/customers/${customer.id}`}>
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
-                          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title={t.view}
                         >
-                          <EyeIcon className="w-4 h-4" />
+                          <EyeIcon className="w-3.5 h-3.5" />
                         </motion.button>
                       </Link>
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => handleEditCustomer(customer)}
-                        className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                        className="p-1.5 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                         title={t.edit}
                       >
-                        <PencilIcon className="w-4 h-4" />
+                        <PencilIcon className="w-3.5 h-3.5" />
                       </motion.button>
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                        className="p-1.5 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
                         title={t.creditHistory}
                       >
-                        <CreditCardIcon className="w-4 h-4" />
+                        <CreditCardIcon className="w-3.5 h-3.5" />
                       </motion.button>
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        className="p-2 text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                        className="p-1.5 text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
                         title={t.outstandingBalances}
                       >
-                        <ClockIcon className="w-4 h-4" />
+                        <ClockIcon className="w-3.5 h-3.5" />
                       </motion.button>
                     </div>
                   </td>

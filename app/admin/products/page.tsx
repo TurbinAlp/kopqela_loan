@@ -11,13 +11,12 @@ import {
   ArchiveBoxIcon,
   Squares2X2Icon,
   ListBulletIcon,
-  ChevronDownIcon,
-  DocumentArrowDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   FunnelIcon,
   ArrowRightIcon,
-  ArchiveBoxArrowDownIcon
+  ArchiveBoxArrowDownIcon,
+  TableCellsIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useBusiness } from '../../contexts/BusinessContext'
@@ -32,6 +31,7 @@ import SuccessModal from '../../components/ui/SuccessModal'
 import StockTransferModal from '../../components/ui/StockTransferModal'
 import Spinner from '../../components/ui/Spinner'
 import { useNotifications } from '../../contexts/NotificationContext'
+import { exportProductsToExcel, type ExcelProduct } from '../../utils/excelExport'
 
 // Use Product type from useProductsData hook
 
@@ -273,11 +273,13 @@ export default function ProductsPage() {
       next: "Next",
       
       // Export options
-      exportCSV: "Export CSV",
       exportExcel: "Export Excel",
-      exportPDF: "Export PDF",
       
       currency: "TZS",
+      active: "Active",
+      inactive: "Inactive", 
+      draft: "Draft",
+      published: "Published",
       
       // Delete modal
       deleteProduct: "Delete Product",
@@ -358,11 +360,13 @@ export default function ProductsPage() {
       next: "Ifuatayo",
       
       // Export options
-      exportCSV: "Hamisha CSV",
       exportExcel: "Hamisha Excel",
-      exportPDF: "Hamisha PDF",
       
       currency: "TSh",
+      active: "Ipo",
+      inactive: "Haipo",
+      draft: "Muswada",
+      published: "Imechapishwa",
       
       // Delete modal
       deleteProduct: "Futa Bidhaa",
@@ -548,9 +552,8 @@ export default function ProductsPage() {
     setSelectedProducts([])
   }
 
-  const handleExport = (format: string) => {
-    // Implement export logic
-    console.log('Exporting data as:', format)
+  const exportToExcel = () => {
+    exportProductsToExcel(filteredProducts as unknown as ExcelProduct[], t, 'Products_Export')
   }
 
   const handleDeleteClick = (productId: number, productName: string) => {
@@ -662,7 +665,7 @@ export default function ProductsPage() {
           {hasPermissionSync(session, 'inventory.read', businessPermissions) && (
             <LoadingLink
               href="/admin/inventory/movements"
-              className="flex items-center space-x-2 px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-md transition-colors text-sm"
+              className="flex items-center space-x-2 px-4 py-2.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors text-sm font-medium"
             >
               <ArchiveBoxArrowDownIcon className="w-4 h-4" />
               <span className="hidden sm:inline">{t.viewMovements}</span>
@@ -672,7 +675,7 @@ export default function ProductsPage() {
           {hasPermissionSync(session, 'products.create', businessPermissions) && (
             <LoadingLink
               href="/admin/products/add"
-              className="flex items-center space-x-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-md transition-colors text-sm font-medium"
+              className="flex items-center space-x-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2.5 rounded-lg transition-colors text-sm font-medium"
             >
               <PlusIcon className="w-4 h-4" />
               <span>{t.addProduct}</span>
@@ -706,7 +709,7 @@ export default function ProductsPage() {
             <div className="flex items-center bg-gray-100 rounded-lg p-0.5 flex-shrink-0 snap-start">
               <button
                 onClick={() => setViewMode('list')}
-                className={`flex items-center justify-center px-2 py-1.5 rounded-md text-xs font-medium transition-all ${
+                className={`flex items-center justify-center px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   viewMode === 'list' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
@@ -714,7 +717,7 @@ export default function ProductsPage() {
               </button>
               <button
                 onClick={() => setViewMode('grid')}
-                className={`flex items-center justify-center px-2 py-1.5 rounded-md text-xs font-medium transition-all ${
+                className={`flex items-center justify-center px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   viewMode === 'grid' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
@@ -726,39 +729,19 @@ export default function ProductsPage() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center justify-center px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 hover:text-gray-900 flex-shrink-0 snap-start"
+              className="flex items-center justify-center px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 hover:text-gray-900 flex-shrink-0 snap-start text-sm"
             >
               <FunnelIcon className="w-4 h-4 text-gray-600" />
             </motion.button>
 
-            {/* Export Dropdown - Mobile */}
-            <div className="relative group flex-shrink-0 snap-start">
-              <button className="flex items-center space-x-1.5 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-xs font-medium">
-                <DocumentArrowDownIcon className="w-4 h-4" />
-                <span>Export</span>
-                <ChevronDownIcon className="w-3 h-3" />
-              </button>
-              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                <button
-                  onClick={() => handleExport('csv')}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-50 first:rounded-t-lg text-gray-900 hover:text-gray-900 text-sm"
-                >
-                  {t.exportCSV}
-                </button>
-                <button
-                  onClick={() => handleExport('excel')}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-900 hover:text-gray-900 text-sm"
-                >
-                  {t.exportExcel}
-                </button>
-                <button
-                  onClick={() => handleExport('pdf')}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-50 last:rounded-b-lg text-gray-900 hover:text-gray-900 text-sm"
-                >
-                  {t.exportPDF}
-                </button>
-              </div>
-            </div>
+            {/* Export Button - Mobile */}
+            <motion.button
+              onClick={exportToExcel}
+              className="flex items-center space-x-2 px-4 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors text-sm font-medium"
+            >
+              <TableCellsIcon className="w-4 h-4 text-white" />
+              <span className="text-white">Excel</span>
+            </motion.button>
           </div>
         </div>
 
@@ -778,10 +761,10 @@ export default function ProductsPage() {
             </div>
 
             {/* View Toggle */}
-            <div className="flex items-center bg-gray-100 rounded-lg p-1">
+            <div className="flex items-center bg-gray-100 rounded-lg p-1.5">
               <button
                 onClick={() => setViewMode('list')}
-                className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   viewMode === 'list' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
@@ -790,7 +773,7 @@ export default function ProductsPage() {
               </button>
               <button
                 onClick={() => setViewMode('grid')}
-                className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   viewMode === 'grid' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
@@ -803,7 +786,7 @@ export default function ProductsPage() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center space-x-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 hover:text-gray-900"
+              className="flex items-center space-x-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 hover:text-gray-900 text-sm font-medium"
             >
               <FunnelIcon className="w-5 h-5 text-gray-600" />
               <span>{t.filters}</span>
@@ -826,7 +809,7 @@ export default function ProductsPage() {
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white text-sm"
                   disabled={loadingCategories}
                 >
                   <option value="all">{t.allCategories}</option>
@@ -849,7 +832,7 @@ export default function ProductsPage() {
                 <select
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white text-sm"
                 >
                   <option value="all">{t.allStatuses}</option>
                   <option value="inStock">{t.inStock}</option>
@@ -879,7 +862,7 @@ export default function ProductsPage() {
                   <button
                     onClick={handleBulkDeleteClick}
                     disabled={bulkDeleting}
-                    className="flex items-center space-x-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 hover:text-red-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center space-x-2 px-4 py-2.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 hover:text-red-800 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {bulkDeleting ? (
                       <div className="w-4 h-4 border-2 border-red-700 border-t-transparent rounded-full animate-spin" />
@@ -897,7 +880,7 @@ export default function ProductsPage() {
                 {hasPermissionSync(session, 'inventory.update', businessPermissions) && (
                   <button
                     onClick={handleTransferClick}
-                    className="flex items-center space-x-1 px-3 py-2 bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 hover:text-teal-800 transition-colors font-medium"
+                    className="flex items-center space-x-2 px-4 py-2.5 bg-teal-100 text-teal-700 rounded-lg hover:bg-teal-200 hover:text-teal-800 transition-colors font-medium text-sm"
                   >
                     <ArrowRightIcon className="w-4 h-4" />
                     <span>{t.transferStock}</span>
@@ -907,35 +890,15 @@ export default function ProductsPage() {
             )}
           </div>
 
-          {/* Export Dropdown - Desktop Only */}
+          {/* Export Button - Desktop Only */}
           {hasPermissionSync(session, 'products.read', businessPermissions) && (
-            <div className="hidden sm:block relative group">
-              <button className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                <DocumentArrowDownIcon className="w-5 h-5" />
-                <span>{t.exportData}</span>
-                <ChevronDownIcon className="w-4 h-4" />
-              </button>
-            <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-              <button
-                onClick={() => handleExport('csv')}
-                className="w-full text-left px-4 py-2 hover:bg-gray-50 first:rounded-t-lg text-gray-900 hover:text-gray-900"
-              >
-                {t.exportCSV}
-              </button>
-              <button
-                onClick={() => handleExport('excel')}
-                className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-900 hover:text-gray-900"
-              >
-                {t.exportExcel}
-              </button>
-              <button
-                onClick={() => handleExport('pdf')}
-                className="w-full text-left px-4 py-2 hover:bg-gray-50 last:rounded-b-lg text-gray-900 hover:text-gray-900"
-              >
-                {t.exportPDF}
-              </button>
-            </div>
-            </div>
+            <motion.button
+              onClick={exportToExcel}
+              className="flex items-center space-x-2 px-4 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 hover:text-white transition-colors font-medium text-sm"
+            >
+              <TableCellsIcon className="w-4 h-4 text-white" />
+              <span className="text-white">{t.exportExcel}</span>
+            </motion.button>
           )}
         </motion.div>
       )}
@@ -992,10 +955,10 @@ export default function ProductsPage() {
               <tbody>
                 {[...Array(5)].map((_, i) => (
                   <tr key={i} className="border-b border-gray-100">
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4">
                       <div className="w-4 h-4 bg-gray-200 rounded animate-pulse"></div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4">
                       <div className="flex items-center space-x-3">
                         <div className="w-12 h-12 bg-gray-200 rounded-lg animate-pulse"></div>
                         <div>
@@ -1004,31 +967,31 @@ export default function ProductsPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4">
                       <div className="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4">
                       <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4">
                       <div className="h-4 bg-gray-200 rounded animate-pulse w-12"></div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4">
                       <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4">
                       <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4">
                       <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4">
                       <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4">
                       <div className="h-6 bg-gray-200 rounded-full animate-pulse w-16"></div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4">
                       <div className="flex items-center justify-center space-x-2">
                         <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
                         <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
@@ -1073,7 +1036,7 @@ export default function ProductsPage() {
                 setSelectedCategory('all')
                 setSelectedStatus('all')
               }}
-              className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors mr-3"
+              className="px-4 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors mr-3 text-sm font-medium"
             >
               {language === 'sw' ? 'Ondoa Vichujio' : 'Clear Filters'}
             </button>
@@ -1092,9 +1055,9 @@ export default function ProductsPage() {
         <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm border border-gray-100">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-teal-600 border-b border-teal-700">
                 <tr>
-                  <th className="py-4 px-6">
+                  <th className="py-3 px-4">
                     <input
                       type="checkbox"
                       checked={selectedProducts.length === currentProducts.length && currentProducts.length > 0}
@@ -1102,15 +1065,15 @@ export default function ProductsPage() {
                       className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
                     />
                   </th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.product}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.sku}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.category}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.unit}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.stock}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.retailPrice}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.wholesalePrice}</th>
-                  <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.status}</th>
-                  <th className="text-center py-4 px-6 font-semibold text-gray-800">{t.actions}</th>
+                  <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.product}</th>
+                  <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.sku}</th>
+                  <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.category}</th>
+                  <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.unit}</th>
+                  <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.stock}</th>
+                  <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.retailPrice}</th>
+                  <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.wholesalePrice}</th>
+                  <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.status}</th>
+                  <th className="text-center py-3 px-4 font-bold text-white text-sm">{t.actions}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1122,7 +1085,7 @@ export default function ProductsPage() {
                     transition={{ delay: index * 0.05 }}
                     className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                   >
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4">
                       <input
                         type="checkbox"
                         checked={selectedProducts.includes(product.id)}
@@ -1130,7 +1093,7 @@ export default function ProductsPage() {
                         className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
                       />
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4">
                       <div className="flex items-center space-x-3">
                         <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
                           {(() => {
@@ -1151,16 +1114,16 @@ export default function ProductsPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4">
                       <span className="text-gray-700 font-mono text-sm">{product.sku || '—'}</span>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4">
                       <span className="text-gray-700">{typeof product.category === 'string' ? product.category : product.category?.name}</span>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4">
                       <span className="text-gray-700">{product.unit || '—'}</span>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4">
                       {(() => {
                         // Calculate stock breakdown by location
                         const inventoryArray = Array.isArray(product.inventory) ? product.inventory : (product.inventory ? [product.inventory] : [])
@@ -1182,17 +1145,17 @@ export default function ProductsPage() {
                         )
                       })()}
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4">
                       <span className="font-semibold text-teal-600">{t.currency} {product.price.toLocaleString()}</span>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4">
                       {product.wholesalePrice ? (
                         <span className="font-semibold text-blue-600">{t.currency} {product.wholesalePrice.toLocaleString()}</span>
                       ) : (
                         <span className="text-gray-400">—</span>
                       )}
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4">
                       {(() => {
                         // Calculate retail store availability for sale status
                         const inventoryArray = Array.isArray(product.inventory) ? product.inventory : (product.inventory ? [product.inventory] : [])
@@ -1223,16 +1186,16 @@ export default function ProductsPage() {
                         )
                       })()}
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4">
                                              <div className="flex items-center justify-center space-x-2">
                          <LoadingLink href={`/admin/products/${product.id}`}>
                            <motion.button
                              whileHover={{ scale: 1.1 }}
                              whileTap={{ scale: 0.9 }}
-                             className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                             className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                              title={t.view}
                            >
-                             <EyeIcon className="w-4 h-4" />
+                             <EyeIcon className="w-3.5 h-3.5" />
                            </motion.button>
                          </LoadingLink>
                          {hasPermissionSync(session, 'products.update', businessPermissions) && (
@@ -1240,10 +1203,10 @@ export default function ProductsPage() {
                              <motion.button
                                whileHover={{ scale: 1.1 }}
                                whileTap={{ scale: 0.9 }}
-                               className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                               className="p-1.5 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                                title={t.edit}
                              >
-                               <PencilIcon className="w-4 h-4" />
+                               <PencilIcon className="w-3.5 h-3.5" />
                              </motion.button>
                            </LoadingLink>
                          )}
@@ -1438,7 +1401,7 @@ export default function ProductsPage() {
               <button
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
-                className="flex items-center justify-center w-8 h-8 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 hover:text-gray-900"
+                className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 hover:text-gray-900"
               >
                 <ChevronLeftIcon className="w-4 h-4" />
               </button>
@@ -1460,7 +1423,7 @@ export default function ProductsPage() {
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
-                      className={`flex-shrink-0 w-8 h-8 rounded-lg font-medium transition-colors text-sm ${
+                      className={`flex-shrink-0 w-10 h-10 rounded-lg font-medium transition-colors text-sm ${
                         currentPage === page
                           ? 'bg-teal-500 text-white hover:bg-teal-600'
                           : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
@@ -1475,7 +1438,7 @@ export default function ProductsPage() {
               <button
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
-                className="flex items-center justify-center w-8 h-8 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 hover:text-gray-900"
+                className="flex items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 hover:text-gray-900"
               >
                 <ChevronRightIcon className="w-4 h-4" />
               </button>

@@ -5,18 +5,18 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { 
   EyeIcon,
   CreditCardIcon,
-  PrinterIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
-  ChevronDownIcon,
   DocumentArrowDownIcon,
   BanknotesIcon,
   ShoppingCartIcon,
   ClockIcon,
   UserIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  TableCellsIcon
 } from '@heroicons/react/24/outline'
+import { exportOrdersToExcel, type ExcelOrder } from '../../utils/excelExport'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useBusiness } from '../../contexts/BusinessContext'
 import { useNotifications } from '../../contexts/NotificationContext'
@@ -109,17 +109,6 @@ function SalesManagementPageContent() {
   const [totalCount, setTotalCount] = useState(0)
   const [showReceipt, setShowReceipt] = useState(false)
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null)
-  const [autoPrint, setAutoPrint] = useState(false)
-
-  // Auto-print when opening receipt via printer button
-  useEffect(() => {
-    if (showReceipt && autoPrint) {
-      setTimeout(() => {
-        try { window.print() } catch {}
-        setAutoPrint(false)
-      }, 50)
-    }
-  }, [showReceipt, autoPrint])
 
   // Get date range for API calls
   const getDateRange = useCallback(() => {
@@ -348,7 +337,6 @@ function SalesManagementPageContent() {
       view: "View Details",
       edit: "Edit Order",
       processPayment: "Process Payment",
-      printReceipt: "Print Receipt",
       refund: "Refund",
       
       // Analytics
@@ -373,9 +361,7 @@ function SalesManagementPageContent() {
       
       // Actions
       exportData: "Export Data",
-      exportCSV: "Export CSV",
-      exportExcel: "Export Excel",
-      exportPDF: "Export PDF",
+      exportExcel: "Export to Excel",
       
       // Pagination
       showing: "Showing",
@@ -439,7 +425,6 @@ function SalesManagementPageContent() {
       view: "Angalia Maelezo",
       edit: "Hariri Agizo",
       processPayment: "Shughulika Malipo",
-      printReceipt: "Chapisha Risiti",
       refund: "Rudisha",
       
       // Analytics
@@ -464,9 +449,7 @@ function SalesManagementPageContent() {
       
       // Actions
       exportData: "Hamisha Data",
-      exportCSV: "Hamisha CSV",
-      exportExcel: "Hamisha Excel",
-      exportPDF: "Hamisha PDF",
+      exportExcel: "Hamisha kwenye Excel",
       
       // Pagination
       showing: "Inaonyesha",
@@ -592,11 +575,6 @@ function SalesManagementPageContent() {
     setShowReceipt(true)
   }
 
-  const handlePrintOrder = (order: Order) => {
-    setReceiptOrder(order)
-    setAutoPrint(true)
-    setShowReceipt(true)
-  }
 
   
 
@@ -610,9 +588,10 @@ function SalesManagementPageContent() {
     document.body.removeChild(a)
   }
 
-  const handleExport = (format: string) => {
-    console.log('Exporting data as:', format)
+  const exportToExcel = () => {
+    exportOrdersToExcel(filteredOrders as unknown as ExcelOrder[], t, 'Orders_Export')
   }
+
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -643,34 +622,16 @@ function SalesManagementPageContent() {
               <p className="text-gray-600">{t.pageSubtitle}</p>
             </div>
             
-            {/* Export Dropdown */}
-            <div className="relative group">
-              <button className="flex items-center space-x-2 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors">
-                <DocumentArrowDownIcon className="w-5 h-5" />
-                <span>{t.exportData}</span>
-                <ChevronDownIcon className="w-4 h-4" />
-              </button>
-              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                <button
-                  onClick={() => handleExport('csv')}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-50 first:rounded-t-lg text-gray-900 hover:text-gray-900"
-                >
-                  {t.exportCSV}
-                </button>
-                <button
-                  onClick={() => handleExport('excel')}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-900 hover:text-gray-900"
-                >
-                  {t.exportExcel}
-                </button>
-                <button
-                  onClick={() => handleExport('pdf')}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-50 last:rounded-b-lg text-gray-900 hover:text-gray-900"
-                >
-                  {t.exportPDF}
-                </button>
-              </div>
-            </div>
+            {/* Export to Excel Button */}
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={exportToExcel}
+              className="flex items-center space-x-2 px-4 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 hover:text-white transition-colors font-medium text-sm"
+            >
+              <TableCellsIcon className="w-4 h-4 text-white" />
+              <span className="text-white">{t.exportExcel}</span>
+            </motion.button>
           </div>
         </div>
       </motion.div>
@@ -755,7 +716,7 @@ function SalesManagementPageContent() {
               placeholder={t.searchOrders}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-gray-900 placeholder-gray-400 bg-white text-sm"
             />
           </div>
 
@@ -763,9 +724,9 @@ function SalesManagementPageContent() {
           <motion.button
             whileHover={{ scale: 1.02 }}
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center space-x-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 hover:text-gray-900"
+            className="flex items-center space-x-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 hover:text-gray-900 text-sm"
           >
-            <FunnelIcon className="w-5 h-5 text-gray-600" />
+            <FunnelIcon className="w-4 h-4 text-gray-600" />
             <span>{t.filters}</span>
           </motion.button>
         </div>
@@ -785,7 +746,7 @@ function SalesManagementPageContent() {
                 <select
                   value={selectedOrderStatus}
                   onChange={(e) => setSelectedOrderStatus(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white text-sm"
                 >
                   {orderStatuses.map((status) => (
                     <option key={status.value} value={status.value} className="text-gray-900">
@@ -801,7 +762,7 @@ function SalesManagementPageContent() {
                 <select
                   value={selectedPaymentStatus}
                   onChange={(e) => setSelectedPaymentStatus(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white text-sm"
                 >
                   {paymentStatuses.map((status) => (
                     <option key={status.value} value={status.value} className="text-gray-900">
@@ -817,7 +778,7 @@ function SalesManagementPageContent() {
                 <select
                   value={selectedCustomer}
                   onChange={(e) => setSelectedCustomer(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white text-sm"
                 >
                   {customerOptions.map((customer) => (
                     <option key={customer.value} value={customer.value} className="text-gray-900">
@@ -833,7 +794,7 @@ function SalesManagementPageContent() {
                 <select
                   value={dateRange}
                   onChange={(e) => setDateRange(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white text-sm"
                 >
                   {dateRanges.map((range) => (
                     <option key={range.value} value={range.value} className="text-gray-900">
@@ -853,7 +814,7 @@ function SalesManagementPageContent() {
                     type="date"
                     value={customDateFrom}
                     onChange={(e) => setCustomDateFrom(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white text-sm"
                   />
                 </div>
                 <div>
@@ -862,7 +823,7 @@ function SalesManagementPageContent() {
                     type="date"
                     value={customDateTo}
                     onChange={(e) => setCustomDateTo(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
+                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white text-sm"
                   />
                 </div>
               </div>
@@ -875,16 +836,16 @@ function SalesManagementPageContent() {
       <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm border border-gray-100">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-teal-600 border-b border-teal-700">
               <tr>
-                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.orderNumber}</th>
-                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.customerName}</th>
-                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.items}</th>
-                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.total}</th>
-                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.status}</th>
-                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.payment}</th>
-                <th className="text-left py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.date}</th>
-                <th className="text-center py-4 px-4 lg:px-6 font-semibold text-gray-800">{t.actions}</th>
+                <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.orderNumber}</th>
+                <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.customerName}</th>
+                <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.items}</th>
+                <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.total}</th>
+                <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.status}</th>
+                <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.payment}</th>
+                <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.date}</th>
+                <th className="text-center py-3 px-4 font-bold text-white text-sm">{t.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -892,31 +853,31 @@ function SalesManagementPageContent() {
                 // Loading skeleton rows
                 Array.from({ length: itemsPerPage }).map((_, index) => (
                   <tr key={index} className="border-b border-gray-100">
-                    <td className="py-4 px-4 lg:px-6">
+                    <td className="py-3 px-4">
                       <div className="w-24 h-4 bg-gray-200 rounded animate-pulse"></div>
                     </td>
-                    <td className="py-4 px-4 lg:px-6">
+                    <td className="py-3 px-4">
                       <div className="flex items-center space-x-3">
                         <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
                         <div className="w-32 h-4 bg-gray-200 rounded animate-pulse"></div>
                       </div>
                     </td>
-                    <td className="py-4 px-4 lg:px-6">
+                    <td className="py-3 px-4">
                       <div className="w-8 h-4 bg-gray-200 rounded animate-pulse"></div>
                     </td>
-                    <td className="py-4 px-4 lg:px-6">
+                    <td className="py-3 px-4">
                       <div className="w-20 h-4 bg-gray-200 rounded animate-pulse"></div>
                     </td>
-                    <td className="py-4 px-4 lg:px-6">
+                    <td className="py-3 px-4">
                       <div className="w-16 h-6 bg-gray-200 rounded-full animate-pulse"></div>
                     </td>
-                    <td className="py-4 px-4 lg:px-6">
+                    <td className="py-3 px-4">
                       <div className="w-16 h-6 bg-gray-200 rounded-full animate-pulse"></div>
                     </td>
-                    <td className="py-4 px-4 lg:px-6">
+                    <td className="py-3 px-4">
                       <div className="w-20 h-4 bg-gray-200 rounded animate-pulse"></div>
                     </td>
-                    <td className="py-4 px-4 lg:px-6">
+                    <td className="py-3 px-4">
                       <div className="flex items-center justify-center space-x-1">
                         <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
                         <div className="w-8 h-8 bg-gray-200 rounded animate-pulse"></div>
@@ -945,10 +906,10 @@ function SalesManagementPageContent() {
                     transition={{ delay: index * 0.05 }}
                     className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-default"
                   >
-                    <td className="py-4 px-4 lg:px-6">
-                      <span className="font-mono text-sm font-medium text-gray-800">{order.orderNumber}</span>
+                    <td className="py-3 px-4">
+                      <span className="font-mono text-xs font-medium text-gray-800">{order.orderNumber}</span>
                     </td>
-                    <td className="py-4 px-4 lg:px-6">
+                    <td className="py-3 px-4">
                       <div className="flex items-center space-x-3">
                         <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
                           <UserIcon className="w-4 h-4 text-gray-500" />
@@ -959,18 +920,18 @@ function SalesManagementPageContent() {
                         </div>
                       </div>
                     </td>
-                    <td className="py-4 px-4 lg:px-6">
-                      <span className="text-gray-700">{order.orderItems.length}</span>
+                    <td className="py-3 px-4">
+                      <span className="text-gray-700 text-sm">{order.orderItems.length}</span>
                     </td>
-                    <td className="py-4 px-4 lg:px-6">
-                      <span className="font-semibold text-gray-800">{t.currency} {Number(order.totalAmount).toLocaleString()}</span>
+                    <td className="py-3 px-4">
+                      <span className="font-semibold text-gray-800 text-sm">{t.currency} {Number(order.totalAmount).toLocaleString()}</span>
                     </td>
-                    <td className="py-4 px-4 lg:px-6">
+                    <td className="py-3 px-4">
                       <span className={`px-2 py-1 text-xs rounded-full font-medium ${getOrderStatusColor(order.status)}`}>
                         {t[order.status.toLowerCase() as keyof typeof t] || order.status}
                       </span>
                     </td>
-                    <td className="py-4 px-4 lg:px-6">
+                    <td className="py-3 px-4">
                       <div className="flex flex-col space-y-1">
                         <span className={`px-2 py-1 text-xs rounded-full font-medium ${getPaymentStatusColor(order.paymentStatus)}`}>
                           {t[order.paymentStatus.toLowerCase() as keyof typeof t] || order.paymentStatus}
@@ -978,51 +939,42 @@ function SalesManagementPageContent() {
                         <span className="text-xs text-gray-500">{getPaymentMethodDisplay(order.paymentMethod)}</span>
                       </div>
                     </td>
-                    <td className="py-4 px-4 lg:px-6">
-                      <span className="text-sm text-gray-700">{new Date(order.orderDate).toLocaleDateString()}</span>
+                    <td className="py-3 px-4">
+                      <span className="text-xs text-gray-700">{new Date(order.orderDate).toLocaleDateString()}</span>
                       {order.paymentPlan === 'PARTIAL' && order.payments.some(p => p.paymentStatus === 'PENDING') && (
                         <div className="text-xs text-red-600">Partial Payment</div>
                       )}
                     </td>
-                    <td className="py-4 px-4 lg:px-6">
+                    <td className="py-3 px-4">
                       <div className="flex items-center justify-center space-x-1">
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
                           onClick={(e) => { e.stopPropagation(); openReceipt(order) }}
-                          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title={t.view}
                         >
-                          <EyeIcon className="w-4 h-4" />
+                          <EyeIcon className="w-3.5 h-3.5" />
                         </motion.button>
                         {order.paymentStatus !== 'PAID' && (
                           <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             onClick={(e) => { e.stopPropagation() }}
-                            className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            className="p-1.5 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                             title={t.processPayment}
                           >
-                            <CreditCardIcon className="w-4 h-4" />
+                            <CreditCardIcon className="w-3.5 h-3.5" />
                           </motion.button>
                         )}
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
-                          onClick={(e) => { e.stopPropagation(); handlePrintOrder(order) }}
-                          className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                          title={t.printReceipt}
-                        >
-                          <PrinterIcon className="w-4 h-4" />
-                        </motion.button>
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
                           onClick={(e) => { e.stopPropagation(); downloadOrder(order) }}
-                          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title={t.exportData}
                         >
-                          <DocumentArrowDownIcon className="w-4 h-4" />
+                          <DocumentArrowDownIcon className="w-3.5 h-3.5" />
                         </motion.button>
                       </div>
                     </td>
