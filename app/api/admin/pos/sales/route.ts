@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma, handlePrismaError } from '../../../../lib/prisma'
+// Types may be stale across environments; use loose typing for create shapes
 import { getAuthContext } from '../../../../lib/rbac/middleware'
 
 // Schema validation ya POS sales data
@@ -226,11 +227,37 @@ export async function POST(request: NextRequest) {
       // Create the order with error handling for potential duplicates
       let order
       try {
-        order = await tx.order.create({
-          data: {
+        const orderData: Record<string, unknown> = {
+          businessId,
+          customerId,
+          orderNumber,
+          status: 'CONFIRMED',
+          orderType: orderType,
+          subtotal,
+          taxAmount,
+          discountAmount,
+          totalAmount,
+          paymentMethod,
+          paymentStatus: paymentPlan === 'FULL' ? 'PAID' : paymentPlan === 'PARTIAL' ? 'PARTIAL' : 'PENDING',
+          paymentPlan,
+          notes,
+          createdBy: authContext.userId,
+          orderDate: new Date()
+        }
+        order = await tx.order.create({ data: orderData as unknown as Parameters<typeof tx.order.create>[0]['data'] })
+      } catch (error: unknown) {
+        // If we get a unique constraint error, generate a new order number with extra randomness
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002' && 
+            'meta' in error && error.meta && typeof error.meta === 'object' && 
+            'target' in error.meta && Array.isArray(error.meta.target) && 
+            error.meta.target.includes('order_number')) {
+          const fallbackOrderNumber = `${orderPrefix}-${Date.now()}-${Math.floor(Math.random() * 1000000)}`
+          console.log('POS Sales - Order number collision detected, using fallback:', fallbackOrderNumber)
+          
+          const orderDataFallback: Record<string, unknown> = {
             businessId,
             customerId,
-            orderNumber,
+            orderNumber: fallbackOrderNumber,
             status: 'CONFIRMED',
             orderType: orderType,
             subtotal,
@@ -241,36 +268,10 @@ export async function POST(request: NextRequest) {
             paymentStatus: paymentPlan === 'FULL' ? 'PAID' : paymentPlan === 'PARTIAL' ? 'PARTIAL' : 'PENDING',
             paymentPlan,
             notes,
+            createdBy: authContext.userId,
             orderDate: new Date()
           }
-        })
-      } catch (error: unknown) {
-        // If we get a unique constraint error, generate a new order number with extra randomness
-        if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002' && 
-            'meta' in error && error.meta && typeof error.meta === 'object' && 
-            'target' in error.meta && Array.isArray(error.meta.target) && 
-            error.meta.target.includes('order_number')) {
-          const fallbackOrderNumber = `${orderPrefix}-${Date.now()}-${Math.floor(Math.random() * 1000000)}`
-          console.log('POS Sales - Order number collision detected, using fallback:', fallbackOrderNumber)
-          
-          order = await tx.order.create({
-            data: {
-              businessId,
-              customerId,
-              orderNumber: fallbackOrderNumber,
-              status: 'CONFIRMED',
-              orderType: orderType,
-              subtotal,
-              taxAmount,
-              discountAmount,
-              totalAmount,
-              paymentMethod,
-              paymentStatus: paymentPlan === 'FULL' ? 'PAID' : paymentPlan === 'PARTIAL' ? 'PARTIAL' : 'PENDING',
-              paymentPlan,
-              notes,
-              orderDate: new Date()
-            }
-          })
+          order = await tx.order.create({ data: orderDataFallback as unknown as Parameters<typeof tx.order.create>[0]['data'] })
         } else {
           throw error // Re-throw if it's not a unique constraint error
         }
@@ -347,7 +348,7 @@ export async function POST(request: NextRequest) {
             movementType: 'sale',
             reason: `Sale - Order ${order.orderNumber}`,
             referenceId: order.orderNumber,
-            createdBy: 1 // TODO: Get from auth context
+            createdBy: authContext.userId
           }
         })
       }
@@ -481,37 +482,50 @@ export async function GET(request: NextRequest) {
     const orders = await prisma.order.findMany({
       where: {
         businessId: parseInt(businessId),
-        // Show all order types in POS sales history
-        ...(Object.keys(dateFilter).length > 0 && {
-          orderDate: dateFilter
-        })
+        ...(Object.keys(dateFilter).length > 0 && { orderDate: dateFilter })
       },
       include: {
         customer: {
-          select: {
-            id: true,
-            fullName: true,
-            phone: true
-          }
+          select: { id: true, fullName: true, phone: true }
         },
         orderItems: {
           include: {
-            product: {
-              select: {
-                id: true,
-                name: true,
-                nameSwahili: true
-              }
-            }
+            product: { select: { id: true, name: true, nameSwahili: true } }
           }
         },
         payments: true
       },
-      orderBy: {
-        orderDate: 'desc'
-      },
+      orderBy: { orderDate: 'desc' },
       take: limit,
       skip: offset
+    })
+    // Attach cashier name strictly from DB (created_by)
+    const orderIds = orders.map(o => o.id)
+    const orderIdToCreatedBy = new Map<number, number | null>()
+    if (orderIds.length > 0) {
+      const creators = await prisma.$queryRawUnsafe<Array<{ id: number; created_by: number | null }>>(
+        `SELECT id, created_by FROM "orders" WHERE id IN (${orderIds.join(',')})`
+      )
+      creators.forEach(row => orderIdToCreatedBy.set(row.id, row.created_by))
+    }
+
+    const createdByIds = Array.from(new Set(
+      Array.from(orderIdToCreatedBy.values()).filter((id): id is number => typeof id === 'number')
+    ))
+    const userIdToName = new Map<number, string>()
+    if (createdByIds.length > 0) {
+      const users = await prisma.user.findMany({
+        where: { id: { in: createdByIds } },
+        select: { id: true, firstName: true, lastName: true }
+      })
+      users.forEach(u => userIdToName.set(u.id, `${u.firstName} ${u.lastName}`.trim()))
+    }
+    const ordersWithCashier = orders.map((o) => {
+      const createdBy = orderIdToCreatedBy.get(o.id) ?? null
+      return {
+        ...o,
+        cashierName: createdBy ? (userIdToName.get(createdBy) || null) : null
+      }
     })
 
     const totalCount = await prisma.order.count({
@@ -527,7 +541,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        sales: orders,
+        sales: ordersWithCashier,
         pagination: {
           total: totalCount,
           limit,

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { 
   EyeIcon,
   PencilIcon,
@@ -22,6 +22,8 @@ import { useLanguage } from '../../contexts/LanguageContext'
 import { useBusiness } from '../../contexts/BusinessContext'
 import { useNotifications } from '../../contexts/NotificationContext'
 import PermissionGate from '../../components/auth/PermissionGate'
+import Receipt from '../../components/Receipt'
+// removed session usage; cashier name comes from API
 
 interface Order {
   id: number
@@ -57,6 +59,8 @@ interface Order {
     paymentStatus: string
     paidAt: string | null
   }>
+  createdBy?: number
+  cashierName?: string | null
 }
 
 interface Customer {
@@ -104,6 +108,8 @@ function SalesManagementPageContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(true)
   const [totalCount, setTotalCount] = useState(0)
+  const [showReceipt, setShowReceipt] = useState(false)
+  const [receiptOrder, setReceiptOrder] = useState<Order | null>(null)
 
   // Get date range for API calls
   const getDateRange = useCallback(() => {
@@ -571,6 +577,11 @@ function SalesManagementPageContent() {
     }
   }
 
+  const openReceipt = (order: Order) => {
+    setReceiptOrder(order)
+    setShowReceipt(true)
+  }
+
   const handleExport = (format: string) => {
     console.log('Exporting data as:', format)
   }
@@ -952,6 +963,7 @@ function SalesManagementPageContent() {
                           whileTap={{ scale: 0.9 }}
                           className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title={t.view}
+                          onClick={() => openReceipt(order)}
                         >
                           <EyeIcon className="w-4 h-4" />
                         </motion.button>
@@ -990,6 +1002,42 @@ function SalesManagementPageContent() {
           </table>
         </div>
       </motion.div>
+
+      {/* Receipt Modal */}
+      <AnimatePresence>
+        {showReceipt && receiptOrder && (
+          <Receipt
+            isOpen={showReceipt}
+            onClose={() => setShowReceipt(false)}
+            receiptData={{
+              transactionId: `ORD-${receiptOrder.id}`,
+              orderNumber: receiptOrder.orderNumber,
+              businessName: currentBusiness?.name || 'Business',
+              businessPhone: currentBusiness?.businessSetting?.phone,
+              businessEmail: currentBusiness?.businessSetting?.email,
+              businessAddress: currentBusiness?.businessSetting?.address,
+              customerName: receiptOrder.customer.fullName,
+              customerPhone: receiptOrder.customer.phone,
+              items: receiptOrder.orderItems.map((oi) => ({
+                id: oi.id,
+                name: oi.product.name,
+                nameSwahili: oi.product.nameSwahili,
+                quantity: oi.quantity,
+                price: Number(oi.unitPrice),
+                subtotal: Number(oi.totalPrice)
+              })),
+              subtotal: Number(receiptOrder.subtotal),
+              taxAmount: Number(receiptOrder.taxAmount || 0),
+              taxRate: Number(currentBusiness?.businessSetting?.taxRate || 18),
+              finalTotal: Number(receiptOrder.totalAmount),
+              paymentMethod: (receiptOrder.paymentMethod === 'BANK_TRANSFER' ? 'bank' : receiptOrder.paymentMethod === 'MOBILE_MONEY' ? 'mobile' : receiptOrder.paymentMethod.toLowerCase()),
+              paymentPlan: receiptOrder.paymentPlan.toLowerCase() as 'full' | 'partial' | 'credit',
+              transactionDate: new Date(receiptOrder.orderDate).toLocaleString(),
+              cashierName: receiptOrder.cashierName || undefined
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Pagination */}
       {totalPages > 1 && (

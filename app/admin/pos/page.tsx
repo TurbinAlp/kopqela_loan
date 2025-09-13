@@ -124,6 +124,7 @@ function POSSystemContent() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [customers, setCustomers] = useState<Customer[]>([])
   const [customerSearch, setCustomerSearch] = useState('')
+  const [customerMode, setCustomerMode] = useState<'WALKIN' | 'SAVED'>('WALKIN')
   const [paymentMethod, setPaymentMethod] = useState<'full' | 'partial' | 'credit'>('full')
   const [actualPaymentMethod, setActualPaymentMethod] = useState<'cash' | 'card' | 'mobile' | 'bank'>('cash')
   const [partialPaymentMethod, setPartialPaymentMethod] = useState<'cash' | 'card' | 'mobile' | 'bank'>('cash')
@@ -341,6 +342,45 @@ function POSSystemContent() {
     fetchData()
   }, [currentBusiness?.id, showError])
 
+  // Ensure or create a Walk-in Customer (per business) lazily
+  const ensureWalkInCustomer = async (): Promise<Customer | null> => {
+    if (!currentBusiness?.id) return null
+    try {
+      // Try to find by phone token first
+      const token = '0000000000'
+      const res = await fetch(`/api/admin/customers?businessId=${currentBusiness.id}&search=${encodeURIComponent(token)}&limit=1`)
+      const data = await res.json()
+      const existing: Customer | undefined = data?.data?.customers?.[0]
+      if (existing) return existing
+
+      // Create minimal Walk-in customer
+      const createRes = await fetch('/api/admin/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessId: currentBusiness.id,
+          name: language === 'sw' ? 'Mteja wa Kawaida' : 'Walk-in Customer',
+          phone: token,
+          status: 'active'
+        })
+      })
+      const created = await createRes.json()
+      if (created?.success && created?.data) {
+        return {
+          id: created.data.id,
+          name: created.data.name,
+          phone: created.data.phone,
+          email: created.data.email,
+          creditLimit: created.data.creditLimit,
+          outstandingBalance: created.data.outstandingBalance
+        } as Customer
+      }
+    } catch (e) {
+      console.error('Ensure Walk-in failed', e)
+    }
+    return null
+  }
+
 
   // Check if business is selected
   if (!currentBusiness) {
@@ -435,7 +475,8 @@ function POSSystemContent() {
       return
     }
 
-    if (!selectedCustomer){
+    // Require customer only when in Saved mode
+    if (customerMode === 'SAVED' && !selectedCustomer) {
       showError(t.paymentFailed, t.customerRequired)
       return
     }
@@ -453,6 +494,18 @@ function POSSystemContent() {
     setIsProcessing(true)
 
     try {
+      // Resolve customer for Walk-in mode
+      let resolvedCustomer = selectedCustomer
+      if (customerMode === 'WALKIN' && !resolvedCustomer) {
+        const walkIn = await ensureWalkInCustomer()
+        if (!walkIn) {
+          showError(t.paymentFailed, language === 'sw' ? 'Imeshindwa kupata mteja wa kawaida' : 'Failed to resolve walk-in customer')
+          setIsProcessing(false)
+          return
+        }
+        resolvedCustomer = walkIn
+        setSelectedCustomer(walkIn)
+      }
       // Store payment plan before clearing states
       const currentPaymentPlan = paymentMethod
       const currentDueDate = dueDate
@@ -462,7 +515,7 @@ function POSSystemContent() {
       // Prepare API data
       const saleData = {
         businessId: currentBusiness.id,
-        customerId: selectedCustomer.id,
+        customerId: (resolvedCustomer as Customer).id,
         items: cart.map(item => ({
           productId: item.id,
           quantity: item.quantity,
@@ -628,6 +681,8 @@ function POSSystemContent() {
               setCustomerSearch={setCustomerSearch}
               onSelectCustomer={selectCustomer}
               onAddCustomerClick={() => setShowCustomerModal(true)}
+              mode={customerMode}
+              onModeChange={setCustomerMode}
             />
 
             {/* Order Type Selection - Show only when business supports BOTH */}
@@ -763,7 +818,7 @@ function POSSystemContent() {
                 dueDate: lastTransaction.paymentPlan === 'partial' ? lastTransaction.dueDate : undefined,
                 creditPlan: lastTransaction.paymentPlan === 'credit' ? lastTransaction.creditPlan : undefined,
                 transactionDate: lastTransaction.date,
-                cashierName: 'Cashier'
+                cashierName: session?.user ? `${session.user.firstName} ${session.user.lastName}` : 'Cashier'
               }}
               onNewTransaction={() => {
                 setShowReceipt(false)

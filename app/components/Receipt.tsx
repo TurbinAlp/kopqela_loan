@@ -4,9 +4,7 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { 
   PrinterIcon,
-  CheckIcon,
-  XMarkIcon,
-  BuildingStorefrontIcon
+  XMarkIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../contexts/LanguageContext'
 
@@ -54,8 +52,9 @@ interface ReceiptProps {
   onClose: () => void
   receiptData: ReceiptData
   onPrint?: () => void
-  onEmailReceipt?: () => void
-  onSMSReceipt?: () => void
+  // Optional: omitted in simplified UI
+  // onEmailReceipt?: () => void
+  // onSMSReceipt?: () => void
   onNewTransaction?: () => void
 }
 
@@ -64,8 +63,8 @@ export default function Receipt({
   onClose,
   receiptData,
   onPrint,
-  onEmailReceipt,
-  onSMSReceipt,
+  // onEmailReceipt,
+  // onSMSReceipt,
   onNewTransaction
 }: ReceiptProps) {
   const { language } = useLanguage()
@@ -183,55 +182,40 @@ export default function Receipt({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
+        initial={{ scale: 0.98, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-white rounded-xl max-w-2xl w-full max-h-[95vh] overflow-y-auto"
+        exit={{ scale: 0.98, opacity: 0 }}
+        className="bg-white rounded-xl max-w-lg w-full shadow-lg"
       >
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckIcon className="w-6 h-6 text-green-600" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">{t.transactionComplete}</h2>
-                <p className="text-gray-600">{t.receipt}</p>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <XMarkIcon className="w-5 h-5 text-gray-400" />
-            </button>
-          </div>
+        <div className="flex items-center justify-between border-b border-gray-200 p-4 rounded-t-xl">
+          <h2 className="text-lg font-bold text-gray-900">{t.receipt}</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-md"
+          >
+            <XMarkIcon className="w-5 h-5 text-gray-500" />
+          </button>
         </div>
 
         {/* Receipt Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-4 space-y-5">
           {/* Business Information */}
-          <div className="text-center border-b border-gray-200 pb-4">
-            <div className="flex items-center justify-center mb-2">
-              <BuildingStorefrontIcon className="w-6 h-6 text-teal-600 mr-2" />
-              <h3 className="text-lg font-bold text-gray-900">{receiptData.businessName}</h3>
+          <div className="text-center border-b border-gray-200 pb-3">
+            <h3 className="text-base font-semibold text-gray-900">{receiptData.businessName}</h3>
+            <div className="text-xs text-gray-600 space-x-2">
+              {receiptData.businessPhone && (<span>{receiptData.businessPhone}</span>)}
+              {receiptData.businessEmail && (<span>{receiptData.businessEmail}</span>)}
             </div>
-            {receiptData.businessPhone && (
-              <p className="text-gray-600">{t.phone}: {receiptData.businessPhone}</p>
-            )}
-            {receiptData.businessEmail && (
-              <p className="text-gray-600">{t.email}: {receiptData.businessEmail}</p>
-            )}
             {receiptData.businessAddress && (
-              <p className="text-gray-600">{receiptData.businessAddress}</p>
+              <p className="text-xs text-gray-600 mt-1">{receiptData.businessAddress}</p>
             )}
           </div>
 
           {/* Transaction Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-2 gap-3 text-xs">
             <div>
               <p className="text-gray-600">{t.transactionId}:</p>
               <p className="font-medium text-gray-900">{receiptData.transactionId}</p>
@@ -269,11 +253,11 @@ export default function Receipt({
           </div>
 
           {/* Items List */}
-          <div className="border-t border-gray-200 pt-4">
-            <h4 className="font-medium text-gray-900 mb-3">{t.items}</h4>
+          <div className="border-t border-gray-200 pt-3">
+            <h4 className="font-medium text-gray-900 mb-2">{t.items}</h4>
             <div className="space-y-2">
               {/* Header */}
-              <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-600 border-b border-gray-200 pb-2">
+              <div className="grid grid-cols-12 gap-2 text-[11px] font-medium text-gray-600 border-b border-gray-200 pb-2">
                 <div className="col-span-5">{t.itemName}</div>
                 <div className="col-span-2 text-center">{t.quantity}</div>
                 <div className="col-span-2 text-right">{t.price}</div>
@@ -282,14 +266,11 @@ export default function Receipt({
               
               {/* Items */}
               {receiptData.items.map((item) => (
-                <div key={item.id} className="grid grid-cols-12 gap-2 text-sm border-b border-gray-100 pb-2">
+                <div key={item.id} className="grid grid-cols-12 gap-2 text-xs border-b border-gray-100 pb-2">
                   <div className="col-span-5">
                     <p className="font-medium text-gray-900">
                       {language === 'sw' && item.nameSwahili ? item.nameSwahili : item.name}
                     </p>
-                    {item.unit && (
-                      <p className="text-xs text-gray-500">Unit: {item.unit}</p>
-                    )}
                   </div>
                   <div className="col-span-2 text-center text-gray-900">
                     {item.quantity}
@@ -306,8 +287,8 @@ export default function Receipt({
           </div>
 
           {/* Payment Summary */}
-          <div className="border-t border-gray-200 pt-4">
-            <div className="space-y-2 text-sm">
+          <div className="border-t border-gray-200 pt-3">
+            <div className="space-y-1.5 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600">{t.subtotal}:</span>
                 <span className="text-gray-900">{formatCurrency(receiptData.subtotal)}</span>
@@ -336,7 +317,7 @@ export default function Receipt({
                 </div>
               )}
               
-              <div className="flex justify-between font-bold text-lg border-t border-gray-200 pt-2">
+              <div className="flex justify-between font-bold text-base border-t border-gray-200 pt-2">
                 <span className="text-gray-900">{t.grandTotal}:</span>
                 <span className="text-gray-900">{formatCurrency(receiptData.finalTotal)}</span>
               </div>
@@ -344,7 +325,7 @@ export default function Receipt({
           </div>
 
           {/* Payment Information */}
-          <div className="border-t border-gray-200 pt-4">
+          <div className="border-t border-gray-200 pt-3">
             <h4 className="font-medium text-gray-900 mb-2">{t.paymentMethod}</h4>
             <div className="text-sm space-y-1">
               <p className="text-gray-900">
@@ -385,63 +366,36 @@ export default function Receipt({
 
           {/* Notes */}
           {receiptData.notes && (
-            <div className="border-t border-gray-200 pt-4">
+            <div className="border-t border-gray-200 pt-3">
               <h4 className="font-medium text-gray-900 mb-2">{t.notes}</h4>
               <p className="text-sm text-gray-600">{receiptData.notes}</p>
             </div>
           )}
 
           {/* Thank You Message */}
-          <div className="text-center border-t border-gray-200 pt-4">
+          <div className="text-center border-t border-gray-200 pt-3">
             <p className="text-gray-600 italic">{t.thankYou}</p>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 rounded-b-xl">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <button
-              onClick={handlePrint}
-              className="bg-teal-600 text-white py-3 px-4 rounded-lg hover:bg-teal-700 transition-colors flex items-center justify-center"
-            >
-              <PrinterIcon className="w-4 h-4 mr-2" />
-              {t.printReceipt}
+        <div className="border-t border-gray-200 p-4 rounded-b-xl flex items-center justify-between">
+          <button
+            onClick={handlePrint}
+            className="bg-teal-600 text-white py-2.5 px-4 rounded-lg hover:bg-teal-700 transition-colors flex items-center"
+          >
+            <PrinterIcon className="w-4 h-4 mr-2" />
+            {t.printReceipt}
+          </button>
+          {onNewTransaction ? (
+            <button onClick={onNewTransaction} className="text-gray-700 hover:text-gray-900 text-sm font-medium">
+              {t.newTransaction}
             </button>
-            
-            {onEmailReceipt && (
-              <button
-                onClick={onEmailReceipt}
-                className="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                {t.emailReceipt}
-              </button>
-            )}
-            
-            {onSMSReceipt && (
-              <button
-                onClick={onSMSReceipt}
-                className="bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors"
-              >
-                {t.smsReceipt}
-              </button>
-            )}
-            
-            {onNewTransaction ? (
-              <button
-                onClick={onNewTransaction}
-                className="bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                {t.newTransaction}
-              </button>
-            ) : (
-              <button
-                onClick={onClose}
-                className="bg-gray-600 text-white py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                {t.close}
-              </button>
-            )}
-          </div>
+          ) : (
+            <button onClick={onClose} className="text-gray-700 hover:text-gray-900 text-sm font-medium">
+              {t.close}
+            </button>
+          )}
         </div>
       </motion.div>
     </div>
