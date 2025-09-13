@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   EyeIcon,
-  PencilIcon,
   CreditCardIcon,
   PrinterIcon,
   MagnifyingGlassIcon,
@@ -110,6 +109,17 @@ function SalesManagementPageContent() {
   const [totalCount, setTotalCount] = useState(0)
   const [showReceipt, setShowReceipt] = useState(false)
   const [receiptOrder, setReceiptOrder] = useState<Order | null>(null)
+  const [autoPrint, setAutoPrint] = useState(false)
+
+  // Auto-print when opening receipt via printer button
+  useEffect(() => {
+    if (showReceipt && autoPrint) {
+      setTimeout(() => {
+        try { window.print() } catch {}
+        setAutoPrint(false)
+      }, 50)
+    }
+  }, [showReceipt, autoPrint])
 
   // Get date range for API calls
   const getDateRange = useCallback(() => {
@@ -582,6 +592,24 @@ function SalesManagementPageContent() {
     setShowReceipt(true)
   }
 
+  const handlePrintOrder = (order: Order) => {
+    setReceiptOrder(order)
+    setAutoPrint(true)
+    setShowReceipt(true)
+  }
+
+  
+
+  const downloadOrder = (order: Order) => {
+    const a = document.createElement('a')
+    a.href = `/api/admin/pos/sales/${order.id}/pdf?download=1`
+    a.target = '_blank'
+    a.rel = 'noopener'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  }
+
   const handleExport = (format: string) => {
     console.log('Exporting data as:', format)
   }
@@ -915,7 +943,7 @@ function SalesManagementPageContent() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-default"
                   >
                     <td className="py-4 px-4 lg:px-6">
                       <span className="font-mono text-sm font-medium text-gray-800">{order.orderNumber}</span>
@@ -961,9 +989,9 @@ function SalesManagementPageContent() {
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
+                          onClick={(e) => { e.stopPropagation(); openReceipt(order) }}
                           className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title={t.view}
-                          onClick={() => openReceipt(order)}
                         >
                           <EyeIcon className="w-4 h-4" />
                         </motion.button>
@@ -971,6 +999,7 @@ function SalesManagementPageContent() {
                           <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
+                            onClick={(e) => { e.stopPropagation() }}
                             className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                             title={t.processPayment}
                           >
@@ -980,6 +1009,7 @@ function SalesManagementPageContent() {
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
+                          onClick={(e) => { e.stopPropagation(); handlePrintOrder(order) }}
                           className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
                           title={t.printReceipt}
                         >
@@ -988,10 +1018,11 @@ function SalesManagementPageContent() {
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
-                          className="p-2 text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
-                          title={t.edit}
+                          onClick={(e) => { e.stopPropagation(); downloadOrder(order) }}
+                          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title={t.exportData}
                         >
-                          <PencilIcon className="w-4 h-4" />
+                          <DocumentArrowDownIcon className="w-4 h-4" />
                         </motion.button>
                       </div>
                     </td>
