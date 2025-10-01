@@ -13,9 +13,6 @@ services:
       - --providers.docker.exposedbydefault=false
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entrypoints.web.http.redirections.entrypoint.scheme=https
-      - --entrypoints.web.http.redirections.entrypoint.permanent=true
       - --certificatesresolvers.cloudflare.acme.email=${TRAEFIK_ACME_EMAIL}
       - --certificatesresolvers.cloudflare.acme.storage=/letsencrypt/acme.json
       - --certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare
@@ -31,7 +28,11 @@ services:
       - traefik
     labels:
       - "traefik.enable=true"
-      # Dashboard
+      # Dashboard HTTP Router (redirects to HTTPS)
+      - "traefik.http.routers.dashboard-web.rule=Host(`traefik.${APP_DOMAIN}`)"
+      - "traefik.http.routers.dashboard-web.entrypoints=web"
+      - "traefik.http.routers.dashboard-web.middlewares=redirect-to-https"
+      # Dashboard HTTPS Router
       - "traefik.http.routers.dashboard.rule=Host(`traefik.${APP_DOMAIN}`)"
       - "traefik.http.routers.dashboard.entrypoints=websecure"
       - "traefik.http.routers.dashboard.tls=true"
@@ -69,11 +70,20 @@ services:
       - traefik
     labels:
       - "traefik.enable=true"
+      # HTTP Router (redirects to HTTPS)
+      - "traefik.http.routers.kopqela-web.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.kopqela-web.entrypoints=web"
+      - "traefik.http.routers.kopqela-web.middlewares=redirect-to-https"
+      # HTTPS Router
       - "traefik.http.routers.kopqela.rule=Host(`${APP_DOMAIN}`)"
       - "traefik.http.routers.kopqela.entrypoints=websecure"
       - "traefik.http.routers.kopqela.tls=true"
       - "traefik.http.routers.kopqela.tls.certresolver=cloudflare"
+      # Service configuration
       - "traefik.http.services.kopqela.loadbalancer.server.port=3000"
+      # Redirect middleware
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
     depends_on:
       - traefik
 
