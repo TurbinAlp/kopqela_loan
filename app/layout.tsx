@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Roboto_Mono } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
@@ -7,14 +7,17 @@ import ToastContainer from "./components/notifications/ToastContainer";
 import { AuthProvider } from "./components/providers/AuthProvider";
 import LoadingBar from "./components/ui/LoadingBar";
 import { LoadingBarProvider } from "./components/ui/LoadingBarProvider";
-const geistSans = Geist({
+
+const geistSans = Inter({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: 'swap',
 });
 
-const geistMono = Geist_Mono({
+const geistMono = Roboto_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
