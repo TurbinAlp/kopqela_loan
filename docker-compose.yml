@@ -1,3 +1,5 @@
+name: kopqela
+
 services:
   # Traefik reverse proxy for SSL/HTTPS
   traefik:
@@ -19,7 +21,8 @@ services:
       - --certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare
       - --certificatesresolvers.cloudflare.acme.dnschallenge.delaybeforecheck=0
       - --api.dashboard=true
-      - --log.level=INFO
+      - --api.insecure=true
+      - --log.level=DEBUG
     environment:
       - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
     volumes:
