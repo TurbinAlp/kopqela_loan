@@ -10,32 +10,32 @@ datasource db {
 }
 
 model User {
-  id                    Int              @id @default(autoincrement())
-  firstName             String           @map("first_name") @db.VarChar(100)
-  lastName              String           @map("last_name") @db.VarChar(100)
-  email                 String           @unique @db.VarChar(255)
-  phone                 String?          @db.VarChar(20)
-  passwordHash          String?          @map("password_hash") @db.VarChar(255)
-  isVerified            Boolean          @default(false) @map("is_verified")
-  verificationCode      String?          @map("verification_code") @db.VarChar(10)
-  verificationExpiresAt DateTime?        @map("verification_expires_at")
-  resetToken            String?          @map("reset_token") @db.VarChar(255)
-  resetTokenExpiresAt   DateTime?        @map("reset_token_expires_at")
-  googleId              String?          @unique @map("google_id") @db.VarChar(255)
-  picture               String?          @map("picture") @db.VarChar(500)
-  provider              String?          @default("email") @db.VarChar(50)
-  lastLoginAt           DateTime?        @map("last_login_at")
-  createdAt             DateTime         @default(now()) @map("created_at")
-  updatedAt             DateTime         @updatedAt @map("updated_at")
-  ownedBusinesses       Business[]       @relation("BusinessOwner")
+  id                    Int                 @id @default(autoincrement())
+  firstName             String              @map("first_name") @db.VarChar(100)
+  lastName              String              @map("last_name") @db.VarChar(100)
+  email                 String              @unique @db.VarChar(255)
+  phone                 String?             @db.VarChar(20)
+  passwordHash          String?             @map("password_hash") @db.VarChar(255)
+  isVerified            Boolean             @default(false) @map("is_verified")
+  verificationCode      String?             @map("verification_code") @db.VarChar(10)
+  verificationExpiresAt DateTime?           @map("verification_expires_at")
+  resetToken            String?             @map("reset_token") @db.VarChar(255)
+  resetTokenExpiresAt   DateTime?           @map("reset_token_expires_at")
+  googleId              String?             @unique @map("google_id") @db.VarChar(255)
+  picture               String?             @map("picture") @db.VarChar(500)
+  provider              String?             @default("email") @db.VarChar(50)
+  lastLoginAt           DateTime?           @map("last_login_at")
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+  addedUsers            BusinessUser[]      @relation("UserAddedBy")
   businessMemberships   BusinessUser[]
-  addedUsers           BusinessUser[]   @relation("UserAddedBy")
+  ownedBusinesses       Business[]          @relation("BusinessOwner")
   customers             Customer[]
-  grantedPermissions    UserPermission[] @relation("PermissionGrantedBy")
-  userPermissions       UserPermission[]
-  sessions              UserSession[]
-  userPreferences       UserPreference[]
   inventoryMovements    InventoryMovement[]
+  grantedPermissions    UserPermission[]    @relation("PermissionGrantedBy")
+  userPermissions       UserPermission[]
+  userPreferences       UserPreference[]
+  sessions              UserSession[]
 
   @@map("users")
 }
@@ -109,14 +109,13 @@ model UserSession {
 }
 
 model UserPreference {
-  id             Int      @id @default(autoincrement())
-  userId         Int      @map("user_id")
-  key            String   @db.VarChar(100) // e.g., 'default_business'
-  value          String   @db.Text // JSON string for complex values
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  key       String   @db.VarChar(100)
+  value     String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, key])
   @@map("user_preferences")
@@ -126,16 +125,16 @@ model Business {
   id                 Int                 @id @default(autoincrement())
   name               String              @db.VarChar(255)
   businessType       String              @map("business_type") @db.VarChar(100)
-  businessCategory   String?             @map("business_category") @db.VarChar(100)
   slug               String              @unique @db.VarChar(100)
   ownerId            Int?                @map("owner_id")
   status             BusinessStatus      @default(PENDING)
   isActive           Boolean             @default(true) @map("is_active")
   createdAt          DateTime            @default(now()) @map("created_at")
   updatedAt          DateTime            @updatedAt @map("updated_at")
+  businessCategory   String?             @map("business_category") @db.VarChar(100)
   businessSetting    BusinessSetting?
-  owner              User?               @relation("BusinessOwner", fields: [ownerId], references: [id])
   employees          BusinessUser[]
+  owner              User?               @relation("BusinessOwner", fields: [ownerId], references: [id])
   categories         Category[]
   creditApplications CreditApplication[]
   customers          Customer[]
@@ -145,27 +144,27 @@ model Business {
   payments           Payment[]
   products           Product[]
   rolePermissions    RolePermission[]
+  services           Service[]
   userPermissions    UserPermission[]
 
   @@map("businesses")
 }
 
 model BusinessUser {
-  id         Int      @id @default(autoincrement())
-  businessId Int      @map("business_id")
-  userId     Int      @map("user_id")
-  role       UserRole
-  isActive   Boolean  @default(true) @map("is_active")
-  isDeleted  Boolean  @default(false) @map("is_deleted")
-  joinedAt   DateTime @default(now()) @map("joined_at")
-  addedBy    Int?     @map("added_by")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-  
+  id          Int      @id @default(autoincrement())
+  businessId  Int      @map("business_id")
+  userId      Int      @map("user_id")
+  role        UserRole
+  isActive    Boolean  @default(true) @map("is_active")
+  joinedAt    DateTime @default(now()) @map("joined_at")
+  addedBy     Int?     @map("added_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+  addedByUser User?    @relation("UserAddedBy", fields: [addedBy], references: [id])
   business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  addedByUser User?    @relation("UserAddedBy", fields: [addedBy], references: [id])
-  
+
   @@unique([businessId, userId])
   @@map("business_users")
 }
@@ -263,6 +262,7 @@ model Customer {
   user               User?               @relation(fields: [userId], references: [id])
   orders             Order[]
   payments           Payment[]
+  rentedServiceItems ServiceItem[]
 
   @@unique([businessId, phone])
   @@map("customers")
@@ -287,28 +287,28 @@ model Category {
 }
 
 model Product {
-  id             Int            @id @default(autoincrement())
-  businessId     Int            @map("business_id")
-  categoryId     Int?           @map("category_id")
-  name           String         @db.VarChar(255)
-  nameSwahili    String?        @map("name_swahili") @db.VarChar(255)
+  id             Int                 @id @default(autoincrement())
+  businessId     Int                 @map("business_id")
+  categoryId     Int?                @map("category_id")
+  name           String              @db.VarChar(255)
+  nameSwahili    String?             @map("name_swahili") @db.VarChar(255)
   description    String?
-  sku            String?        @db.VarChar(100)
-  barcode        String?        @db.VarChar(100)
-  price          Decimal        @db.Decimal(10, 2)
-  wholesalePrice Decimal?       @map("wholesale_price") @db.Decimal(10, 2)
-  costPrice      Decimal?       @map("cost_price") @db.Decimal(10, 2)
-  unit           String?        @db.VarChar(50)
-  isActive       Boolean        @default(true) @map("is_active")
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
-  isDraft        Boolean        @default(false) @map("is_draft")
+  sku            String?             @db.VarChar(100)
+  barcode        String?             @db.VarChar(100)
+  price          Decimal             @db.Decimal(10, 2)
+  wholesalePrice Decimal?            @map("wholesale_price") @db.Decimal(10, 2)
+  costPrice      Decimal?            @map("cost_price") @db.Decimal(10, 2)
+  unit           String?             @db.VarChar(50)
+  isActive       Boolean             @default(true) @map("is_active")
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+  isDraft        Boolean             @default(false) @map("is_draft")
   inventory      Inventory[]
+  movements      InventoryMovement[]
   orderItems     OrderItem[]
   images         ProductImage[]
-  movements      InventoryMovement[]
-  business       Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  category       Category?      @relation(fields: [categoryId], references: [id])
+  business       Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  category       Category?           @relation(fields: [categoryId], references: [id])
 
   @@unique([businessId, sku])
   @@map("products")
@@ -335,13 +335,13 @@ model Inventory {
   id               Int      @id @default(autoincrement())
   businessId       Int      @map("business_id")
   productId        Int      @map("product_id")
-  quantity         Int      @default(0)
   reservedQuantity Int      @default(0) @map("reserved_quantity")
   reorderPoint     Int?     @map("reorder_point")
   maxStock         Int?     @map("max_stock")
-  location         String   @default("main_store") @db.VarChar(100)
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
+  location         String   @default("main_store") @db.VarChar(100)
+  quantity         Int      @default(0)
   business         Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
@@ -356,15 +356,14 @@ model InventoryMovement {
   fromLocation String?  @map("from_location") @db.VarChar(100)
   toLocation   String   @map("to_location") @db.VarChar(100)
   quantity     Int
-  movementType String   @map("movement_type") @db.VarChar(50) // 'transfer', 'adjustment', 'initial_stock', 'sale'
+  movementType String   @map("movement_type") @db.VarChar(50)
   reason       String?  @db.VarChar(255)
-  referenceId  String?  @map("reference_id") @db.VarChar(100) // Order ID, transfer ID, etc.
+  referenceId  String?  @map("reference_id") @db.VarChar(100)
   createdBy    Int      @map("created_by")
   createdAt    DateTime @default(now()) @map("created_at")
-  
   business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   user         User     @relation(fields: [createdBy], references: [id])
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@map("inventory_movements")
 }
@@ -465,6 +464,46 @@ model CreditApplication {
   @@map("credit_applications")
 }
 
+model Service {
+  id           Int           @id @default(autoincrement())
+  businessId   Int           @map("business_id")
+  serviceType  ServiceType   @map("service_type")
+  name         String        @db.VarChar(255)
+  nameSwahili  String?       @map("name_swahili") @db.VarChar(255)
+  description  String?
+  isActive     Boolean       @default(true) @map("is_active")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  business     Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  serviceItems ServiceItem[]
+
+  @@map("services")
+}
+
+model ServiceItem {
+  id                    Int              @id @default(autoincrement())
+  serviceId             Int              @map("service_id")
+  itemNumber            String           @map("item_number") @db.VarChar(100)
+  name                  String           @db.VarChar(255)
+  nameSwahili           String?          @map("name_swahili") @db.VarChar(255)
+  description           String?
+  price                 Decimal          @db.Decimal(10, 2)
+  durationValue         Int              @map("duration_value") // 15, 30, 45, 1, 2, etc
+  durationUnit          DurationUnit     @map("duration_unit") // MINUTES, HOURS, DAYS, etc
+  status                ServiceItemStatus @default(AVAILABLE)
+  currentRentalStart    DateTime?        @map("current_rental_start")
+  currentRentalEnd      DateTime?        @map("current_rental_end")
+  currentCustomerId     Int?             @map("current_customer_id")
+  specifications        Json?
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+  service               Service          @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  currentCustomer       Customer?        @relation(fields: [currentCustomerId], references: [id], onDelete: SetNull)
+
+  @@unique([serviceId, itemNumber])
+  @@map("service_items")
+}
+
 enum UserRole {
   ADMIN
   MANAGER
@@ -558,4 +597,30 @@ enum RiskLevel {
   VERY_HIGH
 
   @@map("risk_level")
+}
+
+enum ServiceType {
+  LEASE
+
+  @@map("service_type")
+}
+
+enum DurationUnit {
+  MINUTES
+  HOURS
+  DAYS
+  WEEKS
+  MONTHS
+  YEARS
+
+  @@map("duration_unit")
+}
+
+enum ServiceItemStatus {
+  AVAILABLE
+  RENTED
+  BOOKED
+  MAINTENANCE
+
+  @@map("service_item_status")
 }

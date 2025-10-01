@@ -17,7 +17,8 @@ import {
   LanguageIcon,
   ComputerDesktopIcon,
   ChevronDownIcon,
-  BuildingOfficeIcon
+  BuildingOfficeIcon,
+  WrenchScrewdriverIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../contexts/LanguageContext'
 import { BusinessProvider } from '../contexts/BusinessContext'
@@ -110,6 +111,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
       addProduct: "Add Product",
       editProduct: "Edit Product",
       productDetails: "Product Details",
+      services: "Services",
       sales: "Sales",
       pos: "Point of Sale",
       customers: "Customers",
@@ -132,6 +134,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
       addProduct: "Ongeza Bidhaa",
       editProduct: "Hariri Bidhaa",
       productDetails: "Maelezo ya Bidhaa",
+      services: "Huduma",
       sales: "Mauzo",
       pos: "Mahali pa Mauzo",
       customers: "Wateja",
@@ -179,6 +182,12 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
         { name: t.addProduct, href: "/admin/products/add", permission: "products.create" },
         { name: t.movementHistory, href: "/admin/inventory/movements", permission: "inventory.read" }
       ]
+    },
+    { 
+      name: t.services, 
+      icon: WrenchScrewdriverIcon, 
+      href: "/admin/services",
+      permission: "services.read"
     },
     { 
       name: t.sales, 

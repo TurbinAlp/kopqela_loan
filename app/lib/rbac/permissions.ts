@@ -17,6 +17,9 @@ export enum Resource {
   CATEGORIES = 'categories',
   INVENTORY = 'inventory',
   
+  // Service Management
+  SERVICES = 'services',
+  
   // Order Management
   ORDERS = 'orders',
   ORDER_ITEMS = 'order_items',
@@ -224,6 +227,36 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     businessSpecific: true
   },
 
+  // ==================== SERVICE MANAGEMENT ====================
+  {
+    name: 'services.create',
+    resource: Resource.SERVICES,
+    action: Action.CREATE,
+    description: 'Add new services',
+    businessSpecific: true
+  },
+  {
+    name: 'services.read',
+    resource: Resource.SERVICES,
+    action: Action.READ,
+    description: 'View service information',
+    businessSpecific: true
+  },
+  {
+    name: 'services.update',
+    resource: Resource.SERVICES,
+    action: Action.UPDATE,
+    description: 'Update service information',
+    businessSpecific: true
+  },
+  {
+    name: 'services.delete',
+    resource: Resource.SERVICES,
+    action: Action.DELETE,
+    description: 'Remove services',
+    businessSpecific: true
+  },
+
   // ==================== ORDER MANAGEMENT ====================
   {
     name: 'orders.create',
@@ -424,6 +457,7 @@ export const ROLE_PERMISSIONS = {
     'products.create', 'products.read', 'products.update', 'products.delete',
     'categories.manage',
     'inventory.read', 'inventory.update',
+    'services.create', 'services.read', 'services.update', 'services.delete',
     'orders.create', 'orders.read', 'orders.update', 'orders.delete',
     'sales.read', 'sales.export',
     'pos.create', 'pos.read',
@@ -446,6 +480,7 @@ export const ROLE_PERMISSIONS = {
     'products.create', 'products.read', 'products.update',
     'categories.manage',
     'inventory.read', 'inventory.update',
+    'services.create', 'services.read', 'services.update',
     'orders.create', 'orders.read', 'orders.update',
     'sales.read', 'sales.export',
     'pos.create', 'pos.read',
@@ -463,6 +498,7 @@ export const ROLE_PERMISSIONS = {
     'customers.read',
     'products.read',
     'inventory.read',
+    'services.read',
     'orders.create', 'orders.read', 'orders.update',
     'sales.read',
     'pos.create', 'pos.read',
