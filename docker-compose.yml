@@ -44,7 +44,7 @@ services:
 
   # Kopqela Application
   app:
-    image: ghcr.io/${GITHUB_REPOSITORY,,}:latest
+    image: ghcr.io/${GITHUB_REPOSITORY}:latest
     container_name: kopqela
     restart: unless-stopped
     environment:
