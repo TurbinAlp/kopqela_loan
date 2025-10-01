@@ -59,17 +59,6 @@ jobs:
     needs: build
     
     steps:
-      - name: Copy project files to VPS
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          port: ${{ secrets.VPS_PORT }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "prisma/,public/uploads/"
-          target: "/home/${{ secrets.VPS_USER }}/kopqela_loan"
-          overwrite: true
-
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -125,7 +114,6 @@ jobs:
             # Run database migrations (if needed)
             echo "🗃️ Running database migrations..."
             docker run --rm --env-file .env.production \
-              -v /home/${{ secrets.VPS_USER }}/kopqela_loan/prisma:/app/prisma \
               ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest npx prisma migrate deploy || true
             
             # Start new container
