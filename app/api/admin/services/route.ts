@@ -25,7 +25,10 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Fetch services with item counts
+    // Check if we need full items (for POS) or just counts
+    const includeItems = searchParams.get('includeItems') === 'true'
+
+    // Fetch services with item counts and optionally items
     const services = await prisma.service.findMany({
       where: {
         businessId: parseInt(businessId)
@@ -33,7 +36,26 @@ export async function GET(request: NextRequest) {
       include: {
         _count: {
           select: { serviceItems: true }
-        }
+        },
+        ...(includeItems && {
+          serviceItems: {
+            where: {
+              status: 'AVAILABLE' // Only fetch available items for POS
+            },
+            select: {
+              id: true,
+              serviceId: true,
+              itemNumber: true,
+              name: true,
+              nameSwahili: true,
+              description: true,
+              price: true,
+              durationValue: true,
+              durationUnit: true,
+              status: true
+            }
+          }
+        })
       },
       orderBy: {
         createdAt: 'desc'
@@ -42,7 +64,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: {
+      data: includeItems ? services : {
         services,
         totalCount: services.length
       }

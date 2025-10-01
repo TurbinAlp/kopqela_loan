@@ -12,12 +12,15 @@ const posSalesSchema = z.object({
   // Customer information  
   customerId: z.number().positive('Customer ID is required'),
   
-  // Order items
+  // Order items (can be products or services)
   items: z.array(z.object({
-    productId: z.number().positive('Product ID is required'),
+    productId: z.number().positive().optional(), // Optional for service items
+    serviceItemId: z.number().positive().optional(), // Optional for product items
     quantity: z.number().positive('Quantity must be positive'),
     unitPrice: z.number().nonnegative('Unit price must be non-negative'),
     totalPrice: z.number().nonnegative('Total price must be non-negative')
+  }).refine(data => data.productId || data.serviceItemId, {
+    message: 'Either productId or serviceItemId must be provided'
   })).min(1, 'At least one item is required'),
   
   // Payment information
@@ -158,46 +161,82 @@ export async function POST(request: NextRequest) {
       }, { status: 404 })
     }
 
-    // Verify all products exist and have sufficient inventory
-    const productIds = items.map(item => item.productId)
-    const products = await prisma.product.findMany({
-      where: {
-        id: { in: productIds },
-        businessId: businessId,
-        isActive: true
-      },
-      include: {
-        inventory: {
-          where: { businessId: businessId }
+    // Verify all products exist and have sufficient inventory (only for product items)
+    const productItems = items.filter(item => item.productId)
+    const serviceItemsList = items.filter(item => item.serviceItemId)
+    
+    if (productItems.length > 0) {
+      const productIds = productItems.map(item => item.productId!)
+      const products = await prisma.product.findMany({
+        where: {
+          id: { in: productIds },
+          businessId: businessId,
+          isActive: true
+        },
+        include: {
+          inventory: {
+            where: { businessId: businessId }
+          }
         }
-      }
-    })
+      })
 
-    if (products.length !== productIds.length) {
-      return NextResponse.json({
-        success: false,
-        message: 'One or more products not found'
-      }, { status: 404 })
+      if (products.length !== productIds.length) {
+        return NextResponse.json({
+          success: false,
+          message: 'One or more products not found'
+        }, { status: 404 })
+      }
+
+      // Check inventory availability
+      const inventoryIssues: string[] = []
+      productItems.forEach(item => {
+        const product = products.find(p => p.id === item.productId)
+        if (product?.inventory?.[0]) {
+          const availableStock = product.inventory[0].quantity - product.inventory[0].reservedQuantity
+          if (availableStock < item.quantity) {
+            inventoryIssues.push(`Insufficient stock for ${product.name}. Available: ${availableStock}, Required: ${item.quantity}`)
+          }
+        }
+      })
+
+      if (inventoryIssues.length > 0) {
+        return NextResponse.json({
+          success: false,
+          message: 'Inventory issues found',
+          errors: inventoryIssues
+        }, { status: 400 })
+      }
     }
 
-    // Check inventory availability
-    const inventoryIssues: string[] = []
-    items.forEach(item => {
-      const product = products.find(p => p.id === item.productId)
-      if (product?.inventory?.[0]) {
-        const availableStock = product.inventory[0].quantity - product.inventory[0].reservedQuantity
-        if (availableStock < item.quantity) {
-          inventoryIssues.push(`Insufficient stock for ${product.name}. Available: ${availableStock}, Required: ${item.quantity}`)
+    // Verify all service items exist and are available
+    if (serviceItemsList.length > 0) {
+      const serviceItemIds = serviceItemsList.map(item => item.serviceItemId!)
+      const serviceItems = await prisma.serviceItem.findMany({
+        where: {
+          id: { in: serviceItemIds },
+          service: {
+            businessId: businessId,
+            isActive: true
+          }
         }
-      }
-    })
+      })
 
-    if (inventoryIssues.length > 0) {
-      return NextResponse.json({
-        success: false,
-        message: 'Inventory issues found',
-        errors: inventoryIssues
-      }, { status: 400 })
+      if (serviceItems.length !== serviceItemIds.length) {
+        return NextResponse.json({
+          success: false,
+          message: 'One or more service items not found'
+        }, { status: 404 })
+      }
+
+      // Check if service items are available
+      const unavailableItems = serviceItems.filter(item => item.status !== 'AVAILABLE')
+      if (unavailableItems.length > 0) {
+        return NextResponse.json({
+          success: false,
+          message: 'One or more service items are not available',
+          errors: unavailableItems.map(item => `${item.name} is currently ${item.status}`)
+        }, { status: 400 })
+      }
     }
 
     // Generate unique order number using timestamp-based approach
@@ -280,7 +319,8 @@ export async function POST(request: NextRequest) {
       // Create order items
       const orderItemsData = items.map(item => ({
         orderId: order.id,
-        productId: item.productId,
+        productId: item.productId || null,           // null for service items
+        serviceItemId: item.serviceItemId || null,   // null for product items
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         totalPrice: item.totalPrice
@@ -290,8 +330,9 @@ export async function POST(request: NextRequest) {
         data: orderItemsData
       })
 
-      // Update inventory - deduct only from retail_store
-      for (const item of items) {
+      // Update inventory - deduct only from retail_store (only for products, not services)
+      const productItems = items.filter(item => item.productId)
+      for (const item of productItems) {
         // Check if product exists in retail_store
         const retailInventory = await tx.inventory.findUnique({
           where: {
@@ -349,6 +390,25 @@ export async function POST(request: NextRequest) {
             reason: `Sale - Order ${order.orderNumber}`,
             referenceId: order.orderNumber,
             createdBy: authContext.userId
+          }
+        })
+      }
+
+      // Update service items - mark as rented and link to customer
+      const serviceItems = items.filter(item => item.serviceItemId)
+      for (const item of serviceItems) {
+        if (!item.serviceItemId) continue
+        
+        await tx.serviceItem.update({
+          where: {
+            id: item.serviceItemId
+          },
+          data: {
+            status: 'RENTED',
+            currentCustomerId: customerId,
+            currentRentalStart: new Date(),
+            // Note: currentRentalEnd should be set based on duration, but we'll leave it null for now
+            // The admin can set it manually or we can calculate it later
           }
         })
       }

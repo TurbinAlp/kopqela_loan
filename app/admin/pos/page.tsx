@@ -9,6 +9,7 @@ import { useNotifications } from '../../contexts/NotificationContext'
 import PermissionGate from '../../components/auth/PermissionGate'
 import PaymentSection from '../../components/admin/pos/PaymentSection'
 import ProductsSection from '../../components/admin/pos/ProductsSection'
+import ServicesSection from '../../components/admin/pos/ServicesSection'
 import CustomerSection from '../../components/admin/pos/CustomerSection'
 import CartSection from '../../components/admin/pos/CartSection'
 import AddCustomerModal from '../../components/AddCustomerModal'
@@ -30,6 +31,10 @@ interface Product {
 interface CartItem extends Product {
   quantity: number
   subtotal: number
+  itemType?: 'PRODUCT' | 'SERVICE'  // Distinguish between products and services
+  serviceItemId?: number             // For service items
+  durationValue?: number             // For service items
+  durationUnit?: string              // For service items
 }
 
 interface Customer {
@@ -79,6 +84,31 @@ interface Category {
   productCount?: number
 }
 
+interface ServiceItem {
+  id: number
+  serviceId: number
+  itemNumber: string
+  name: string
+  nameSwahili?: string
+  description?: string
+  price: number
+  durationValue: number
+  durationUnit: string
+  status: 'AVAILABLE' | 'RENTED' | 'BOOKED' | 'MAINTENANCE'
+  serviceName: string
+  serviceType: string
+}
+
+interface Service {
+  id: number
+  name: string
+  nameSwahili?: string
+  serviceType: string
+  description?: string
+  isActive: boolean
+  items: ServiceItem[]
+}
+
 interface Transaction {
   id: string
   items: CartItem[]
@@ -116,10 +146,13 @@ function POSSystemContent() {
   const { data: session, status } = useSession()
   
   // State management
+  const [saleMode, setSaleMode] = useState<'PRODUCT' | 'SERVICE'>('PRODUCT')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const [selectedServiceType, setSelectedServiceType] = useState('all')
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
+  const [services, setServices] = useState<Service[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -154,7 +187,11 @@ function POSSystemContent() {
   const translations = {
     en: {
       pageTitle: "Point of Sale",
+      saleMode: "Sale Mode",
+      products: "Products",
+      services: "Services",
       productSearch: "Search products...",
+      serviceSearch: "Search services...",
       customerSearch: "Search customer...",
       selectCustomer: "Select Customer",
       walkInCustomer: "Walk-in Customer",
@@ -211,7 +248,11 @@ function POSSystemContent() {
     },
     sw: {
       pageTitle: "Mfumo wa Mauzo",
+      saleMode: "Aina ya Mauzo",
+      products: "Bidhaa",
+      services: "Huduma",
       productSearch: "Tafuta bidhaa...",
+      serviceSearch: "Tafuta huduma...",
       customerSearch: "Tafuta mteja...",
       selectCustomer: "Chagua Mteja",
       walkInCustomer: "Mteja wa Kawaida",
@@ -331,9 +372,32 @@ function POSSystemContent() {
           }))
           setCategories(transformedCategories)
         }
+
+        // ==============Fetch services from API=====================
+        const servicesResponse = await fetch(`/api/admin/services?businessId=${currentBusiness.id}&includeItems=true`)
+        const servicesResult = await servicesResponse.json()
+        
+        if (servicesResult.success) {
+          // Transform API data to match POS interface (data is array when includeItems=true)
+          const servicesList = Array.isArray(servicesResult.data) ? servicesResult.data : []
+          const transformedServices: Service[] = servicesList.map((service: Service & { serviceItems?: ServiceItem[] }) => ({
+            id: service.id,
+            name: service.name,
+            nameSwahili: service.nameSwahili,
+            serviceType: service.serviceType,
+            description: service.description,
+            isActive: service.isActive,
+            items: (service.serviceItems || []).map((item: ServiceItem) => ({
+              ...item,
+              serviceName: service.name,
+              serviceType: service.serviceType
+            }))
+          }))
+          setServices(transformedServices)
+        }
       } catch (error) {
         console.error('Error fetching POS data:', error)
-        showError('Data Loading Error', 'Failed to load products and customers')
+        showError('Data Loading Error', 'Failed to load products, customers, and services')
       } finally {
         setIsLoadingData(false)
       }
@@ -407,7 +471,7 @@ function POSSystemContent() {
 
   // Cart functions
   const addToCart = (product: Product) => {
-    const existingItem = cart.find(item => item.id === product.id)
+    const existingItem = cart.find(item => item.id === product.id && item.itemType !== 'SERVICE')
 
     // Get the correct price based on order type
     const itemPrice = orderType === 'WHOLESALE' && product.wholesalePrice
@@ -420,7 +484,36 @@ function POSSystemContent() {
       const cartItem: CartItem = {
         ...product,
         quantity: 1,
-        subtotal: Number(itemPrice) // Ensure subtotal is a number
+        subtotal: Number(itemPrice), // Ensure subtotal is a number
+        itemType: 'PRODUCT'
+      }
+      setCart([...cart, cartItem])
+    }
+  }
+
+  const addServiceToCart = (serviceItem: ServiceItem) => {
+    // For services, check if item already exists in cart
+    const existingItem = cart.find(item => 
+      item.itemType === 'SERVICE' && item.serviceItemId === serviceItem.id
+    )
+
+    if (existingItem) {
+      // Service items typically rented once, but allow multiple
+      updateQuantity(existingItem.id, existingItem.quantity + 1)
+    } else {
+      const cartItem: CartItem = {
+        id: serviceItem.id,  // Use service item ID
+        name: serviceItem.name,
+        nameSwahili: serviceItem.nameSwahili,
+        price: Number(serviceItem.price),
+        category: serviceItem.serviceName || 'Service',
+        stock: 1, // Services don't have stock concept
+        quantity: 1,
+        subtotal: Number(serviceItem.price),
+        itemType: 'SERVICE',
+        serviceItemId: serviceItem.id,
+        durationValue: serviceItem.durationValue,
+        durationUnit: serviceItem.durationUnit
       }
       setCart([...cart, cartItem])
     }
@@ -517,7 +610,10 @@ function POSSystemContent() {
         businessId: currentBusiness.id,
         customerId: (resolvedCustomer as Customer).id,
         items: cart.map(item => ({
-          productId: item.id,
+          ...(item.itemType === 'SERVICE' 
+            ? { serviceItemId: item.serviceItemId }
+            : { productId: item.id }
+          ),
           quantity: item.quantity,
           unitPrice: Number(item.price),
           totalPrice: Number(item.subtotal)
@@ -657,19 +753,60 @@ function POSSystemContent() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Products Section */}
+          {/* Products/Services Section */}
           <div className="lg:col-span-2 space-y-6">
-            <ProductsSection
-              products={products}
-              categories={categories}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              selectedCategory={selectedCategory}
-              setSelectedCategory={setSelectedCategory}
-              onAddToCart={addToCart}
-              businessType={allowOrderTypeSwitch ? 'BOTH' : (orderType as 'RETAIL' | 'WHOLESALE')}
-              orderType={orderType}
-            />
+            {/* Mode Selector */}
+            <div className="bg-white rounded-xl p-4 shadow-sm">
+              <h3 className="font-semibold mb-3 text-gray-900">{t.saleMode}</h3>
+              <div className="flex gap-2">
+                {[
+                  { value: 'PRODUCT' as const, label: t.products, icon: '📦' },
+                  { value: 'SERVICE' as const, label: t.services, icon: '🛠️' }
+                ].map((mode) => (
+                  <button
+                    key={mode.value}
+                    onClick={() => {
+                      setSaleMode(mode.value)
+                      setSearchQuery('')
+                      setSelectedCategory('all')
+                    }}
+                    className={`flex-1 px-4 py-3 rounded-lg border text-center transition-all ${
+                      saleMode === mode.value
+                        ? 'border-teal-500 bg-teal-50 text-teal-800'
+                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center space-x-2">
+                      <span className="text-xl">{mode.icon}</span>
+                      <span className="font-medium">{mode.label}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {saleMode === 'PRODUCT' ? (
+              <ProductsSection
+                products={products}
+                categories={categories}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                selectedCategory={selectedCategory}
+                setSelectedCategory={setSelectedCategory}
+                onAddToCart={addToCart}
+                businessType={allowOrderTypeSwitch ? 'BOTH' : (orderType as 'RETAIL' | 'WHOLESALE')}
+                orderType={orderType}
+              />
+            ) : (
+              <ServicesSection
+                services={services}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                selectedServiceType={selectedServiceType}
+                setSelectedServiceType={setSelectedServiceType}
+                onAddToCart={addServiceToCart}
+              />
+            )}
           </div>
 
           {/* Cart and Payment Section */}
