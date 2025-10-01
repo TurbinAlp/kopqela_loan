@@ -123,15 +123,20 @@ jobs:
             docker run --rm --env-file .env.production \
               ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}:latest npx prisma migrate deploy || true
             
-            # Start new container
-            echo "🚀 Starting new container..."
+            # Start new container with Traefik labels
+            echo "🚀 Starting new container with Traefik labels..."
             docker run -d \
               --name kopqela-loan \
               --restart unless-stopped \
-              -p 80:3000 \
+              --network traefik \
               --env-file .env.production \
               -v /home/${{ secrets.VPS_USER }}/kopqela_loan/public/uploads:/app/public/uploads \
               --user $(id -u ${{ secrets.VPS_USER }}):$(id -g ${{ secrets.VPS_USER }}) \
+              --label "traefik.enable=true" \
+              --label "traefik.http.routers.kopqela.rule=Host(\`${{ secrets.APP_DOMAIN }}\`)" \
+              --label "traefik.http.routers.kopqela.tls=true" \
+              --label "traefik.http.routers.kopqela.tls.certresolver=cloudflare" \
+              --label "traefik.http.services.kopqela.loadbalancer.server.port=3000" \
               ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}:latest
             
             # Clean up old images
@@ -143,7 +148,7 @@ jobs:
             
             # Check if container is running
             if docker ps | grep kopqela-loan; then
-              echo "✅ Deployment successful! App is running on http://${{ secrets.VPS_HOST }}"
+              echo "✅ Deployment successful! App is running on https://${{ secrets.APP_DOMAIN }}"
               echo "📦 Image: ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}:latest"
             else
               echo "❌ Deployment failed! Container is not running."
