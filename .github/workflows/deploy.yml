@@ -70,15 +70,57 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Copy files to VPS
+      - name: Copy docker-compose to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
-          source: "docker-compose.yml,.env"
+          source: "docker-compose.yml"
           target: "~/apps/kopqela/"
+
+      - name: Create .env file on VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            # Navigate to project directory
+            cd ~/apps/kopqela
+            
+            # Create .env file with secrets
+            cat > .env << 'EOF'
+            # Application
+            APP_DOMAIN=${{ secrets.APP_DOMAIN }}
+            NEXT_PUBLIC_APP_URL=${{ secrets.NEXT_PUBLIC_APP_URL }}
+            NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
+            NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}
+
+            # Database
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+
+            # GitHub Container Registry
+            GITHUB_REPOSITORY=${{ github.repository }}
+
+            # Traefik Configuration
+            TRAEFIK_ACME_EMAIL=${{ secrets.TRAEFIK_ACME_EMAIL }}
+            CF_DNS_API_TOKEN=${{ secrets.CF_DNS_API_TOKEN }}
+            TRAEFIK_DASHBOARD_AUTH=${{ secrets.TRAEFIK_DASHBOARD_AUTH }}
+
+            # Email/SMTP Configuration
+            SMTP_USER=${{ secrets.SMTP_USER }}
+            SMTP_PASS=${{ secrets.SMTP_PASS }}
+            SMTP_HOST=${{ secrets.SMTP_HOST }}
+            SMTP_PORT=${{ secrets.SMTP_PORT }}
+            EMAIL_FROM=${{ secrets.EMAIL_FROM }}
+
+            # Google OAuth (Optional)
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            EOF
 
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
