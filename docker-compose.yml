@@ -28,6 +28,9 @@ services:
       - traefik
     labels:
       - "traefik.enable=true"
+      # Global redirect middleware
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
       # Dashboard HTTP Router (redirects to HTTPS)
       - "traefik.http.routers.dashboard-web.rule=Host(`traefik.${APP_DOMAIN}`)"
       - "traefik.http.routers.dashboard-web.entrypoints=web"
@@ -81,9 +84,6 @@ services:
       - "traefik.http.routers.kopqela.tls.certresolver=cloudflare"
       # Service configuration
       - "traefik.http.services.kopqela.loadbalancer.server.port=3000"
-      # Redirect middleware
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
     depends_on:
       - traefik
 
