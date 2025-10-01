@@ -33,6 +33,7 @@ services:
       - "traefik.enable=true"
       # Dashboard
       - "traefik.http.routers.dashboard.rule=Host(`traefik.${APP_DOMAIN}`)"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
       - "traefik.http.routers.dashboard.tls=true"
       - "traefik.http.routers.dashboard.tls.certresolver=cloudflare"
       - "traefik.http.routers.dashboard.service=api@internal"
@@ -69,6 +70,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.kopqela.rule=Host(`${APP_DOMAIN}`)"
+      - "traefik.http.routers.kopqela.entrypoints=websecure"
       - "traefik.http.routers.kopqela.tls=true"
       - "traefik.http.routers.kopqela.tls.certresolver=cloudflare"
       - "traefik.http.services.kopqela.loadbalancer.server.port=3000"
