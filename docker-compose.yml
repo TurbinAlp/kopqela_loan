@@ -22,7 +22,6 @@ services:
       - --certificatesresolvers.cloudflare.acme.dnschallenge.delaybeforecheck=0
       - --api.dashboard=true
       - --api.insecure=true
-      - --log.level=DEBUG
     environment:
       - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
     volumes:
