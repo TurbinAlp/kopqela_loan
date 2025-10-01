@@ -31,11 +31,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Convert repository name to lowercase
+        id: lowercase
+        run: echo "IMAGE_NAME_LOWER=$(echo ${{ env.IMAGE_NAME }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ steps.lowercase.outputs.IMAGE_NAME_LOWER }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -77,9 +81,12 @@ jobs:
             echo "🔐 Logging into GHCR..."
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
+            # Convert repository name to lowercase
+            IMAGE_NAME_LOWER=$(echo "${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+            
             # Pull latest image from GHCR
             echo "📦 Pulling Docker image from GHCR..."
-            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            docker pull ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}:latest
             
             # Create production environment file with safety checks
             echo "🔧 Setting up environment variables..."
@@ -114,7 +121,7 @@ jobs:
             # Run database migrations (if needed)
             echo "🗃️ Running database migrations..."
             docker run --rm --env-file .env.production \
-              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest npx prisma migrate deploy || true
+              ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}:latest npx prisma migrate deploy || true
             
             # Start new container
             echo "🚀 Starting new container..."
@@ -125,7 +132,7 @@ jobs:
               --env-file .env.production \
               -v /home/${{ secrets.VPS_USER }}/kopqela_loan/public/uploads:/app/public/uploads \
               --user $(id -u ${{ secrets.VPS_USER }}):$(id -g ${{ secrets.VPS_USER }}) \
-              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+              ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}:latest
             
             # Clean up old images
             echo "🧹 Cleaning up old images..."
@@ -137,7 +144,7 @@ jobs:
             # Check if container is running
             if docker ps | grep kopqela-loan; then
               echo "✅ Deployment successful! App is running on http://${{ secrets.VPS_HOST }}"
-              echo "📦 Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+              echo "📦 Image: ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}:latest"
             else
               echo "❌ Deployment failed! Container is not running."
               docker logs kopqela-loan
