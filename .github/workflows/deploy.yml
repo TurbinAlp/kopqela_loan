@@ -80,6 +80,10 @@ jobs:
           source: "docker-compose.yml"
           target: "~/apps/kopqela/"
 
+      - name: Convert repository name to lowercase
+        id: repo-name
+        run: echo "lowercase=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
       - name: Create .env file on VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -103,7 +107,7 @@ jobs:
             DATABASE_URL=${{ secrets.DATABASE_URL }}
 
             # GitHub Container Registry
-            GITHUB_REPOSITORY=${{ github.repository }}
+            GITHUB_REPOSITORY=${{ steps.repo-name.outputs.lowercase }}
 
             # Traefik Configuration
             TRAEFIK_ACME_EMAIL=${{ secrets.TRAEFIK_ACME_EMAIL }}
