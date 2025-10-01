@@ -1,26 +1,72 @@
-name: Deploy Kopqela Loan to VPS
+name: Build and Deploy Kopqela Loan to VPS
 
 on:
   push:
     branches: [ "main", "master" ]  # Deploy when pushing to main/master
   workflow_dispatch:  # Allow manual deployment
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
-  deploy:
+  build:
+    name: Build and Push to GHCR
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Copy files to VPS
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+      - name: Copy project files to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           port: ${{ secrets.VPS_PORT }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "."
+          source: "prisma/,public/uploads/"
           target: "/home/${{ secrets.VPS_USER }}/kopqela_loan"
           overwrite: true
 
@@ -37,6 +83,14 @@ jobs:
             echo "🚀 Starting deployment..."
             
             cd /home/${{ secrets.VPS_USER }}/kopqela_loan
+            
+            # Login to GitHub Container Registry
+            echo "🔐 Logging into GHCR..."
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # Pull latest image from GHCR
+            echo "📦 Pulling Docker image from GHCR..."
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             
             # Create production environment file with safety checks
             echo "🔧 Setting up environment variables..."
@@ -63,10 +117,6 @@ jobs:
               fi
             } > .env.production
             
-            # Build new Docker image
-            echo "🔨 Building Docker image..."
-            docker build -t kopqela-loan:latest .
-            
             # Stop and remove old container if exists
             echo "🛑 Stopping old container..."
             docker stop kopqela-loan || true
@@ -75,7 +125,8 @@ jobs:
             # Run database migrations (if needed)
             echo "🗃️ Running database migrations..."
             docker run --rm --env-file .env.production \
-              kopqela-loan:latest npx prisma migrate deploy || true
+              -v /home/${{ secrets.VPS_USER }}/kopqela_loan/prisma:/app/prisma \
+              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest npx prisma migrate deploy || true
             
             # Start new container
             echo "🚀 Starting new container..."
@@ -86,9 +137,9 @@ jobs:
               --env-file .env.production \
               -v /home/${{ secrets.VPS_USER }}/kopqela_loan/public/uploads:/app/public/uploads \
               --user $(id -u ${{ secrets.VPS_USER }}):$(id -g ${{ secrets.VPS_USER }}) \
-              kopqela-loan:latest
+              ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
             
-            # Clean up old images (keep last 3)
+            # Clean up old images
             echo "🧹 Cleaning up old images..."
             docker image prune -f
             
@@ -97,7 +148,8 @@ jobs:
             
             # Check if container is running
             if docker ps | grep kopqela-loan; then
-              echo "✅ Deployment successful! App is running on http://${{ secrets.VPS_HOST }}:3000"
+              echo "✅ Deployment successful! App is running on http://${{ secrets.VPS_HOST }}"
+              echo "📦 Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
             else
               echo "❌ Deployment failed! Container is not running."
               docker logs kopqela-loan
