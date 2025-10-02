@@ -49,6 +49,13 @@ interface Product {
     reorderPoint?: number
     maxStock?: number
     location?: string
+    storeId?: number
+    store?: {
+      id: number
+      name: string
+      nameSwahili?: string
+      storeType: string
+    }
   }>
   createdAt: string
   updatedAt: string
@@ -204,7 +211,8 @@ export default function ProductViewPage() {
     )
   }
 
-  const inventory = product.inventory?.[0]
+  const inventoryArray = product.inventory || []
+  const totalStock = inventoryArray.reduce((sum, inv) => sum + (inv.quantity || 0), 0)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -380,43 +388,76 @@ export default function ProductViewPage() {
                 {t.inventory}
               </h3>
               
-              {inventory ? (
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">{t.currentStock}</span>
-                    <span className="font-semibold text-gray-900">{inventory.quantity}</span>
+              {inventoryArray.length > 0 ? (
+                <div className="space-y-6">
+                  {/* Total Stock Summary */}
+                  <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-teal-700">Total Stock Across All Stores</span>
+                      <span className="text-xl font-bold text-teal-900">{totalStock}</span>
+                    </div>
                   </div>
-                  
-                  {inventory.reservedQuantity !== undefined && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">{t.reservedStock}</span>
-                      <span className="font-medium text-gray-700">{inventory.reservedQuantity}</span>
-                    </div>
-                  )}
-                  
-                  {inventory.maxStock && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">{t.maxStock}</span>
-                      <span className="font-medium text-gray-700">{inventory.maxStock}</span>
-                    </div>
-                  )}
-                  
-                  {inventory.reorderPoint && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">{t.reorderPoint}</span>
-                      <span className="font-medium text-gray-700">{inventory.reorderPoint}</span>
-                    </div>
-                  )}
-                  
-                  {inventory.location && (
-                    <div className="mt-4">
-                      <div className="flex items-center space-x-2 text-sm text-gray-600 mb-1">
-                        <MapPinIcon className="h-4 w-4" />
-                        <span>{t.location}</span>
-                      </div>
-                      <p className="text-gray-900 font-medium">{inventory.location}</p>
-                    </div>
-                  )}
+
+                  {/* Store-by-Store Breakdown */}
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-medium text-gray-700 flex items-center">
+                      <MapPinIcon className="h-4 w-4 mr-2" />
+                      Store Breakdown
+                    </h4>
+                    
+                    {inventoryArray.map((inv, idx) => {
+                      const storeName = inv.store?.name || 
+                        (inv.location === 'main_store' ? (language === 'en' ? 'Main Store' : 'Duka Kuu') :
+                         inv.location === 'retail_store' ? (language === 'en' ? 'Retail Store' : 'Duka la Rejareja') :
+                         inv.location || 'Unknown Store')
+                      
+                      const storeType = inv.store?.storeType || 
+                        (inv.location === 'main_store' ? 'main_store' :
+                         inv.location === 'retail_store' ? 'retail_store' : 'unknown')
+                      
+                      const typeLabel = storeType === 'main_store' ? (language === 'en' ? 'Main Store' : 'Duka Kuu') :
+                                       storeType === 'retail_store' ? (language === 'en' ? 'Retail Store' : 'Duka la Rejareja') :
+                                       storeType === 'warehouse' ? (language === 'en' ? 'Warehouse' : 'Ghala') : storeType
+
+                      return (
+                        <div key={idx} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <h5 className="font-medium text-gray-900">{storeName}</h5>
+                              <p className="text-xs text-gray-500">{typeLabel}</p>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-lg font-semibold text-gray-900">{inv.quantity || 0}</span>
+                              <p className="text-xs text-gray-500">units</p>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            {inv.reservedQuantity !== undefined && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Reserved:</span>
+                                <span className="font-medium">{inv.reservedQuantity}</span>
+                              </div>
+                            )}
+                            
+                            {inv.reorderPoint && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Reorder Point:</span>
+                                <span className="font-medium">{inv.reorderPoint}</span>
+                              </div>
+                            )}
+                            
+                            {inv.maxStock && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Max Stock:</span>
+                                <span className="font-medium">{inv.maxStock}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
               ) : (
                 <p className="text-gray-500">{t.noData}</p>

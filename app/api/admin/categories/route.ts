@@ -74,11 +74,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 🚀 IMPROVED: Add HTTP cache headers for categories
+    // 🚀 IMPROVED: Reduce cache time for better real-time updates
     const response = NextResponse.json(responseData)
     
-    // Cache for 5 minutes (categories change less frequently), allow stale for 2 minutes
-    response.headers.set('Cache-Control', 'max-age=300, stale-while-revalidate=120, must-revalidate')
+    // Cache for 30 seconds only (categories can change frequently), allow stale for 10 seconds
+    response.headers.set('Cache-Control', 'max-age=30, stale-while-revalidate=10, must-revalidate')
     response.headers.set('Vary', 'Accept-Encoding, businessId')
     
     // Generate ETag based on content for conditional requests

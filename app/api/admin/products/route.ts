@@ -22,6 +22,7 @@ const createProductSchema = z.object({
   reorderLevel: z.number().min(0).optional(),
   maxStock: z.number().min(0).optional(),
   stockAlerts: z.boolean().default(true),
+  selectedStore: z.string().optional(), // Store ID for inventory
 
   images: z.array(z.object({
     url: z.string().regex(/^\//, 'Must be a relative path'),
@@ -113,7 +114,16 @@ export async function GET(request: NextRequest) {
               reservedQuantity: true,
               reorderPoint: true,
               maxStock: true,
-              location: true
+              location: true,
+              storeId: true,
+              store: {
+                select: {
+                  id: true,
+                  name: true,
+                  nameSwahili: true,
+                  storeType: true
+                }
+              }
             }
           },
           images: {
@@ -297,7 +307,7 @@ export async function POST(request: NextRequest) {
       wholesalePrice, costPrice,
       sku, barcode, unit,
       currentStock, reorderLevel, maxStock,
-      images, isDraft
+      selectedStore, images, isDraft
     } = validationResult.data
 
     // Find or create category
@@ -374,15 +384,35 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      // Create inventory record in main_store by default
+      // Create inventory record in selected store or main_store by default
+      let inventoryLocation = 'main_store' // Default fallback
+      let inventoryStoreId = null
+
+      if (selectedStore) {
+        // Verify the selected store exists and belongs to this business
+        const store = await tx.store.findFirst({
+          where: {
+            id: parseInt(selectedStore),
+            businessId: businessIdNum,
+            isActive: true
+          }
+        })
+
+        if (store) {
+          inventoryLocation = `store_${store.id}`
+          inventoryStoreId = store.id
+        }
+      }
+
       await tx.inventory.create({
         data: {
           businessId: businessIdNum,
           productId: product.id,
           quantity: currentStock,
           reorderPoint: reorderLevel,
-          maxStock: maxStock || 1000, // Use provided maxStock or default to 1000
-          location: 'main_store' // Always create in main_store first
+          maxStock: maxStock || 1000,
+          location: inventoryLocation,
+          storeId: inventoryStoreId
         }
       })
 

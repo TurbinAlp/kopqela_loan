@@ -56,7 +56,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       where: { id: productId },
       include: {
         category: { select: { id: true, name: true, nameSwahili: true } },
-        inventory: true,
+        inventory: {
+          include: {
+            store: {
+              select: {
+                id: true,
+                name: true,
+                nameSwahili: true,
+                storeType: true
+              }
+            }
+          }
+        },
         images: { orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }] }
       }
     });

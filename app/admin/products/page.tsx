@@ -75,13 +75,20 @@ export default function ProductsPage() {
       }>
       isActive: boolean
       isDraft: boolean
-      inventory?: {
+      inventory?: Array<{
         quantity: number
         reservedQuantity?: number
         reorderPoint?: number
         maxStock?: number
         location?: string
-      }
+        storeId?: number
+        store?: {
+          id: number
+          name: string
+          nameSwahili?: string
+          storeType: string
+        }
+      }>
       createdAt: string
       updatedAt: string
     }>
@@ -1125,11 +1132,9 @@ export default function ProductsPage() {
                     </td>
                     <td className="py-3 px-4">
                       {(() => {
-                        // Calculate stock breakdown by location
+                        // Calculate stock breakdown by store
                         const inventoryArray = Array.isArray(product.inventory) ? product.inventory : (product.inventory ? [product.inventory] : [])
-                        const mainStock = inventoryArray.find(inv => inv.location === 'main_store')?.quantity ?? 0
-                        const retailStock = inventoryArray.find(inv => inv.location === 'retail_store')?.quantity ?? 0
-                        const totalStock = mainStock + retailStock
+                        const totalStock = inventoryArray.reduce((sum, inv) => sum + (inv.quantity || 0), 0)
 
                         if (totalStock === 0) {
                           return <span className="text-gray-500">—</span>
@@ -1138,8 +1143,20 @@ export default function ProductsPage() {
                         return (
                           <div className="text-sm">
                             <div className="text-gray-800 font-medium">Total: {totalStock}</div>
-                            <div className="text-gray-600">
-                              Main: {mainStock} | Retail: {retailStock}
+                            <div className="text-gray-600 space-y-1">
+                              {inventoryArray.map((inv, idx) => {
+                                const storeName = inv.store?.name || 
+                                  (inv.location === 'main_store' ? (language === 'en' ? 'Main Store' : 'Duka Kuu') :
+                                   inv.location === 'retail_store' ? (language === 'en' ? 'Retail Store' : 'Duka la Rejareja') :
+                                   inv.location || 'Unknown')
+                                
+                                return (
+                                  <div key={idx} className="flex justify-between">
+                                    <span className="truncate">{storeName}:</span>
+                                    <span className="font-medium">{inv.quantity || 0}</span>
+                                  </div>
+                                )
+                              })}
                             </div>
                           </div>
                         )

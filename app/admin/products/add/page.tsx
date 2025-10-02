@@ -41,6 +41,7 @@ interface ProductForm {
   stockAlerts: boolean
   images: File[]
   primaryImageIndex: number
+  selectedStore: string // New field for store selection
 }
 
 interface Category {
@@ -49,6 +50,14 @@ interface Category {
   nameSwahili?: string
   description?: string
   productCount?: number
+}
+
+interface Store {
+  id: number
+  name: string
+  nameSwahili?: string
+  storeType: string
+  isActive: boolean
 }
 
 function AddEditProductPageContent() {
@@ -66,6 +75,8 @@ function AddEditProductPageContent() {
     wholesaleMargin: 1, // Default fallback
     retailMargin: 1 // Default fallback
   })
+  const [stores, setStores] = useState<Store[]>([])
+  const [isLoadingStores, setIsLoadingStores] = useState(false)
   const [formData, setFormData] = useState<ProductForm>({
     nameEn: '',
     nameSw: '',
@@ -84,7 +95,8 @@ function AddEditProductPageContent() {
     maxStock: '',
     stockAlerts: true,
     images: [],
-    primaryImageIndex: 0
+    primaryImageIndex: 0,
+    selectedStore: '' // Initialize empty store selection
   })
 
   // Drag and drop handlers
@@ -110,8 +122,36 @@ function AddEditProductPageContent() {
     }
   }
 
+  const loadStores = async () => {
+    if (!currentBusiness) return
+
+    setIsLoadingStores(true)
+    try {
+      const response = await fetch(`/api/admin/stores?businessId=${currentBusiness.id}`)
+      const data = await response.json()
+
+      if (data.success) {
+        const storesArray = data.data?.stores || []
+        setStores(storesArray)
+        // Auto-select first store if only one exists
+        if (storesArray.length === 1) {
+          setFormData(prev => ({ ...prev, selectedStore: storesArray[0].id.toString() }))
+        }
+      } else {
+        console.error('Failed to load stores:', data.message)
+        setStores([]) // Set empty array on error
+      }
+    } catch (error) {
+      console.error('Error loading stores:', error)
+      setStores([]) // Set empty array on error
+    } finally {
+      setIsLoadingStores(false)
+    }
+  }
+
   useEffect(() => {
     setIsVisible(true)
+    loadStores()
     
     // Load business settings
     const loadBusinessSettings = async () => {
@@ -177,6 +217,10 @@ function AddEditProductPageContent() {
       currency: "TZS",
       
       // Inventory
+      selectStore: "Select Store",
+      selectStoreDesc: "Choose which store to add this product to",
+      loadingStores: "Loading stores...",
+      noStores: "No stores available",
       currentStock: "Current Stock",
       minimumStock: "Minimum Stock Level",
       reorderLevel: "Reorder Level",
@@ -257,6 +301,10 @@ function AddEditProductPageContent() {
       currency: "TSh",
       
       // Inventory
+      selectStore: "Chagua Duka",
+      selectStoreDesc: "Chagua ni duka lipi la kuongeza bidhaa hii",
+      loadingStores: "Inapakia maduka...",
+      noStores: "Hakuna maduka yaliyo",
       currentStock: "Hisa ya Sasa",
       minimumStock: "Kiwango cha Hisa Kidogo",
       reorderLevel: "Kiwango cha Kuagiza Upya",
@@ -440,6 +488,11 @@ function AddEditProductPageContent() {
         if (!formData.retailPrice || parseFloat(formData.retailPrice) <= 0) {
           errors.push({ field: 'retailPrice', message: t.retailPrice, tab: 'pricing' })
         }
+      }
+
+      // Store selection validation - mandatory for published products
+      if (!formData.selectedStore) {
+        errors.push({ field: 'selectedStore', message: t.selectStore, tab: 'inventory' })
       }
 
       // Stock validation - mandatory for published products
@@ -868,6 +921,49 @@ function AddEditProductPageContent() {
             {activeTab === 'inventory' && (
               <div className="space-y-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">{t.inventory}</h3>
+                
+                {/* Store Selection */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                  <div className="min-w-0">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t.selectStore} <span className="text-red-500">*</span>
+                    </label>
+                    <p className="text-xs text-gray-600 mb-3">{t.selectStoreDesc}</p>
+                    
+                    {isLoadingStores ? (
+                      <div className="flex items-center space-x-2 text-gray-600">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        <span className="text-sm">{t.loadingStores}</span>
+                      </div>
+                    ) : stores.length === 0 ? (
+                      <div className="text-sm text-gray-600 bg-gray-100 p-3 rounded-lg">
+                        {t.noStores}
+                      </div>
+                    ) : (
+                      <select
+                        value={formData.selectedStore}
+                        onChange={(e) => handleInputChange('selectedStore', e.target.value)}
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white ${
+                          !formData.selectedStore ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                        }`}
+                      >
+                        <option value="">{language === 'en' ? 'Select a store' : 'Chagua duka'}</option>
+                        {stores.map(store => (
+                          <option key={store.id} value={store.id.toString()}>
+                            {language === 'sw' && store.nameSwahili ? store.nameSwahili : store.name}
+                            {' '}({store.storeType === 'main_store' ? (language === 'en' ? 'Main Store' : 'Duka Kuu') : 
+                                store.storeType === 'retail_store' ? (language === 'en' ? 'Retail Store' : 'Duka la Rejareja') :
+                                store.storeType === 'warehouse' ? (language === 'en' ? 'Warehouse' : 'Ghala') : store.storeType})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    
+                    {!formData.selectedStore && (
+                      <p className="text-red-500 text-xs mt-1">{t.required}</p>
+                    )}
+                  </div>
+                </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   <div className="min-w-0">

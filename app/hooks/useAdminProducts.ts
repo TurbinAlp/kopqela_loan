@@ -26,6 +26,7 @@ interface ProductFormData {
   reorderLevel: string
   maxStock: string
   stockAlerts: boolean
+  selectedStore?: string // Store ID for inventory
 
   isDraft?: boolean
 }
@@ -63,11 +64,12 @@ export function useCategories() {
       setLoading(true)
       setError(null)
       
-      const response = await fetch(`/api/admin/categories?businessId=${currentBusiness.id}`, {
+      const response = await fetch(`/api/admin/categories?businessId=${currentBusiness.id}&_t=${Date.now()}`, {
         headers: {
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache', 
         },
-        credentials: 'include', // Include cookies for authentication
+        credentials: 'include', 
       })
 
       if (!response.ok) {
@@ -114,6 +116,7 @@ export function useCategories() {
 
       const data = await response.json()
       if (data.success) {
+        await fetchCategories()
         return { success: true, data: data.data }
       } else {
         return { success: false, error: data.message || 'Unknown error occurred' }
@@ -149,6 +152,8 @@ export function useCategories() {
 
       const data = await response.json()
       if (data.success) {
+        // 🚀 IMPROVED: Immediately refresh categories after updating
+        await fetchCategories()
         return { success: true, data: data.data }
       } else {
         return { success: false, error: data.message || 'Unknown error occurred' }
@@ -180,6 +185,7 @@ export function useCategories() {
 
       const data = await response.json()
       if (data.success) {
+        await fetchCategories()
         return { success: true, message: data.message }
       } else {
         return { success: false, error: data.message || 'Unknown error occurred' }
@@ -339,8 +345,9 @@ export function useProductManagement() {
         reorderLevel: formData.reorderLevel ? parseInt(formData.reorderLevel) : undefined,
         maxStock: formData.maxStock ? parseInt(formData.maxStock) : undefined,
         stockAlerts: formData.stockAlerts,
+        selectedStore: formData.selectedStore || undefined, 
 
-        images: imagesData.length > 0 ? imagesData : undefined, // New: Multiple images
+        images: imagesData.length > 0 ? imagesData : undefined, 
         isDraft: formData.isDraft || false
       }
 
