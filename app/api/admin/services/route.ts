@@ -39,9 +39,6 @@ export async function GET(request: NextRequest) {
         },
         ...(includeItems && {
           serviceItems: {
-            where: {
-              status: 'AVAILABLE' // Only fetch available items for POS
-            },
             select: {
               id: true,
               serviceId: true,
@@ -52,7 +49,13 @@ export async function GET(request: NextRequest) {
               price: true,
               durationValue: true,
               durationUnit: true,
-              status: true
+              status: true,
+              currentRentalStart: true,
+              currentRentalEnd: true,
+              currentCustomerId: true
+            },
+            orderBy: {
+              status: 'asc' // Show AVAILABLE first, then RENTED, etc.
             }
           }
         })
