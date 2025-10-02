@@ -32,8 +32,8 @@ model User {
   ownedBusinesses       Business[]          @relation("BusinessOwner")
   customers             Customer[]
   inventoryMovements    InventoryMovement[]
-  grantedPermissions    UserPermission[]    @relation("PermissionGrantedBy")
   managedStores         Store[]
+  grantedPermissions    UserPermission[]    @relation("PermissionGrantedBy")
   userPermissions       UserPermission[]
   userPreferences       UserPreference[]
   sessions              UserSession[]
@@ -240,25 +240,24 @@ model BusinessSetting {
 }
 
 model Store {
-  id          Int      @id @default(autoincrement())
-  businessId  Int      @map("business_id")
-  name        String   @db.VarChar(255)
-  nameSwahili String?  @map("name_swahili") @db.VarChar(255)
-  storeType   String   @default("retail_store") @map("store_type") @db.VarChar(50) // main_store, retail_store, warehouse
-  address     String?  @db.VarChar(500)
-  city        String?  @db.VarChar(100)
-  region      String?  @db.VarChar(100)
-  phone       String?  @db.VarChar(20)
-  email       String?  @db.VarChar(255)
-  managerId   Int?     @map("manager_id")
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  
-  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  manager     User?    @relation(fields: [managerId], references: [id])
+  id          Int         @id @default(autoincrement())
+  businessId  Int         @map("business_id")
+  name        String      @db.VarChar(255)
+  nameSwahili String?     @map("name_swahili") @db.VarChar(255)
+  storeType   String      @default("retail_store") @map("store_type") @db.VarChar(50)
+  address     String?     @db.VarChar(500)
+  city        String?     @db.VarChar(100)
+  region      String?     @db.VarChar(100)
+  phone       String?     @db.VarChar(20)
+  email       String?     @db.VarChar(255)
+  managerId   Int?        @map("manager_id")
+  isActive    Boolean     @default(true) @map("is_active")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
   inventory   Inventory[]
-  
+  business    Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  manager     User?       @relation(fields: [managerId], references: [id])
+
   @@unique([businessId, name])
   @@map("stores")
 }
@@ -361,17 +360,17 @@ model Inventory {
   id               Int      @id @default(autoincrement())
   businessId       Int      @map("business_id")
   productId        Int      @map("product_id")
-  storeId          Int?     @map("store_id") // Optional for backward compatibility
   reservedQuantity Int      @default(0) @map("reserved_quantity")
   reorderPoint     Int?     @map("reorder_point")
   maxStock         Int?     @map("max_stock")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
-  location         String   @default("main_store") @db.VarChar(100) // Keep for backward compatibility
+  location         String   @default("main_store") @db.VarChar(100)
   quantity         Int      @default(0)
+  storeId          Int?     @map("store_id")
   business         Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  store            Store?   @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  store            Store?   @relation(fields: [storeId], references: [id])
 
   @@unique([businessId, productId, location])
   @@map("inventory")
@@ -429,12 +428,12 @@ model Order {
 model OrderItem {
   id            Int          @id @default(autoincrement())
   orderId       Int          @map("order_id")
-  productId     Int?         @map("product_id")        // Optional for service items
-  serviceItemId Int?         @map("service_item_id")   // For service items
+  productId     Int?         @map("product_id")
   quantity      Int
   unitPrice     Decimal      @map("unit_price") @db.Decimal(10, 2)
   totalPrice    Decimal      @map("total_price") @db.Decimal(10, 2)
   createdAt     DateTime     @default(now()) @map("created_at")
+  serviceItemId Int?         @map("service_item_id")
   order         Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product       Product?     @relation(fields: [productId], references: [id])
   serviceItem   ServiceItem? @relation(fields: [serviceItemId], references: [id])
@@ -504,32 +503,32 @@ model Service {
   isActive     Boolean       @default(true) @map("is_active")
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")
-  business     Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
   serviceItems ServiceItem[]
+  business     Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@map("services")
 }
 
 model ServiceItem {
-  id                    Int              @id @default(autoincrement())
-  serviceId             Int              @map("service_id")
-  itemNumber            String           @map("item_number") @db.VarChar(100)
-  name                  String           @db.VarChar(255)
-  nameSwahili           String?          @map("name_swahili") @db.VarChar(255)
-  description           String?
-  price                 Decimal          @db.Decimal(10, 2)
-  durationValue         Int              @map("duration_value") // 15, 30, 45, 1, 2, etc
-  durationUnit          DurationUnit     @map("duration_unit") // MINUTES, HOURS, DAYS, etc
-  status                ServiceItemStatus @default(AVAILABLE)
-  currentRentalStart    DateTime?        @map("current_rental_start")
-  currentRentalEnd      DateTime?        @map("current_rental_end")
-  currentCustomerId     Int?             @map("current_customer_id")
-  specifications        Json?
-  createdAt             DateTime         @default(now()) @map("created_at")
-  updatedAt             DateTime         @updatedAt @map("updated_at")
-  service               Service          @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  currentCustomer       Customer?        @relation(fields: [currentCustomerId], references: [id], onDelete: SetNull)
-  orderItems            OrderItem[]
+  id                 Int               @id @default(autoincrement())
+  serviceId          Int               @map("service_id")
+  itemNumber         String            @map("item_number") @db.VarChar(100)
+  name               String            @db.VarChar(255)
+  nameSwahili        String?           @map("name_swahili") @db.VarChar(255)
+  description        String?
+  price              Decimal           @db.Decimal(10, 2)
+  durationValue      Int               @map("duration_value")
+  durationUnit       DurationUnit      @map("duration_unit")
+  status             ServiceItemStatus @default(AVAILABLE)
+  currentRentalStart DateTime?         @map("current_rental_start")
+  currentRentalEnd   DateTime?         @map("current_rental_end")
+  currentCustomerId  Int?              @map("current_customer_id")
+  specifications     Json?
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+  orderItems         OrderItem[]
+  currentCustomer    Customer?         @relation(fields: [currentCustomerId], references: [id])
+  service            Service           @relation(fields: [serviceId], references: [id], onDelete: Cascade)
 
   @@unique([serviceId, itemNumber])
   @@map("service_items")

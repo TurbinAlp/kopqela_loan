@@ -460,6 +460,7 @@ export default function EditBusinessPage() {
       
       if (data.success && data.data) {
         const business = data.data.business
+        console.log('Loaded business data:', business.enableMultiLocation)
         setSettings({
           name: business.name,
           businessType: business.businessType,
@@ -1622,11 +1623,51 @@ export default function EditBusinessPage() {
           <div className="space-y-6">
             <MultiStoreSettings
               isMultiStoreEnabled={settings.enableMultiLocation}
-              onToggleMultiStore={(enabled) => {
+              onToggleMultiStore={async (enabled) => {
+                console.log('Toggle multi-store:', enabled)
+                console.log('Current settings before:', settings.enableMultiLocation)
                 handleInputChange('enableMultiLocation', enabled)
-                // Auto-save the setting
+                // Auto-save the setting with updated value
                 if (currentBusiness) {
-                  saveSettings()
+                  try {
+                    setIsSaving(true)
+                    const updatedSettings = { ...settings, enableMultiLocation: enabled }
+                    console.log('Sending update:', updatedSettings.enableMultiLocation)
+                    const res = await fetch('/api/admin/business', {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        businessId: currentBusiness.id,
+                        ...updatedSettings
+                      })
+                    })
+                    
+                    const data = await res.json()
+                    console.log('Save response:', data)
+                    
+                    if (data.success) {
+                      showSuccess(
+                        language === 'sw' ? 'Mipangilio imehifadhiwa' : 'Settings saved',
+                        language === 'sw' ? 'Mabadiliko yamehifadhiwa kikamilifu' : 'Changes saved successfully'
+                      )
+                      // Refresh settings from database to ensure consistency
+                      console.log('Refreshing settings...')
+                      await loadSettings()
+                      console.log('Settings after refresh:', settings.enableMultiLocation)
+                    } else {
+                      throw new Error(data.message || 'Failed to save')
+                    }
+                  } catch (error) {
+                    console.error('Error saving multi-store setting:', error)
+                    showError(
+                      language === 'sw' ? 'Hitilafu' : 'Error',
+                      language === 'sw' ? 'Imeshindwa kuhifadhi mipangilio' : 'Failed to save settings'
+                    )
+                    // Revert the change on error
+                    handleInputChange('enableMultiLocation', !enabled)
+                  } finally {
+                    setIsSaving(false)
+                  }
                 }
               }}
             />
