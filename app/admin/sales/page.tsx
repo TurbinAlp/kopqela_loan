@@ -37,10 +37,19 @@ interface Order {
     quantity: number
     unitPrice: number
     totalPrice: number
-    product: {
+    product?: {
       id: number
       name: string
       nameSwahili?: string
+    }
+    serviceItem?: {
+      id: number
+      name: string
+      nameSwahili?: string
+      durationValue: number
+      durationUnit: string
+      currentRentalStart?: string
+      currentRentalEnd?: string
     }
   }>
   subtotal: number
@@ -1003,11 +1012,19 @@ function SalesManagementPageContent() {
               customerPhone: receiptOrder.customer.phone,
               items: receiptOrder.orderItems.map((oi) => ({
                 id: oi.id,
-                name: oi.product.name,
-                nameSwahili: oi.product.nameSwahili,
+                name: oi.product?.name || oi.serviceItem?.name || 'Unknown Item',
+                nameSwahili: oi.product?.nameSwahili || oi.serviceItem?.nameSwahili,
                 quantity: oi.quantity,
                 price: Number(oi.unitPrice),
-                subtotal: Number(oi.totalPrice)
+                subtotal: Number(oi.totalPrice),
+                unit: oi.product ? 'pcs' : undefined,
+                itemType: oi.product ? 'PRODUCT' : 'SERVICE',
+                serviceItem: oi.serviceItem ? {
+                  durationValue: oi.serviceItem.durationValue,
+                  durationUnit: oi.serviceItem.durationUnit,
+                  currentRentalStart: oi.serviceItem.currentRentalStart,
+                  currentRentalEnd: oi.serviceItem.currentRentalEnd
+                } : undefined
               })),
               subtotal: Number(receiptOrder.subtotal),
               taxAmount: Number(receiptOrder.taxAmount || 0),

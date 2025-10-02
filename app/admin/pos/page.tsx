@@ -971,7 +971,42 @@ function POSSystemContent() {
                   quantity: item.quantity,
                   price: item.price,
                   subtotal: item.subtotal,
-                  unit: item.unit
+                  unit: item.unit,
+                  itemType: item.itemType,
+                  serviceItem: item.itemType === 'SERVICE' && item.serviceItemId ? {
+                    durationValue: item.durationValue || 1,
+                    durationUnit: item.durationUnit || 'DAYS',
+                    currentRentalStart: new Date().toISOString(),
+                    currentRentalEnd: (() => {
+                      const start = new Date()
+                      const duration = item.durationValue || 1
+                      const unit = item.durationUnit || 'DAYS'
+                      
+                      switch (unit) {
+                        case 'MINUTES':
+                          start.setMinutes(start.getMinutes() + duration)
+                          break
+                        case 'HOURS':
+                          start.setHours(start.getHours() + duration)
+                          break
+                        case 'DAYS':
+                          start.setDate(start.getDate() + duration)
+                          break
+                        case 'WEEKS':
+                          start.setDate(start.getDate() + (duration * 7))
+                          break
+                        case 'MONTHS':
+                          start.setMonth(start.getMonth() + duration)
+                          break
+                        case 'YEARS':
+                          start.setFullYear(start.getFullYear() + duration)
+                          break
+                        default:
+                          start.setDate(start.getDate() + duration)
+                      }
+                      return start.toISOString()
+                    })()
+                  } : undefined
                 })),
                 subtotal: lastTransaction.items.reduce((sum, item) => sum + Number(item.subtotal), 0),
                 taxAmount: includeTax ? lastTransaction.items.reduce((sum, item) => sum + Number(item.subtotal), 0) * ((currentBusiness?.businessSetting?.taxRate || 18) / 100) : 0,

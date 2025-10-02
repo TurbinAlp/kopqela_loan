@@ -16,6 +16,13 @@ interface ReceiptItem {
   price: number
   subtotal: number
   unit?: string
+  itemType?: 'PRODUCT' | 'SERVICE'
+  serviceItem?: {
+    durationValue: number
+    durationUnit: string
+    currentRentalStart?: string
+    currentRentalEnd?: string
+  }
 }
 
 interface ReceiptData {
@@ -80,7 +87,7 @@ export default function Receipt({
       phone: "Phone",
       email: "Email",
       items: "Items",
-      itemName: "Item",
+      itemName: "Item/Service",
       quantity: "Qty",
       price: "Price",
       total: "Total",
@@ -109,7 +116,18 @@ export default function Receipt({
       close: "Close",
       thankYou: "Thank you for your business!",
       months: "months",
-      interestRate: "interest"
+      interestRate: "interest",
+      // Service-related translations
+      leaseFor: "Lease for",
+      rentalPeriod: "Rental Period",
+      from: "From",
+      to: "To",
+      duration: "Duration",
+      minutes: "min",
+      hours: "hrs",
+      days: "days",
+      weeks: "weeks",
+      years: "years"
     },
     sw: {
       receipt: "Risiti",
@@ -121,7 +139,7 @@ export default function Receipt({
       phone: "Simu",
       email: "Barua Pepe",
       items: "Bidhaa",
-      itemName: "Bidhaa",
+      itemName: "Bidhaa/Huduma",
       quantity: "Idadi",
       price: "Bei",
       total: "Jumla",
@@ -150,7 +168,18 @@ export default function Receipt({
       close: "Funga",
       thankYou: "Asante kwa biashara yako!",
       months: "miezi",
-      interestRate: "riba"
+      interestRate: "riba",
+      // Service-related translations
+      leaseFor: "Kukodisha kwa",
+      rentalPeriod: "Muda wa Kukodisha",
+      from: "Kuanzia",
+      to: "Hadi",
+      duration: "Muda",
+      minutes: "dak",
+      hours: "saa",
+      days: "siku",
+      weeks: "wiki",
+      years: "miaka"
     }
   }
 
@@ -158,6 +187,29 @@ export default function Receipt({
 
   const formatCurrency = (amount: number) => {
     return `${t.currency} ${amount.toLocaleString()}`
+  }
+
+  const formatDuration = (value: number, unit: string) => {
+    const unitMap: { [key: string]: string } = {
+      'MINUTES': t.minutes,
+      'HOURS': t.hours,
+      'DAYS': t.days,
+      'WEEKS': t.weeks,
+      'MONTHS': t.months,
+      'YEARS': t.years
+    }
+    return `${value} ${unitMap[unit] || unit.toLowerCase()}`
+  }
+
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleString(language === 'sw' ? 'sw-TZ' : 'en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
   }
 
   const getPaymentMethodDisplay = () => {
@@ -266,21 +318,98 @@ export default function Receipt({
               
               {/* Items */}
               {receiptData.items.map((item) => (
-                <div key={item.id} className="grid grid-cols-12 gap-2 text-xs border-b border-gray-100 pb-2">
-                  <div className="col-span-5">
-                    <p className="font-medium text-gray-900">
-                      {language === 'sw' && item.nameSwahili ? item.nameSwahili : item.name}
-                    </p>
+                <div key={item.id} className="border-b border-gray-100 pb-3 mb-3">
+                  {/* Main item row */}
+                  <div className="grid grid-cols-12 gap-2 text-xs">
+                    <div className="col-span-5">
+                      <p className="font-medium text-gray-900">
+                        {language === 'sw' && item.nameSwahili ? item.nameSwahili : item.name}
+                      </p>
+                      {item.itemType === 'SERVICE' && (
+                        <p className="text-[10px] text-blue-600 font-medium mt-0.5">
+                          [{item.itemType === 'SERVICE' ? (language === 'sw' ? 'HUDUMA' : 'SERVICE') : (language === 'sw' ? 'BIDHAA' : 'PRODUCT')}]
+                        </p>
+                      )}
+                    </div>
+                    <div className="col-span-2 text-center text-gray-900">
+                      {item.quantity}
+                    </div>
+                    <div className="col-span-2 text-right text-gray-900">
+                      {formatCurrency(item.price)}
+                    </div>
+                    <div className="col-span-3 text-right font-medium text-gray-900">
+                      {formatCurrency(item.subtotal)}
+                    </div>
                   </div>
-                  <div className="col-span-2 text-center text-gray-900">
-                    {item.quantity}
-                  </div>
-                  <div className="col-span-2 text-right text-gray-900">
-                    {formatCurrency(item.price)}
-                  </div>
-                  <div className="col-span-3 text-right font-medium text-gray-900">
-                    {formatCurrency(item.subtotal)}
-                  </div>
+                  
+                  {/* Service-specific information - Full width */}
+                  {item.itemType === 'SERVICE' && item.serviceItem && (
+                    <div className="mt-2 bg-blue-50 p-3 rounded-md border-l-4 border-blue-400">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-blue-800">{t.leaseFor}:</span>
+                          <span className="text-xs font-bold text-blue-900">
+                            {formatDuration(item.serviceItem.durationValue, item.serviceItem.durationUnit)}
+                          </span>
+                        </div>
+                        
+                        {(() => {
+                          // Calculate rental period if not provided
+                          const startDate = item.serviceItem.currentRentalStart 
+                            ? new Date(item.serviceItem.currentRentalStart)
+                            : new Date() // Use current date if not provided
+                          
+                          const endDate = item.serviceItem.currentRentalEnd 
+                            ? new Date(item.serviceItem.currentRentalEnd)
+                            : (() => {
+                                const end = new Date(startDate)
+                                const duration = item.serviceItem.durationValue
+                                const unit = item.serviceItem.durationUnit
+                                
+                                switch (unit) {
+                                  case 'MINUTES':
+                                    end.setMinutes(end.getMinutes() + duration)
+                                    break
+                                  case 'HOURS':
+                                    end.setHours(end.getHours() + duration)
+                                    break
+                                  case 'DAYS':
+                                    end.setDate(end.getDate() + duration)
+                                    break
+                                  case 'WEEKS':
+                                    end.setDate(end.getDate() + (duration * 7))
+                                    break
+                                  case 'MONTHS':
+                                    end.setMonth(end.getMonth() + duration)
+                                    break
+                                  case 'YEARS':
+                                    end.setFullYear(end.getFullYear() + duration)
+                                    break
+                                  default:
+                                    end.setDate(end.getDate() + duration)
+                                }
+                                return end
+                              })()
+                          
+                          return (
+                            <div className="bg-white p-2 rounded border border-blue-200">
+                              <p className="text-xs font-medium text-blue-800 mb-2 text-center">{t.rentalPeriod}</p>
+                              <div className="grid grid-cols-2 gap-2 text-[10px]">
+                                <div className="text-center">
+                                  <p className="font-medium text-blue-700">{t.from}:</p>
+                                  <p className="text-blue-600">{formatDateTime(startDate.toISOString())}</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="font-medium text-blue-700">{t.to}:</p>
+                                  <p className="text-blue-600">{formatDateTime(endDate.toISOString())}</p>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })()}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

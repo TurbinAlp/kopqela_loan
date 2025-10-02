@@ -550,7 +550,18 @@ export async function GET(request: NextRequest) {
         },
         orderItems: {
           include: {
-            product: { select: { id: true, name: true, nameSwahili: true } }
+            product: { select: { id: true, name: true, nameSwahili: true } },
+            serviceItem: { 
+              select: { 
+                id: true, 
+                name: true, 
+                nameSwahili: true,
+                durationValue: true,
+                durationUnit: true,
+                currentRentalStart: true,
+                currentRentalEnd: true
+              } 
+            }
           }
         },
         payments: true
