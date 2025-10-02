@@ -11,12 +11,14 @@ import {
   CogIcon,
   PhotoIcon,
   TrashIcon,
-  StarIcon
+  StarIcon,
+  BuildingStorefrontIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import { useNotifications } from '../../../contexts/NotificationContext'
 import { useBusiness } from '../../../contexts/BusinessContext'
 import PermissionGate from '../../../components/auth/PermissionGate'
+import MultiStoreSettings from '../../../components/admin/stores/MultiStoreSettings'
 import Image from 'next/image'
 
 interface BusinessSettings {
@@ -217,6 +219,7 @@ export default function EditBusinessPage() {
       brandingSettings: 'Branding & Visual',
       operationalSettings: 'Operational Settings',
       storeFeatures: 'Store Features',
+      storeManagement: 'Store Management',
       financialSettings: 'Financial Settings',
       saveChanges: 'Save Changes',
       saving: 'Saving...',
@@ -328,6 +331,7 @@ export default function EditBusinessPage() {
       brandingSettings: 'Chapa na Muonekano',
       operationalSettings: 'Mipangilio ya Uendeshaji',
       storeFeatures: 'Vipengele vya Duka',
+      storeManagement: 'Usimamizi wa Maduka',
       financialSettings: 'Mipangilio ya Kifedha',
       saveChanges: 'Hifadhi Mabadiliko',
       saving: 'Inahifadhi...',
@@ -442,6 +446,7 @@ export default function EditBusinessPage() {
     { id: 'branding', label: t.brandingSettings, icon: PaintBrushIcon },
     { id: 'operational', label: t.operationalSettings, icon: CogIcon },
     { id: 'features', label: t.storeFeatures, icon: StarIcon },
+    { id: 'stores', label: t.storeManagement, icon: BuildingStorefrontIcon },
     { id: 'financial', label: t.financialSettings, icon: CurrencyDollarIcon }
   ]
 
@@ -1609,6 +1614,22 @@ export default function EditBusinessPage() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Store Management Tab */}
+        {activeTab === 'stores' && (
+          <div className="space-y-6">
+            <MultiStoreSettings
+              isMultiStoreEnabled={settings.enableMultiLocation}
+              onToggleMultiStore={(enabled) => {
+                handleInputChange('enableMultiLocation', enabled)
+                // Auto-save the setting
+                if (currentBusiness) {
+                  saveSettings()
+                }
+              }}
+            />
           </div>
         )}
 

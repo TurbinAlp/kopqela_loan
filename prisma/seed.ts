@@ -193,14 +193,14 @@ async function main() {
           businessId_productId_location: {
             businessId: business.id,
             productId: product.id,
-            location: 'main-store'
+            location: 'main_store'
           }
         },
         update: {},
         create: {
           businessId: business.id,
           productId: product.id,
-          location: 'main-store',
+          location: 'main_store',
           quantity: Math.floor(Math.random() * 50) + 10,
           reservedQuantity: 0,
           reorderPoint: 5,

@@ -33,6 +33,7 @@ model User {
   customers             Customer[]
   inventoryMovements    InventoryMovement[]
   grantedPermissions    UserPermission[]    @relation("PermissionGrantedBy")
+  managedStores         Store[]
   userPermissions       UserPermission[]
   userPreferences       UserPreference[]
   sessions              UserSession[]
@@ -145,6 +146,7 @@ model Business {
   products           Product[]
   rolePermissions    RolePermission[]
   services           Service[]
+  stores             Store[]
   userPermissions    UserPermission[]
 
   @@map("businesses")
@@ -235,6 +237,30 @@ model BusinessSetting {
   business                   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@map("business_settings")
+}
+
+model Store {
+  id          Int      @id @default(autoincrement())
+  businessId  Int      @map("business_id")
+  name        String   @db.VarChar(255)
+  nameSwahili String?  @map("name_swahili") @db.VarChar(255)
+  storeType   String   @default("retail_store") @map("store_type") @db.VarChar(50) // main_store, retail_store, warehouse
+  address     String?  @db.VarChar(500)
+  city        String?  @db.VarChar(100)
+  region      String?  @db.VarChar(100)
+  phone       String?  @db.VarChar(20)
+  email       String?  @db.VarChar(255)
+  managerId   Int?     @map("manager_id")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  manager     User?    @relation(fields: [managerId], references: [id])
+  inventory   Inventory[]
+  
+  @@unique([businessId, name])
+  @@map("stores")
 }
 
 model Customer {
@@ -335,15 +361,17 @@ model Inventory {
   id               Int      @id @default(autoincrement())
   businessId       Int      @map("business_id")
   productId        Int      @map("product_id")
+  storeId          Int?     @map("store_id") // Optional for backward compatibility
   reservedQuantity Int      @default(0) @map("reserved_quantity")
   reorderPoint     Int?     @map("reorder_point")
   maxStock         Int?     @map("max_stock")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
-  location         String   @default("main_store") @db.VarChar(100)
+  location         String   @default("main_store") @db.VarChar(100) // Keep for backward compatibility
   quantity         Int      @default(0)
   business         Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  store            Store?   @relation(fields: [storeId], references: [id], onDelete: SetNull)
 
   @@unique([businessId, productId, location])
   @@map("inventory")
