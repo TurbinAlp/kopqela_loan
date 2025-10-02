@@ -11,6 +11,10 @@ interface CartItem {
   wholesalePrice?: number
   quantity: number
   subtotal: number
+  itemType?: 'PRODUCT' | 'SERVICE'
+  serviceItemId?: number
+  durationValue?: number
+  durationUnit?: string
 }
 
 interface CartSectionProps {
@@ -31,11 +35,25 @@ export default function CartSection({
   const translations = {
     en: {
       cart: "Shopping Cart",
-      currency: "TZS"
+      currency: "TZS",
+      for: "for",
+      minutes: "min",
+      hours: "hrs",
+      days: "days",
+      weeks: "weeks",
+      months: "months",
+      years: "years"
     },
     sw: {
       cart: "Kart ya Ununuzi",
-      currency: "TSh"
+      currency: "TSh",
+      for: "kwa",
+      minutes: "dak",
+      hours: "saa",
+      days: "siku",
+      weeks: "wiki",
+      months: "miezi",
+      years: "miaka"
     }
   }
 
@@ -47,6 +65,19 @@ export default function CartSection({
       return item.wholesalePrice
     }
     return item.price
+  }
+
+  // Get duration unit label
+  const getDurationLabel = (unit: string) => {
+    const unitMap: Record<string, string> = {
+      'MINUTES': t.minutes,
+      'HOURS': t.hours,
+      'DAYS': t.days,
+      'WEEKS': t.weeks,
+      'MONTHS': t.months,
+      'YEARS': t.years
+    }
+    return unitMap[unit] || unit.toLowerCase()
   }
 
   return (
@@ -65,6 +96,11 @@ export default function CartSection({
               </p>
               <p className="text-xs text-gray-600 text-gray-900">
                 {t.currency} {getDisplayPrice(item).toLocaleString()} x {item.quantity}
+                {item.itemType === 'SERVICE' && item.durationValue && item.durationUnit && (
+                  <span className="ml-2 text-blue-600">
+                    ({t.for} {item.durationValue} {getDurationLabel(item.durationUnit)})
+                  </span>
+                )}
               </p>
             </div>
             <div className="flex items-center space-x-2">

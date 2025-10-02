@@ -1,11 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { 
   MagnifyingGlassIcon,
   WrenchScrewdriverIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../../contexts/LanguageContext'
+import ServiceDurationModal from './ServiceDurationModal'
 
 interface ServiceItem {
   id: number
@@ -38,7 +40,7 @@ interface ServicesSectionProps {
   setSearchQuery: (query: string) => void
   selectedServiceType: string
   setSelectedServiceType: (type: string) => void
-  onAddToCart: (item: ServiceItem) => void
+  onAddToCart: (item: ServiceItem, customDuration?: number, customUnit?: string) => void
 }
 
 export default function ServicesSection({
@@ -50,6 +52,8 @@ export default function ServicesSection({
   onAddToCart
 }: ServicesSectionProps) {
   const { language } = useLanguage()
+  const [showDurationModal, setShowDurationModal] = useState(false)
+  const [selectedServiceItem, setSelectedServiceItem] = useState<ServiceItem | null>(null)
   
   const translations = {
     en: {
@@ -91,6 +95,21 @@ export default function ServicesSection({
   }
 
   const t = translations[language]
+
+  // Handle service item selection
+  const handleServiceItemClick = (item: ServiceItem) => {
+    if (item.status === 'AVAILABLE') {
+      setSelectedServiceItem(item)
+      setShowDurationModal(true)
+    }
+  }
+
+  // Handle duration confirmation
+  const handleDurationConfirm = (serviceItem: ServiceItem, customDuration: number, customUnit: string) => {
+    onAddToCart(serviceItem, customDuration, customUnit)
+    setShowDurationModal(false)
+    setSelectedServiceItem(null)
+  }
 
   // Get duration unit label
   const getDurationLabel = (unit: string) => {
@@ -183,7 +202,7 @@ export default function ServicesSection({
           return (
             <motion.button
               key={item.id}
-              onClick={() => item.status === 'AVAILABLE' && onAddToCart(item)}
+              onClick={() => handleServiceItemClick(item)}
               disabled={item.status !== 'AVAILABLE'}
               whileHover={item.status === 'AVAILABLE' ? { scale: 1.02 } : undefined}
               whileTap={item.status === 'AVAILABLE' ? { scale: 0.98 } : undefined}
@@ -241,6 +260,17 @@ export default function ServicesSection({
           <p className="text-sm">Try adjusting your search or filter</p>
         </div>
       )}
+
+      {/* Service Duration Modal */}
+      <ServiceDurationModal
+        isOpen={showDurationModal}
+        onClose={() => {
+          setShowDurationModal(false)
+          setSelectedServiceItem(null)
+        }}
+        serviceItem={selectedServiceItem}
+        onConfirm={handleDurationConfirm}
+      />
     </div>
   )
 }

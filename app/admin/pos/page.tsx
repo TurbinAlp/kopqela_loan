@@ -491,10 +491,44 @@ function POSSystemContent() {
     }
   }
 
-  const addServiceToCart = (serviceItem: ServiceItem) => {
-    // For services, check if item already exists in cart
+  const addServiceToCart = (serviceItem: ServiceItem, customDuration?: number, customUnit?: string) => {
+    // Calculate custom price if duration is provided
+    let finalPrice = Number(serviceItem.price)
+    let finalDurationValue = serviceItem.durationValue
+    let finalDurationUnit = serviceItem.durationUnit
+
+    if (customDuration && customUnit) {
+      // Convert everything to hours for calculation
+      const getHours = (value: number, unit: string) => {
+        switch (unit) {
+          case 'MINUTES': return value / 60
+          case 'HOURS': return value
+          case 'DAYS': return value * 24
+          case 'WEEKS': return value * 24 * 7
+          case 'MONTHS': return value * 24 * 30
+          case 'YEARS': return value * 24 * 365
+          default: return value
+        }
+      }
+
+      const baseHours = getHours(serviceItem.durationValue, serviceItem.durationUnit)
+      const customHours = getHours(customDuration, customUnit)
+      
+      // Calculate price per hour
+      const pricePerHour = Number(serviceItem.price) / baseHours
+      
+      // Calculate final price
+      finalPrice = Math.round(pricePerHour * customHours)
+      finalDurationValue = customDuration
+      finalDurationUnit = customUnit
+    }
+
+    // For services, check if item already exists in cart with same duration
     const existingItem = cart.find(item => 
-      item.itemType === 'SERVICE' && item.serviceItemId === serviceItem.id
+      item.itemType === 'SERVICE' && 
+      item.serviceItemId === serviceItem.id &&
+      item.durationValue === finalDurationValue &&
+      item.durationUnit === finalDurationUnit
     )
 
     if (existingItem) {
@@ -502,18 +536,18 @@ function POSSystemContent() {
       updateQuantity(existingItem.id, existingItem.quantity + 1)
     } else {
       const cartItem: CartItem = {
-        id: serviceItem.id,  // Use service item ID
+        id: Date.now(), // Use timestamp to ensure uniqueness for different durations
         name: serviceItem.name,
         nameSwahili: serviceItem.nameSwahili,
-        price: Number(serviceItem.price),
+        price: finalPrice,
         category: serviceItem.serviceName || 'Service',
         stock: 1, // Services don't have stock concept
         quantity: 1,
-        subtotal: Number(serviceItem.price),
+        subtotal: finalPrice,
         itemType: 'SERVICE',
         serviceItemId: serviceItem.id,
-        durationValue: serviceItem.durationValue,
-        durationUnit: serviceItem.durationUnit
+        durationValue: finalDurationValue,
+        durationUnit: finalDurationUnit
       }
       setCart([...cart, cartItem])
     }
