@@ -5,6 +5,7 @@ import prisma from '../../../../lib/prisma'
 const inventoryQuerySchema = z.object({
   businessId: z.string().transform(Number),
   location: z.string().optional(),
+  storeId: z.string().transform(Number).optional(),
   productId: z.string().transform(Number).optional(),
   categoryId: z.string().transform(Number).optional(),
   lowStock: z.string().transform(val => val === 'true').optional(),
@@ -31,6 +32,7 @@ export async function GET(request: NextRequest) {
     const {
       businessId,
       location,
+      storeId,
       productId,
       categoryId,
       lowStock,
@@ -61,6 +63,10 @@ export async function GET(request: NextRequest) {
 
     if (location) {
       where.location = location
+    }
+
+    if (storeId) {
+      where.storeId = storeId
     }
 
     if (productId) {

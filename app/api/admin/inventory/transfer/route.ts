@@ -9,8 +9,14 @@ const transferSchema = z.object({
     quantity: z.number().min(1),
     reason: z.string().optional()
   })),
-  fromLocation: z.string().min(1),
-  toLocation: z.string().min(1),
+  // Support both legacy location strings and new store IDs
+  fromLocation: z.string().optional(),
+  toLocation: z.string().optional(),
+  fromStoreId: z.number().optional(),
+  toStoreId: z.number().optional(),
+  // For external movements (when product goes outside the business)
+  isExternalMovement: z.boolean().default(false),
+  externalDestination: z.string().optional(), // Customer name, business name, etc.
   createdBy: z.number()
 })
 
@@ -27,7 +33,17 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    const { businessId, transfers, fromLocation, toLocation, createdBy } = validationResult.data
+    const { 
+      businessId, 
+      transfers, 
+      fromLocation, 
+      toLocation, 
+      fromStoreId, 
+      toStoreId, 
+      isExternalMovement,
+      externalDestination,
+      createdBy 
+    } = validationResult.data
 
     // Validate business exists
     const business = await prisma.business.findUnique({
@@ -53,19 +69,85 @@ export async function POST(request: NextRequest) {
       }, { status: 404 })
     }
 
-    // Validate locations
-    if (fromLocation === toLocation) {
+    // Determine source and destination
+    let sourceLocation: string
+    let destinationLocation: string
+    let sourceStoreId: number | null = null
+    let destinationStoreId: number | null = null
+
+    // Handle source (fromLocation or fromStoreId)
+    if (fromStoreId) {
+      const sourceStore = await prisma.store.findFirst({
+        where: { id: fromStoreId, businessId, isActive: true }
+      })
+      if (!sourceStore) {
+        return NextResponse.json({
+          success: false,
+          message: 'Source store not found'
+        }, { status: 404 })
+      }
+      sourceLocation = `store_${fromStoreId}`
+      sourceStoreId = fromStoreId
+    } else if (fromLocation) {
+      sourceLocation = fromLocation
+      // Legacy support for hardcoded locations
+      const validLocations = ['main_store', 'retail_store']
+      if (!validLocations.includes(fromLocation)) {
+        return NextResponse.json({
+          success: false,
+          message: 'Invalid source location'
+        }, { status: 400 })
+      }
+    } else {
       return NextResponse.json({
         success: false,
-        message: 'Source and destination locations cannot be the same'
+        message: 'Source location or store ID is required'
       }, { status: 400 })
     }
 
-    const validLocations = ['main_store', 'retail_store']
-    if (!validLocations.includes(fromLocation) || !validLocations.includes(toLocation)) {
+    // Handle destination
+    if (isExternalMovement) {
+      if (!externalDestination) {
+        return NextResponse.json({
+          success: false,
+          message: 'External destination is required for external movements'
+        }, { status: 400 })
+      }
+      destinationLocation = `external_${externalDestination.replace(/\s+/g, '_').toLowerCase()}`
+    } else if (toStoreId) {
+      const destinationStore = await prisma.store.findFirst({
+        where: { id: toStoreId, businessId, isActive: true }
+      })
+      if (!destinationStore) {
+        return NextResponse.json({
+          success: false,
+          message: 'Destination store not found'
+        }, { status: 404 })
+      }
+      destinationLocation = `store_${toStoreId}`
+      destinationStoreId = toStoreId
+    } else if (toLocation) {
+      destinationLocation = toLocation
+      // Legacy support for hardcoded locations
+      const validLocations = ['main_store', 'retail_store']
+      if (!validLocations.includes(toLocation)) {
+        return NextResponse.json({
+          success: false,
+          message: 'Invalid destination location'
+        }, { status: 400 })
+      }
+    } else {
       return NextResponse.json({
         success: false,
-        message: 'Invalid location. Valid locations are: main_store, retail_store'
+        message: 'Destination location, store ID, or external movement flag is required'
+      }, { status: 400 })
+    }
+
+    // Validate not transferring to same location
+    if (sourceLocation === destinationLocation) {
+      return NextResponse.json({
+        success: false,
+        message: 'Source and destination cannot be the same'
       }, { status: 400 })
     }
 
@@ -75,19 +157,36 @@ export async function POST(request: NextRequest) {
       const movementRecords = []
 
       for (const transfer of transfers) {
-        // Check source inventory availability
-        const sourceInventory = await tx.inventory.findUnique({
-          where: {
-            businessId_productId_location: {
+        // Find source inventory (support both legacy location and new store-based)
+        let sourceInventory
+        if (sourceStoreId) {
+          // New store-based inventory
+          sourceInventory = await tx.inventory.findFirst({
+            where: {
               businessId,
               productId: transfer.productId,
-              location: fromLocation
+              storeId: sourceStoreId
             }
-          }
-        })
+          })
+        } else {
+          // Legacy location-based inventory
+          sourceInventory = await tx.inventory.findUnique({
+            where: {
+              businessId_productId_location: {
+                businessId,
+                productId: transfer.productId,
+                location: sourceLocation
+              }
+            }
+          })
+        }
 
         if (!sourceInventory) {
-          throw new Error(`Product ${transfer.productId} not found in ${fromLocation}`)
+          const product = await tx.product.findUnique({
+            where: { id: transfer.productId },
+            select: { name: true }
+          })
+          throw new Error(`Product ${product?.name} not found in source location`)
         }
 
         if (sourceInventory.quantity < transfer.quantity) {
@@ -99,53 +198,93 @@ export async function POST(request: NextRequest) {
         }
 
         // Decrease source inventory
-        await tx.inventory.update({
-          where: {
-            businessId_productId_location: {
-              businessId,
-              productId: transfer.productId,
-              location: fromLocation
+        if (sourceStoreId) {
+          await tx.inventory.update({
+            where: { id: sourceInventory.id },
+            data: {
+              quantity: {
+                decrement: transfer.quantity
+              }
             }
-          },
-          data: {
-            quantity: {
-              decrement: transfer.quantity
+          })
+        } else {
+          await tx.inventory.update({
+            where: {
+              businessId_productId_location: {
+                businessId,
+                productId: transfer.productId,
+                location: sourceLocation
+              }
+            },
+            data: {
+              quantity: {
+                decrement: transfer.quantity
+              }
             }
-          }
-        })
+          })
+        }
 
-        // Increase destination inventory (create if doesn't exist)
-        await tx.inventory.upsert({
-          where: {
-            businessId_productId_location: {
-              businessId,
-              productId: transfer.productId,
-              location: toLocation
-            }
-          },
-          create: {
-            businessId,
-            productId: transfer.productId,
-            location: toLocation,
-            quantity: transfer.quantity
-          },
-          update: {
-            quantity: {
-              increment: transfer.quantity
-            }
+        // For external movements, don't create destination inventory
+        if (!isExternalMovement) {
+          // Increase destination inventory (create if doesn't exist)
+          if (destinationStoreId) {
+            // New store-based inventory
+            await tx.inventory.upsert({
+              where: {
+                businessId_productId_location: {
+                  businessId,
+                  productId: transfer.productId,
+                  location: destinationLocation
+                }
+              },
+              update: {
+                quantity: {
+                  increment: transfer.quantity
+                }
+              },
+              create: {
+                businessId,
+                productId: transfer.productId,
+                location: destinationLocation,
+                quantity: transfer.quantity,
+                storeId: destinationStoreId
+              }
+            })
+          } else {
+            // Legacy location-based inventory
+            await tx.inventory.upsert({
+              where: {
+                businessId_productId_location: {
+                  businessId,
+                  productId: transfer.productId,
+                  location: destinationLocation
+                }
+              },
+              update: {
+                quantity: {
+                  increment: transfer.quantity
+                }
+              },
+              create: {
+                businessId,
+                productId: transfer.productId,
+                location: destinationLocation,
+                quantity: transfer.quantity
+              }
+            })
           }
-        })
+        }
 
         // Create movement record
         const movementRecord = await tx.inventoryMovement.create({
           data: {
             businessId,
             productId: transfer.productId,
-            fromLocation,
-            toLocation,
+            fromLocation: sourceLocation,
+            toLocation: destinationLocation,
             quantity: transfer.quantity,
-            movementType: 'transfer',
-            reason: transfer.reason || `Transfer from ${fromLocation} to ${toLocation}`,
+            movementType: isExternalMovement ? 'external_transfer' : 'transfer',
+            reason: transfer.reason || (isExternalMovement ? `External transfer to ${externalDestination}` : `Transfer from ${sourceLocation} to ${destinationLocation}`),
             createdBy
           }
         })
@@ -153,9 +292,11 @@ export async function POST(request: NextRequest) {
         transferResults.push({
           productId: transfer.productId,
           quantity: transfer.quantity,
-          fromLocation,
-          toLocation,
-          movementId: movementRecord.id
+          fromLocation: sourceLocation,
+          toLocation: destinationLocation,
+          movementId: movementRecord.id,
+          isExternal: isExternalMovement,
+          externalDestination: isExternalMovement ? externalDestination : null
         })
 
         movementRecords.push(movementRecord)
