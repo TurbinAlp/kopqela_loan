@@ -11,7 +11,6 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   EyeIcon,
-  XMarkIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useBusiness } from '../../contexts/BusinessContext'
@@ -21,6 +20,9 @@ import { useSession } from 'next-auth/react'
 import Spinner from '../../components/ui/Spinner'
 import { useNotifications } from '../../contexts/NotificationContext'
 import LoadingLink from '../../components/ui/LoadingLink'
+import EditServiceModal from '../../components/admin/services/EditServiceModal'
+import DeleteServiceModal from '../../components/admin/services/DeleteServiceModal'
+import AddServiceModal from '../../components/admin/services/AddServiceModal'
 
 interface Service {
   id: number
@@ -39,7 +41,7 @@ interface Service {
 
 export default function ServicesPage() {
   const { language } = useLanguage()
-  const { showError, showSuccess } = useNotifications()
+  const { showError } = useNotifications()
   const { isLoading: authLoading } = useRequireAdminAuth()
   const { currentBusiness } = useBusiness()
   const { data: session } = useSession()
@@ -51,15 +53,11 @@ export default function ServicesPage() {
   const [mounted, setMounted] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
-  const [addingService, setAddingService] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingService, setEditingService] = useState<Service | null>(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deletingService, setDeletingService] = useState<Service | null>(null)
   
-  // Service form
-  const [formData, setFormData] = useState({
-    serviceType: 'LEASE',
-    name: '',
-    nameSwahili: '',
-    description: ''
-  })
 
   const translations = {
     en: {
@@ -80,23 +78,15 @@ export default function ServicesPage() {
       noServicesMessage: "Get started by adding your first service.",
       noServicesFound: "No Services Found",
       noServicesFoundMessage: "Try adjusting your search.",
-      lease: "Lease",
-      addNewService: "Add New Service",
-      serviceNameLabel: "Service Name",
-      serviceNamePlaceholder: "e.g., Hotel Room Lease, Car Rental Service",
-      serviceNameSwahili: "Service Name (Swahili)",
-      serviceNameSwahiliPlaceholder: "e.g., Huduma ya Kukodisha Vyumba",
-      selectServiceType: "Select Service Type",
-      descriptionLabel: "Description",
-      descriptionPlaceholder: "Describe this service...",
-      cancel: "Cancel",
-      create: "Create Service",
-      creating: "Creating...",
-      serviceAdded: "Service Added",
-      serviceAddedMessage: "Service has been created successfully.",
       error: "Error",
       loadingServices: "Loading Services",
-      clearSearch: "Clear Search"
+      clearSearch: "Clear Search",
+      editService: "Edit Service",
+      updateService: "Update Service",
+      updating: "Updating...",
+      serviceUpdated: "Service Updated",
+      serviceUpdatedMessage: "Service has been updated successfully.",
+      lease: "Lease",
     },
     sw: {
       services: "Huduma",
@@ -116,23 +106,15 @@ export default function ServicesPage() {
       noServicesMessage: "Anza kwa kuongeza huduma yako ya kwanza.",
       noServicesFound: "Hakuna Huduma Zilizopatikana",
       noServicesFoundMessage: "Jaribu kubadilisha utafutaji wako.",
-      lease: "Ukodishaji",
-      addNewService: "Ongeza Huduma Mpya",
-      serviceNameLabel: "Jina la Huduma",
-      serviceNamePlaceholder: "mf., Huduma ya Kukodisha Vyumba, Huduma ya Kukodisha Magari",
-      serviceNameSwahili: "Jina la Huduma (Kiswahili)",
-      serviceNameSwahiliPlaceholder: "mf., Huduma ya Kukodisha Vyumba",
-      selectServiceType: "Chagua Aina ya Huduma",
-      descriptionLabel: "Maelezo",
-      descriptionPlaceholder: "Eleza huduma hii...",
-      cancel: "Ghairi",
-      create: "Tengeneza Huduma",
-      creating: "Inaongeza...",
-      serviceAdded: "Huduma Imeongezwa",
-      serviceAddedMessage: "Huduma imeongezwa kwa mafanikio.",
       error: "Hitilafu",
       loadingServices: "Inapakia Huduma",
-      clearSearch: "Ondoa Utafutaji"
+      clearSearch: "Ondoa Utafutaji",
+      editService: "Hariri Huduma",
+      updateService: "Sasisha Huduma",
+      updating: "Inasasisha...",
+      serviceUpdated: "Huduma Imesasishwa",
+      serviceUpdatedMessage: "Huduma imesasishwa kwa mafanikio.",
+      lease: "Ukodishaji"
     }
   }
 
@@ -181,50 +163,20 @@ export default function ServicesPage() {
     return name.toLowerCase().includes(searchQuery.toLowerCase())
   })
 
-  // Handle add service
-  const handleAddService = async () => {
-    if (!currentBusiness?.id) return
-    if (!formData.name.trim()) {
-      showError(t.error, 'Service name is required')
-      return
-    }
-
-    setAddingService(true)
-    
-    try {
-      const response = await fetch('/api/admin/services', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          businessId: currentBusiness.id,
-          ...formData
-        })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Failed to create service')
-      }
-
-      showSuccess(t.serviceAdded, t.serviceAddedMessage)
-      fetchServices()
-      setShowAddModal(false)
-      setFormData({
-        serviceType: 'LEASE',
-        name: '',
-        nameSwahili: '',
-        description: ''
-      })
-    } catch (error) {
-      console.error('Error saving service:', error)
-      showError(t.error, 'Failed to save service')
-    } finally {
-      setAddingService(false)
-    }
+  // Handle edit service
+  const handleEditService = (service: Service) => {
+    setEditingService(service)
+    setShowEditModal(true)
   }
+
+
+  // Handle delete service
+  const handleDeleteService = (service: Service) => {
+    setDeletingService(service)
+    setShowDeleteModal(true)
+  }
+
+
 
   if (!mounted || authLoading) {
     return (
@@ -381,6 +333,7 @@ export default function ServicesPage() {
                           <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
+                            onClick={() => handleEditService(service)}
                             className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                             title={t.edit}
                           >
@@ -391,6 +344,7 @@ export default function ServicesPage() {
                           <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
+                            onClick={() => handleDeleteService(service)}
                             className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title={t.delete}
                           >
@@ -407,111 +361,35 @@ export default function ServicesPage() {
         </motion.div>
       )}
 
+
       {/* Add Service Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-          >
-            {/* Modal Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-900">{t.addNewService}</h3>
-              <button
-                onClick={() => setShowAddModal(false)}
-                disabled={addingService}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-              >
-                <XMarkIcon className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
+      <AddServiceModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onServiceAdded={fetchServices}
+      />
 
-            <div className="p-6">
-              {/* Service Type */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t.selectServiceType} *
-                </label>
-                <select
-                  value={formData.serviceType}
-                  onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })}
-                  disabled={addingService}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-gray-900"
-                >
-                  <option value="LEASE">{t.lease}</option>
-                </select>
-              </div>
+      {/* Edit Service Modal */}
+      <EditServiceModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false)
+          setEditingService(null)
+        }}
+        service={editingService}
+        onServiceUpdated={fetchServices}
+      />
 
-              {/* Service Name */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t.serviceNameLabel} *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  disabled={addingService}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
-                  placeholder={t.serviceNamePlaceholder}
-                />
-              </div>
-
-              {/* Service Name Swahili */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t.serviceNameSwahili}
-                </label>
-                <input
-                  type="text"
-                  value={formData.nameSwahili}
-                  onChange={(e) => setFormData({ ...formData, nameSwahili: e.target.value })}
-                  disabled={addingService}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
-                  placeholder={t.serviceNameSwahiliPlaceholder}
-                />
-              </div>
-
-              {/* Description */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t.descriptionLabel}
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  disabled={addingService}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
-                  rows={3}
-                  placeholder={t.descriptionPlaceholder}
-                />
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex items-center justify-end space-x-3">
-              <button
-                onClick={() => setShowAddModal(false)}
-                disabled={addingService}
-                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {t.cancel}
-              </button>
-              <button
-                onClick={handleAddService}
-                disabled={addingService || !formData.name.trim()}
-                className="px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-              >
-                {addingService && (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                )}
-                <span>{addingService ? t.creating : t.create}</span>
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      {/* Delete Service Modal */}
+      <DeleteServiceModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false)
+          setDeletingService(null)
+        }}
+        service={deletingService}
+        onServiceDeleted={fetchServices}
+      />
     </div>
   )
 }
