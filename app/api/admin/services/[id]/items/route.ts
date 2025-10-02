@@ -6,7 +6,7 @@ import prisma from '../../../../../lib/prisma'
 // GET - Fetch all items for a service
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -18,7 +18,8 @@ export async function GET(
       )
     }
 
-    const serviceId = parseInt(params.id)
+    const resolvedParams = await params
+    const serviceId = parseInt(resolvedParams.id)
 
     // Fetch service items
     const items = await prisma.serviceItem.findMany({
@@ -61,7 +62,7 @@ export async function GET(
 // POST - Create a new service item
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -73,7 +74,8 @@ export async function POST(
       )
     }
 
-    const serviceId = parseInt(params.id)
+    const resolvedParams = await params
+    const serviceId = parseInt(resolvedParams.id)
     const body = await request.json()
     const { 
       itemNumber, 

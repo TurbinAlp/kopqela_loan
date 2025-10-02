@@ -9,7 +9,6 @@ import {
   PencilIcon,
   TrashIcon,
   ArrowLeftIcon,
-  XMarkIcon,
   CheckCircleIcon,
   XCircleIcon,
   WrenchIcon
@@ -21,6 +20,9 @@ import { hasPermissionSync, useBusinessPermissions } from '../../../hooks/usePer
 import { useSession } from 'next-auth/react'
 import Spinner from '../../../components/ui/Spinner'
 import { useNotifications } from '../../../contexts/NotificationContext'
+import AddServiceItemModal from '../../../components/admin/services/AddServiceItemModal'
+import EditServiceItemModal from '../../../components/admin/services/EditServiceItemModal'
+import DeleteServiceItemModal from '../../../components/admin/services/DeleteServiceItemModal'
 
 interface ServiceItem {
   id: number
@@ -36,7 +38,7 @@ interface ServiceItem {
   currentRentalStart?: string
   currentRentalEnd?: string
   currentCustomerId?: number
-  specifications?: any
+  specifications?: Record<string, unknown> | null
   createdAt: string
   updatedAt: string
   currentCustomer?: {
@@ -59,7 +61,7 @@ export default function ServiceItemsPage() {
   const params = useParams()
   const router = useRouter()
   const { language } = useLanguage()
-  const { showError, showSuccess } = useNotifications()
+  const { showError } = useNotifications()
   const { isLoading: authLoading } = useRequireAdminAuth()
   const { currentBusiness } = useBusiness()
   const { data: session } = useSession()
@@ -72,19 +74,10 @@ export default function ServiceItemsPage() {
   const [mounted, setMounted] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
-  const [addingItem, setAddingItem] = useState(false)
-  
-  // Item form
-  const [formData, setFormData] = useState({
-    itemNumber: '',
-    name: '',
-    nameSwahili: '',
-    description: '',
-    price: '',
-    durationValue: '1',
-    durationUnit: 'DAYS',
-    status: 'AVAILABLE' as ServiceItem['status']
-  })
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingItem, setEditingItem] = useState<ServiceItem | null>(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deletingItem, setDeletingItem] = useState<ServiceItem | null>(null)
 
   const serviceId = params.id ? parseInt(params.id as string) : null
 
@@ -111,37 +104,10 @@ export default function ServiceItemsPage() {
       noItemsMessage: "Start by adding items to this service.",
       noItemsFound: "No Items Found",
       noItemsFoundMessage: "Try adjusting your search.",
-      addNewItem: "Add New Item",
-      itemNumberLabel: "Item Number",
-      itemNumberPlaceholder: "e.g., Room-101, T1234ABC",
-      nameLabel: "Item Name",
-      namePlaceholder: "e.g., Standard Room, Toyota Vitz",
-      nameSwahili: "Item Name (Swahili)",
-      nameSwahiliPlaceholder: "e.g., Chumba cha Kawaida",
-      descriptionLabel: "Description",
-      descriptionPlaceholder: "Describe this item...",
-      priceLabel: "Price",
-      pricePlaceholder: "50000",
-      durationLabel: "Duration",
-      durationValueLabel: "Value",
-      durationUnitLabel: "Unit",
-      statusLabel: "Status",
-      cancel: "Cancel",
-      create: "Create Item",
-      creating: "Creating...",
-      itemAdded: "Item Added",
-      itemAddedMessage: "Item has been added successfully.",
-      error: "Error",
-      currency: "TZS",
       for: "for",
-      minutes: "Minutes",
-      hours: "Hours",
-      days: "Days",
-      weeks: "Weeks",
-      months: "Months",
-      years: "Years",
       clearSearch: "Clear Search",
-      loading: "Loading..."
+      loading: "Loading...",
+      cannotDeleteRented: "Cannot delete a rented item"
     },
     sw: {
       backToServices: "Rudi kwa Huduma",
@@ -165,61 +131,26 @@ export default function ServiceItemsPage() {
       noItemsMessage: "Anza kwa kuongeza vitu kwenye huduma hii.",
       noItemsFound: "Hakuna Vitu Vilivyopatikana",
       noItemsFoundMessage: "Jaribu kubadilisha utafutaji wako.",
-      addNewItem: "Ongeza Kitu Kipya",
-      itemNumberLabel: "Namba ya Kitu",
-      itemNumberPlaceholder: "mf., Room-101, T1234ABC",
-      nameLabel: "Jina la Kitu",
-      namePlaceholder: "mf., Chumba cha Kawaida, Toyota Vitz",
-      nameSwahili: "Jina la Kitu (Kiswahili)",
-      nameSwahiliPlaceholder: "mf., Chumba cha Kawaida",
-      descriptionLabel: "Maelezo",
-      descriptionPlaceholder: "Eleza kitu hiki...",
-      priceLabel: "Bei",
-      pricePlaceholder: "50000",
-      durationLabel: "Muda",
-      durationValueLabel: "Kiasi",
-      durationUnitLabel: "Kipimo",
-      statusLabel: "Hali",
-      cancel: "Ghairi",
-      create: "Tengeneza Kitu",
-      creating: "Inaongeza...",
-      itemAdded: "Kitu Kimeongezwa",
-      itemAddedMessage: "Kitu kimeongezwa kwa mafanikio.",
-      error: "Hitilafu",
-      currency: "TSh",
       for: "kwa",
-      minutes: "Dakika",
-      hours: "Masaa",
-      days: "Siku",
-      weeks: "Wiki",
-      months: "Miezi",
-      years: "Miaka",
       clearSearch: "Ondoa Utafutaji",
-      loading: "Inapakia..."
+      loading: "Inapakia...",
+      cannotDeleteRented: "Haiwezi kufuta kitu kilichokodishwa"
     }
   }
 
   const t = translations[language]
 
-  const durationUnitOptions = [
-    { value: 'MINUTES', label: t.minutes },
-    { value: 'HOURS', label: t.hours },
-    { value: 'DAYS', label: t.days },
-    { value: 'WEEKS', label: t.weeks },
-    { value: 'MONTHS', label: t.months },
-    { value: 'YEARS', label: t.years }
-  ]
-
-  const statusOptions = [
-    { value: 'AVAILABLE', label: t.available },
-    { value: 'RENTED', label: t.rented },
-    { value: 'BOOKED', label: t.booked },
-    { value: 'MAINTENANCE', label: t.maintenance }
-  ]
-
   // Helper to format duration
   const formatDuration = (value: number, unit: string) => {
-    const unitLabel = durationUnitOptions.find(o => o.value === unit)?.label || unit
+    const unitLabels: Record<string, string> = {
+      'MINUTES': language === 'sw' ? 'Dakika' : 'Minutes',
+      'HOURS': language === 'sw' ? 'Masaa' : 'Hours', 
+      'DAYS': language === 'sw' ? 'Siku' : 'Days',
+      'WEEKS': language === 'sw' ? 'Wiki' : 'Weeks',
+      'MONTHS': language === 'sw' ? 'Miezi' : 'Months',
+      'YEARS': language === 'sw' ? 'Miaka' : 'Years'
+    }
+    const unitLabel = unitLabels[unit] || unit
     return `${value} ${unitLabel}`
   }
 
@@ -249,11 +180,11 @@ export default function ServiceItemsPage() {
       }
     } catch (error) {
       console.error('Error fetching data:', error)
-      showError(t.error, 'Failed to load data')
+      showError('Error', 'Failed to load data')
     } finally {
       setIsLoading(false)
     }
-  }, [serviceId, currentBusiness?.id, showError, t.error])
+  }, [serviceId, currentBusiness?.id, showError])
 
   useEffect(() => {
     setMounted(true)
@@ -274,55 +205,22 @@ export default function ServiceItemsPage() {
     )
   })
 
-  // Handle add item
-  const handleAddItem = async () => {
-    if (!serviceId) return
-    if (!formData.itemNumber.trim() || !formData.name.trim() || !formData.price || !formData.durationValue) {
-      showError(t.error, 'Item number, name, price, and duration are required')
+  // Handle edit item
+  const handleEditItem = (item: ServiceItem) => {
+    setEditingItem(item)
+    setShowEditModal(true)
+  }
+
+  // Handle delete item
+  const handleDeleteItem = (item: ServiceItem) => {
+    if (item.status === 'RENTED') {
+      showError('Error', t.cannotDeleteRented)
       return
     }
-
-    setAddingItem(true)
-    
-    try {
-      const response = await fetch(`/api/admin/services/${serviceId}/items`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          price: parseFloat(formData.price),
-          durationValue: parseInt(formData.durationValue)
-        })
-      })
-
-      const data = await response.json()
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Failed to create item')
-      }
-
-      showSuccess(t.itemAdded, t.itemAddedMessage)
-      fetchData()
-      setShowAddModal(false)
-      setFormData({
-        itemNumber: '',
-        name: '',
-        nameSwahili: '',
-        description: '',
-        price: '',
-        durationValue: '1',
-        durationUnit: 'DAYS',
-        status: 'AVAILABLE'
-      })
-    } catch (error: any) {
-      console.error('Error saving item:', error)
-      showError(t.error, error.message || 'Failed to save item')
-    } finally {
-      setAddingItem(false)
-    }
+    setDeletingItem(item)
+    setShowDeleteModal(true)
   }
+
 
   // Get status badge color
   const getStatusColor = (status: string) => {
@@ -354,6 +252,17 @@ export default function ServiceItemsPage() {
       default:
         return null
     }
+  }
+
+  // Get status label
+  const getStatusLabel = (status: string) => {
+    const statusLabels: Record<string, string> = {
+      'AVAILABLE': language === 'sw' ? 'Inapatikana' : 'Available',
+      'RENTED': language === 'sw' ? 'Imekodishwa' : 'Rented',
+      'BOOKED': language === 'sw' ? 'Imehifadhiwa' : 'Booked',
+      'MAINTENANCE': language === 'sw' ? 'Matengenezo' : 'Maintenance'
+    }
+    return statusLabels[status] || status
   }
 
   if (!mounted || authLoading) {
@@ -490,7 +399,7 @@ export default function ServiceItemsPage() {
                     <td className="py-4 px-6 text-right">
                       <div>
                         <p className="font-semibold text-gray-900">
-                          {t.currency} {Number(item.price).toLocaleString()}
+                          {language === 'sw' ? 'TSh' : 'TZS'} {Number(item.price).toLocaleString()}
                         </p>
                         <p className="text-xs text-gray-500">
                           {t.for} {formatDuration(item.durationValue, item.durationUnit)}
@@ -501,7 +410,7 @@ export default function ServiceItemsPage() {
                       <div>
                         <span className={`inline-flex items-center space-x-1 px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(item.status)}`}>
                           {getStatusIcon(item.status)}
-                          <span>{statusOptions.find(s => s.value === item.status)?.label}</span>
+                          <span>{getStatusLabel(item.status)}</span>
                         </span>
                         {item.status === 'RENTED' && item.currentCustomer && (
                           <div className="mt-1 text-xs text-gray-600">
@@ -519,6 +428,7 @@ export default function ServiceItemsPage() {
                           <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
+                            onClick={() => handleEditItem(item)}
                             className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                             title={t.edit}
                           >
@@ -529,6 +439,7 @@ export default function ServiceItemsPage() {
                           <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
+                            onClick={() => handleDeleteItem(item)}
                             className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title={t.delete}
                           >
@@ -545,181 +456,35 @@ export default function ServiceItemsPage() {
         </motion.div>
       )}
 
-      {/* Add Item Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-          >
-            {/* Modal Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-              <h3 className="text-xl font-bold text-gray-900">{t.addNewItem}</h3>
-              <button
-                onClick={() => setShowAddModal(false)}
-                disabled={addingItem}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-              >
-                <XMarkIcon className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
+      {/* Modals */}
+      <AddServiceItemModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        serviceId={serviceId!}
+        onItemAdded={fetchData}
+      />
 
-            <div className="p-6 space-y-4">
-              {/* Item Number */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t.itemNumberLabel} *
-                </label>
-                <input
-                  type="text"
-                  value={formData.itemNumber}
-                  onChange={(e) => setFormData({ ...formData, itemNumber: e.target.value })}
-                  disabled={addingItem}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
-                  placeholder={t.itemNumberPlaceholder}
-                />
-              </div>
+      <EditServiceItemModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false)
+          setEditingItem(null)
+        }}
+        serviceId={serviceId!}
+        item={editingItem}
+        onItemUpdated={fetchData}
+      />
 
-              {/* Item Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t.nameLabel} *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  disabled={addingItem}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
-                  placeholder={t.namePlaceholder}
-                />
-              </div>
-
-              {/* Item Name Swahili */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t.nameSwahili}
-                </label>
-                <input
-                  type="text"
-                  value={formData.nameSwahili}
-                  onChange={(e) => setFormData({ ...formData, nameSwahili: e.target.value })}
-                  disabled={addingItem}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
-                  placeholder={t.nameSwahiliPlaceholder}
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t.descriptionLabel}
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  disabled={addingItem}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
-                  rows={2}
-                  placeholder={t.descriptionPlaceholder}
-                />
-              </div>
-
-              {/* Price */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t.priceLabel} ({t.currency}) *
-                </label>
-                <input
-                  type="number"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  disabled={addingItem}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
-                  placeholder={t.pricePlaceholder}
-                />
-              </div>
-
-              {/* Duration */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t.durationLabel} *
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <input
-                      type="number"
-                      value={formData.durationValue}
-                      onChange={(e) => setFormData({ ...formData, durationValue: e.target.value })}
-                      disabled={addingItem}
-                      min="1"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
-                      placeholder="15, 30, 45, 1, 2..."
-                    />
-                    <p className="text-xs text-gray-500 mt-1">{t.durationValueLabel}</p>
-                  </div>
-                  <div>
-                    <select
-                      value={formData.durationUnit}
-                      onChange={(e) => setFormData({ ...formData, durationUnit: e.target.value })}
-                      disabled={addingItem}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-gray-900"
-                    >
-                      {durationUnitOptions.map(option => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-gray-500 mt-1">{t.durationUnitLabel}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Status */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t.statusLabel}
-                </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as ServiceItem['status'] })}
-                  disabled={addingItem}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-gray-900"
-                >
-                  {statusOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex items-center justify-end space-x-3">
-              <button
-                onClick={() => setShowAddModal(false)}
-                disabled={addingItem}
-                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {t.cancel}
-              </button>
-              <button
-                onClick={handleAddItem}
-                disabled={addingItem || !formData.itemNumber.trim() || !formData.name.trim() || !formData.price || !formData.durationValue}
-                className="px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-              >
-                {addingItem && (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                )}
-                <span>{addingItem ? t.creating : t.create}</span>
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      <DeleteServiceItemModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false)
+          setDeletingItem(null)
+        }}
+        serviceId={serviceId!}
+        item={deletingItem}
+        onItemDeleted={fetchData}
+      />
     </div>
   )
 }
