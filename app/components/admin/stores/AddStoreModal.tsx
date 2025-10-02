@@ -19,12 +19,9 @@ interface AddStoreModalProps {
   onStoreAdded: () => void
   businessUsers?: Array<{
     id: number
-    user: {
-      id: number
-      firstName: string
-      lastName: string
-      email: string
-    }
+    firstName: string
+    lastName: string
+    email: string
     role: string
   }>
 }
@@ -32,7 +29,7 @@ interface AddStoreModalProps {
 interface StoreFormData {
   name: string
   nameSwahili: string
-  storeType: 'main_store' | 'retail_store' | 'warehouse'
+  storeType: 'main_store' | 'warehouse'
   address: string
   city: string
   region: string
@@ -54,7 +51,7 @@ export default function AddStoreModal({
   const [formData, setFormData] = useState<StoreFormData>({
     name: '',
     nameSwahili: '',
-    storeType: 'retail_store',
+    storeType: 'main_store',
     address: '',
     city: '',
     region: '',
@@ -179,7 +176,7 @@ export default function AddStoreModal({
         setFormData({
           name: '',
           nameSwahili: '',
-          storeType: 'retail_store',
+          storeType: 'main_store',
           address: '',
           city: '',
           region: '',
@@ -200,7 +197,6 @@ export default function AddStoreModal({
 
   const storeTypeOptions = [
     { value: 'main_store', label: t.mainStore },
-    { value: 'retail_store', label: t.retailStore },
     { value: 'warehouse', label: t.warehouse }
   ]
 
@@ -273,7 +269,7 @@ export default function AddStoreModal({
                     </label>
                     <select
                       value={formData.storeType}
-                      onChange={(e) => handleInputChange('storeType', e.target.value as 'main_store' | 'retail_store' | 'warehouse')}
+                      onChange={(e) => handleInputChange('storeType', e.target.value as 'main_store' | 'warehouse')}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                     >
                       {storeTypeOptions.map(option => (
@@ -385,8 +381,8 @@ export default function AddStoreModal({
                     {businessUsers
                       .filter(bu => ['ADMIN', 'MANAGER', 'CASHIER'].includes(bu.role))
                       .map(businessUser => (
-                        <option key={businessUser.user.id} value={businessUser.user.id}>
-                          {businessUser.user.firstName} {businessUser.user.lastName} ({businessUser.role})
+                        <option key={businessUser.id} value={businessUser.id}>
+                          {businessUser.firstName} {businessUser.lastName} ({businessUser.role})
                         </option>
                       ))}
                   </select>

@@ -244,7 +244,7 @@ model Store {
   businessId  Int         @map("business_id")
   name        String      @db.VarChar(255)
   nameSwahili String?     @map("name_swahili") @db.VarChar(255)
-  storeType   String      @default("retail_store") @map("store_type") @db.VarChar(50)
+  storeType   String      @default("main_store") @map("store_type") @db.VarChar(50)
   address     String?     @db.VarChar(500)
   city        String?     @db.VarChar(100)
   region      String?     @db.VarChar(100)

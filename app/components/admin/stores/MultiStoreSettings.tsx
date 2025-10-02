@@ -1,12 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { useState, useEffect, useCallback } from 'react'
 import { 
   BuildingStorefrontIcon,
   PlusIcon,
   MapPinIcon,
-  PhoneIcon,
   UserIcon,
   PencilIcon,
   TrashIcon,
@@ -19,6 +17,7 @@ import { useLanguage } from '../../../contexts/LanguageContext'
 import { useNotifications } from '../../../contexts/NotificationContext'
 import { useBusiness } from '../../../contexts/BusinessContext'
 import AddStoreModal from './AddStoreModal'
+import EditStoreModal from './EditStoreModal'
 import StoreTransferModal from './StoreTransferModal'
 
 interface Store {
@@ -31,6 +30,7 @@ interface Store {
   region?: string
   phone?: string
   email?: string
+  managerId?: number
   isActive: boolean
   manager?: {
     id: number
@@ -45,12 +45,9 @@ interface Store {
 
 interface BusinessUser {
   id: number
-  user: {
-    id: number
-    firstName: string
-    lastName: string
-    email: string
-  }
+  firstName: string
+  lastName: string
+  email: string
   role: string
 }
 
@@ -71,7 +68,10 @@ export default function MultiStoreSettings({
   const [businessUsers, setBusinessUsers] = useState<BusinessUser[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [showTransferModal, setShowTransferModal] = useState(false)
+  const [selectedStore, setSelectedStore] = useState<Store | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const translations = {
     en: {
@@ -94,13 +94,15 @@ export default function MultiStoreSettings({
       active: 'Active',
       inactive: 'Inactive',
       mainStore: 'Main Store',
-      retailStore: 'Retail Store',
       warehouse: 'Warehouse',
       noManager: 'No manager',
       viewStore: 'View store details',
       editStore: 'Edit store',
       deleteStore: 'Delete store',
       confirmDelete: 'Are you sure you want to delete this store?',
+      deleteMessage: 'Are you sure you want to delete this store? This action cannot be undone.',
+      delete: 'Delete',
+      cancel: 'Cancel',
       deleteWarning: 'This action cannot be undone.',
       storeDeleted: 'Store deleted successfully',
       errorDeleting: 'Failed to delete store',
@@ -126,13 +128,15 @@ export default function MultiStoreSettings({
       active: 'Amilifu',
       inactive: 'Haijaamilifu',
       mainStore: 'Duka Kuu',
-      retailStore: 'Duka la Rejareja',
       warehouse: 'Ghala',
       noManager: 'Hakuna meneja',
       viewStore: 'Ona maelezo ya duka',
       editStore: 'Hariri duka',
       deleteStore: 'Futa duka',
       confirmDelete: 'Una uhakika unataka kufuta duka hili?',
+      deleteMessage: 'Una uhakika unataka kufuta duka hili? Hatua hii haiwezi kurudishwa.',
+      delete: 'Futa',
+      cancel: 'Ghairi',
       deleteWarning: 'Kitendo hiki hakiwezi kutendua.',
       storeDeleted: 'Duka limefutwa kikamilifu',
       errorDeleting: 'Imeshindwa kufuta duka',
@@ -140,22 +144,59 @@ export default function MultiStoreSettings({
     }
   }
 
-  const t = translations[language]
-
-  const storeTypeLabels = {
-    main_store: t.mainStore,
-    retail_store: t.retailStore,
-    warehouse: t.warehouse
+  const handleEditStore = (store: Store) => {
+    setSelectedStore(store)
+    setShowEditModal(true)
   }
 
-  useEffect(() => {
-    if (isMultiStoreEnabled && currentBusiness) {
-      loadStores()
-      loadBusinessUsers()
-    }
-  }, [isMultiStoreEnabled, currentBusiness])
+  const handleDeleteStore = (store: Store) => {
+    setSelectedStore(store)
+    setShowDeleteConfirm(true)
+  }
 
-  const loadStores = async () => {
+  const confirmDeleteStore = async () => {
+    if (!selectedStore || !currentBusiness) return
+
+    try {
+      const response = await fetch(`/api/admin/stores/${selectedStore.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          businessId: currentBusiness.id
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        showSuccess(
+          language === 'en' ? 'Store Deleted' : 'Duka Limefutwa',
+          language === 'en' ? 'Store deleted successfully' : 'Duka limefutwa kikamilifu'
+        )
+        loadStores()
+        setShowDeleteConfirm(false)
+        setSelectedStore(null)
+      } else {
+        showError(
+          language === 'en' ? 'Delete Failed' : 'Kufuta Kumeshindwa',
+          data.message || (language === 'en' ? 'Failed to delete store' : 'Imeshindwa kufuta duka')
+        )
+      }
+    } catch (error) {
+      console.error('Error deleting store:', error)
+      showError(
+        language === 'en' ? 'Delete Failed' : 'Kufuta Kumeshindwa',
+        language === 'en' ? 'An error occurred while deleting the store' : 'Hitilafu imetokea wakati wa kufuta duka'
+      )
+    }
+  }
+
+  const t = translations[language]
+
+  const loadStores = useCallback(async () => {
     if (!currentBusiness) return
 
     try {
@@ -174,9 +215,9 @@ export default function MultiStoreSettings({
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [currentBusiness, showError, t.title, t.errorLoading])
 
-  const loadBusinessUsers = async () => {
+  const loadBusinessUsers = useCallback(async () => {
     if (!currentBusiness) return
 
     try {
@@ -184,34 +225,24 @@ export default function MultiStoreSettings({
       const result = await response.json()
 
       if (response.ok && result.success) {
-        setBusinessUsers(result.data.users || [])
+        setBusinessUsers(result.data || [])
       }
     } catch (error) {
       console.error('Error loading business users:', error)
     }
+  }, [currentBusiness])
+
+  const storeTypeLabels = {
+    main_store: t.mainStore,
+    warehouse: t.warehouse
   }
 
-  const handleDeleteStore = async (storeId: number) => {
-    if (!confirm(`${t.confirmDelete}\n\n${t.deleteWarning}`)) return
-
-    try {
-      const response = await fetch(`/api/admin/stores/${storeId}`, {
-        method: 'DELETE'
-      })
-
-      const result = await response.json()
-
-      if (response.ok && result.success) {
-        showSuccess(t.title, t.storeDeleted)
-        loadStores() // Reload stores
-      } else {
-        throw new Error(result.message || t.errorDeleting)
-      }
-    } catch (error) {
-      console.error('Error deleting store:', error)
-      showError(t.title, error instanceof Error ? error.message : t.errorDeleting)
+  useEffect(() => {
+    if (isMultiStoreEnabled && currentBusiness) {
+      loadStores()
+      loadBusinessUsers()
     }
-  }
+  }, [isMultiStoreEnabled, currentBusiness, loadStores, loadBusinessUsers])
 
   const formatLocation = (store: Store) => {
     const parts = [store.address, store.city, store.region].filter(Boolean)
@@ -397,13 +428,14 @@ export default function MultiStoreSettings({
                               <EyeIcon className="w-4 h-4" />
                             </button>
                             <button
+                              onClick={() => handleEditStore(store)}
                               className="text-blue-600 hover:text-blue-900 p-1 rounded"
                               title={t.editStore}
                             >
                               <PencilIcon className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => handleDeleteStore(store.id)}
+                              onClick={() => handleDeleteStore(store)}
                               className="text-red-600 hover:text-red-900 p-1 rounded"
                               title={t.deleteStore}
                             >
@@ -429,13 +461,65 @@ export default function MultiStoreSettings({
         businessUsers={businessUsers}
       />
 
+      {/* Edit Store Modal */}
+      <EditStoreModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false)
+          setSelectedStore(null)
+        }}
+        onStoreUpdated={loadStores}
+        store={selectedStore}
+        businessUsers={businessUsers}
+      />
+
       {/* Store Transfer Modal */}
       <StoreTransferModal
         isOpen={showTransferModal}
         onClose={() => setShowTransferModal(false)}
         onTransferComplete={loadStores}
-        stores={stores}
+        stores={stores.map(store => ({
+          ...store,
+          inventoryCount: store._count.inventory
+        }))}
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && selectedStore && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="p-2 bg-red-100 rounded-lg">
+                <TrashIcon className="h-6 w-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">{t.confirmDelete}</h3>
+                <p className="text-sm text-gray-600">{selectedStore.name}</p>
+              </div>
+            </div>
+            
+            <p className="text-gray-700 mb-6">{t.deleteMessage}</p>
+            
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false)
+                  setSelectedStore(null)
+                }}
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                {t.cancel}
+              </button>
+              <button
+                onClick={confirmDeleteStore}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                {t.delete}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
