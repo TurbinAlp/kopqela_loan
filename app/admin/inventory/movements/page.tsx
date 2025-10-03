@@ -7,7 +7,8 @@ import {
   FunnelIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  ArchiveBoxIcon
+  ArchiveBoxIcon,
+  MagnifyingGlassIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import { useBusiness } from '../../../contexts/BusinessContext'
@@ -73,6 +74,8 @@ function StockMovementHistoryPageContent() {
   })
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
+  const [availableLocations, setAvailableLocations] = useState<string[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
   
   // Filters
   const [movementType, setMovementType] = useState('all')
@@ -88,6 +91,7 @@ function StockMovementHistoryPageContent() {
       title: 'Stock Movement History',
       subtitle: 'Track all inventory movements and transfers',
       filters: 'Filters',
+      searchProducts: 'Search products...',
       movementType: 'Movement Type',
       fromLocation: 'From Location',
       toLocation: 'To Location',
@@ -97,15 +101,18 @@ function StockMovementHistoryPageContent() {
       allLocations: 'All Locations',
       mainStore: 'Main Store',
       retailStore: 'Retail Store',
+      warehouse: 'Warehouse',
       sold: 'Sold',
       store: 'Store',
       external: 'External',
+      clearFilters: 'Clear Filters',
       
       // Movement types
       transfer: 'Transfer',
       sale: 'Sale',
       adjustment: 'Adjustment',
       initial_stock: 'Initial Stock',
+      ADJUSTMENT: 'Stock Adjustment',
       
       // Table headers
       product: 'Product',
@@ -133,6 +140,7 @@ function StockMovementHistoryPageContent() {
       title: 'Historia ya Mabadiliko ya Hisa',
       subtitle: 'Fuatilia mabadiliko yote ya hisa na uhamishaji',
       filters: 'Vichujio',
+      searchProducts: 'Tafuta bidhaa...',
       movementType: 'Aina ya Mabadiliko',
       fromLocation: 'Kutoka Mahali',
       toLocation: 'Kwenda Mahali',
@@ -142,15 +150,18 @@ function StockMovementHistoryPageContent() {
       allLocations: 'Mahali Yote',
       mainStore: 'Hifadhi Kuu',
       retailStore: 'Duka la Nje',
+      warehouse: 'Ghala',
       sold: 'Imeuzwa',
       store: 'Duka',
       external: 'Nje',
+      clearFilters: 'Ondoa Vichujio',
       
       // Movement types
       transfer: 'Uhamishaji',
       sale: 'Mauzo',
       adjustment: 'Marekebisho',
       initial_stock: 'Hisa ya Awali',
+      ADJUSTMENT: 'Marekebisho ya Hisa',
       
       // Table headers
       product: 'Bidhaa',
@@ -182,6 +193,35 @@ function StockMovementHistoryPageContent() {
     setMounted(true)
   }, [])
 
+  // Fetch available locations for filters
+  const fetchAvailableLocations = useCallback(async () => {
+    if (!currentBusiness) return
+
+    try {
+      const response = await fetch(`/api/admin/inventory/movements?businessId=${currentBusiness.id}&limit=1000`)
+      const data: MovementsResponse = await response.json()
+
+      if (response.ok && data.success) {
+        const locations = new Set<string>()
+        
+        data.data.movements.forEach(movement => {
+          if (movement.fromLocation) locations.add(movement.fromLocation)
+          if (movement.toLocation) locations.add(movement.toLocation)
+        })
+
+        setAvailableLocations(Array.from(locations).sort())
+      }
+    } catch (error) {
+      console.error('Error fetching locations:', error)
+    }
+  }, [currentBusiness])
+
+  useEffect(() => {
+    if (currentBusiness && mounted) {
+      fetchAvailableLocations()
+    }
+  }, [currentBusiness, mounted, fetchAvailableLocations])
+
   const fetchMovements = useCallback(async () => {
     if (!currentBusiness) return
 
@@ -198,12 +238,25 @@ function StockMovementHistoryPageContent() {
       if (toLocation !== 'all') params.append('toLocation', toLocation)
       if (startDate) params.append('startDate', startDate)
       if (endDate) params.append('endDate', endDate)
+      if (searchQuery.trim()) params.append('search', searchQuery.trim())
 
       const response = await fetch(`/api/admin/inventory/movements?${params}`)
       const data: MovementsResponse = await response.json()
 
       if (response.ok && data.success) {
-        setMovements(data.data.movements)
+        let filteredMovements = data.data.movements
+
+        // Client-side filtering for search if API doesn't support it
+        if (searchQuery.trim()) {
+          const query = searchQuery.toLowerCase()
+          filteredMovements = filteredMovements.filter(movement => 
+            movement.product.name.toLowerCase().includes(query) ||
+            (movement.product.sku && movement.product.sku.toLowerCase().includes(query)) ||
+            (movement.reason && movement.reason.toLowerCase().includes(query))
+          )
+        }
+
+        setMovements(filteredMovements)
         setPagination(data.data.pagination)
       } else {
         throw new Error('Failed to fetch movements')
@@ -217,7 +270,7 @@ function StockMovementHistoryPageContent() {
     } finally {
       setLoading(false)
     }
-  }, [currentBusiness, currentPage, pagination.limit, movementType, fromLocation, toLocation, startDate, endDate, language, showError])
+  }, [currentBusiness, currentPage, pagination.limit, movementType, fromLocation, toLocation, startDate, endDate, searchQuery, language, showError])
 
   useEffect(() => {
     if (currentBusiness && mounted) {
@@ -231,6 +284,7 @@ function StockMovementHistoryPageContent() {
     setToLocation('all')
     setStartDate('')
     setEndDate('')
+    setSearchQuery('')
     setCurrentPage(1)
   }
 
@@ -239,7 +293,8 @@ function StockMovementHistoryPageContent() {
       transfer: t.transfer,
       sale: t.sale,
       adjustment: t.adjustment,
-      initial_stock: t.initial_stock
+      initial_stock: t.initial_stock,
+      ADJUSTMENT: t.ADJUSTMENT
     }
     return typeMap[type] || type
   }
@@ -316,17 +371,34 @@ function StockMovementHistoryPageContent() {
           <p className="text-gray-600 mt-2">{t.subtitle}</p>
         </motion.div>
 
-        {/* Filters */}
+        {/* Search and Filters */}
         <motion.div variants={itemVariants} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-gray-900">{t.filters}</h3>
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700"
-            >
-              <FunnelIcon className="w-4 h-4" />
-              <span className="hidden sm:inline">{t.filters}</span>
-            </button>
+          {/* Search Bar and Filter Toggle */}
+          <div className="flex flex-col lg:flex-row lg:items-center gap-4 mb-4">
+            {/* Search Bar - Left Side */}
+            <div className="flex-1">
+              <div className="relative">
+                <MagnifyingGlassIcon className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder={t.searchProducts}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-gray-900 placeholder-gray-400 bg-white"
+                />
+              </div>
+            </div>
+
+            {/* Filter Toggle - Right Side */}
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center space-x-2 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 font-medium"
+              >
+                <FunnelIcon className="w-4 h-4" />
+                <span>{t.filters}</span>
+              </button>
+            </div>
           </div>
 
           {showFilters && (
@@ -347,6 +419,7 @@ function StockMovementHistoryPageContent() {
                   <option value="transfer">{t.transfer}</option>
                   <option value="sale">{t.sale}</option>
                   <option value="adjustment">{t.adjustment}</option>
+                  <option value="ADJUSTMENT">{t.ADJUSTMENT}</option>
                   <option value="initial_stock">{t.initial_stock}</option>
                 </select>
               </div>
@@ -359,8 +432,11 @@ function StockMovementHistoryPageContent() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white text-sm"
                 >
                   <option value="all">{t.allLocations}</option>
-                  <option value="main_store">{t.mainStore}</option>
-                  <option value="retail_store">{t.retailStore}</option>
+                  {availableLocations.map((location) => (
+                    <option key={location} value={location}>
+                      {formatLocation(location)}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -372,8 +448,11 @@ function StockMovementHistoryPageContent() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white text-sm"
                 >
                   <option value="all">{t.allLocations}</option>
-                  <option value="main_store">{t.mainStore}</option>
-                  <option value="retail_store">{t.retailStore}</option>
+                  {availableLocations.map((location) => (
+                    <option key={location} value={location}>
+                      {formatLocation(location)}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -399,7 +478,7 @@ function StockMovementHistoryPageContent() {
             </motion.div>
           )}
 
-          {(movementType !== 'all' || fromLocation !== 'all' || toLocation !== 'all' || startDate || endDate) && (
+          {(movementType !== 'all' || fromLocation !== 'all' || toLocation !== 'all' || startDate || endDate || searchQuery) && (
             <div className="mt-4 flex justify-between items-center">
               <span className="text-sm text-gray-600">
                 {t.showing} {pagination.totalCount} {t.results}
@@ -408,7 +487,7 @@ function StockMovementHistoryPageContent() {
                 onClick={clearFilters}
                 className="text-sm px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
               >
-                Clear Filters
+                {t.clearFilters}
               </button>
             </div>
           )}
@@ -430,15 +509,15 @@ function StockMovementHistoryPageContent() {
           <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
+                <thead className="bg-teal-600 border-b border-teal-700">
                   <tr>
-                    <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.product}</th>
-                    <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.movement}</th>
-                    <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.quantity}</th>
-                    <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.type}</th>
-                    <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.reason}</th>
-                    <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.user}</th>
-                    <th className="text-left py-4 px-6 font-semibold text-gray-800">{t.date}</th>
+                    <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.product}</th>
+                    <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.movement}</th>
+                    <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.quantity}</th>
+                    <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.type}</th>
+                    <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.reason}</th>
+                    <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.user}</th>
+                    <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.date}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -450,7 +529,7 @@ function StockMovementHistoryPageContent() {
                       transition={{ delay: index * 0.05 }}
                       className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                     >
-                      <td className="py-4 px-6">
+                      <td className="py-3 px-4">
                         <div className="flex items-center space-x-3">
                           <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
                             {movement.product.imageUrl ? (
@@ -467,33 +546,33 @@ function StockMovementHistoryPageContent() {
                           </div>
                         </div>
                       </td>
-                      <td className="py-4 px-6">
+                      <td className="py-3 px-4">
                         <div className="flex items-center space-x-2">
                           <span className="text-sm text-gray-600">{formatLocation(movement.fromLocation || null)}</span>
                           <ArrowRightIcon className="w-4 h-4 text-gray-400" />
                           <span className="text-sm font-medium text-gray-800">{formatLocation(movement.toLocation)}</span>
                         </div>
                       </td>
-                      <td className="py-4 px-6">
+                      <td className="py-3 px-4">
                         <span className="font-medium text-gray-800">{movement.quantity}</span>
                       </td>
-                      <td className="py-4 px-6">
+                      <td className="py-3 px-4">
                         <span className="px-2 py-1 text-xs rounded-full bg-teal-100 text-teal-700">
                           {formatMovementType(movement.movementType)}
                         </span>
                       </td>
-                      <td className="py-4 px-6">
+                      <td className="py-3 px-4">
                         <span className="text-sm text-gray-600">{movement.reason || '—'}</span>
                         {movement.referenceId && (
                           <p className="text-xs text-gray-500 font-mono">{movement.referenceId}</p>
                         )}
                       </td>
-                      <td className="py-4 px-6">
+                      <td className="py-3 px-4">
                         <span className="text-sm text-gray-700">
                           {movement.createdBy ? movement.createdBy.name : '—'}
                         </span>
                       </td>
-                      <td className="py-4 px-6">
+                      <td className="py-3 px-4">
                         <span className="text-sm text-gray-600">{formatDate(movement.createdAt)}</span>
                       </td>
                     </motion.tr>
