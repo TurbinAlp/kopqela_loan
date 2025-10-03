@@ -342,11 +342,10 @@ function POSSystemContent() {
             category: product.category?.name || 'General',
             image: product.images?.[0]?.url,
             stock: (() => {
-              // POS now checks stock from main_store only (not retail_store)
-              // This ensures all sales are deducted from the main inventory
+              // POS checks stock from main_store only (where sales happen)
               const inventoryArray = Array.isArray(product.inventory) ? product.inventory : []
               const mainStoreInventory = inventoryArray.find(inv => 
-                inv.location === 'main_store' || inv.store?.storeType === 'main_store'
+                inv.store?.storeType === 'main_store'
               )
               return mainStoreInventory?.quantity || 0
             })(),
