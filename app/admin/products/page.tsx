@@ -412,14 +412,14 @@ export default function ProductsPage() {
       status = 'active'
     }
     
-    // Override with stock status based on combined inventory from both locations
+    // Override with stock status based on combined inventory from all stores
     const inventoryArray = Array.isArray(product.inventory) ? product.inventory : (product.inventory ? [product.inventory] : [])
-    const mainStock = inventoryArray.find(inv => inv.location === 'main_store')?.quantity ?? 0
-    const retailStock = inventoryArray.find(inv => inv.location === 'retail_store')?.quantity ?? 0
-    const totalStock = mainStock + retailStock
+    const warehouseStock = inventoryArray.find(inv => inv.store?.storeType === 'warehouse')?.quantity ?? 0
+    const mainStoreStock = inventoryArray.find(inv => inv.store?.storeType === 'main_store')?.quantity ?? 0
+    const totalStock = warehouseStock + mainStoreStock
     const combinedReorderPoint = Math.max(
-      inventoryArray.find(inv => inv.location === 'main_store')?.reorderPoint ?? 0,
-      inventoryArray.find(inv => inv.location === 'retail_store')?.reorderPoint ?? 0
+      inventoryArray.find(inv => inv.store?.storeType === 'warehouse')?.reorderPoint ?? 0,
+      inventoryArray.find(inv => inv.store?.storeType === 'main_store')?.reorderPoint ?? 0
     )
     
     if (totalStock === 0) {
@@ -1146,8 +1146,8 @@ export default function ProductsPage() {
                             <div className="text-gray-600 space-y-1">
                               {inventoryArray.map((inv, idx) => {
                                 const storeName = inv.store?.name || 
-                                  (inv.location === 'main_store' ? (language === 'en' ? 'Main Store' : 'Duka Kuu') :
-                                   inv.location === 'retail_store' ? (language === 'en' ? 'Retail Store' : 'Duka la Rejareja') :
+                                  (inv.store?.storeType === 'warehouse' ? (language === 'en' ? 'Warehouse' : 'Ghala') :
+                                   inv.store?.storeType === 'main_store' ? (language === 'en' ? 'Main Store' : 'Duka Kuu') :
                                    inv.location || 'Unknown')
                                 
                                 return (
@@ -1174,16 +1174,16 @@ export default function ProductsPage() {
                     </td>
                     <td className="py-3 px-4">
                       {(() => {
-                        // Calculate retail store availability for sale status
+                        // Calculate main store availability for sale status
                         const inventoryArray = Array.isArray(product.inventory) ? product.inventory : (product.inventory ? [product.inventory] : [])
-                        const retailStock = inventoryArray.find(inv => inv.location === 'retail_store')?.quantity ?? 0
-                        const mainStock = inventoryArray.find(inv => inv.location === 'main_store')?.quantity ?? 0
-                        const totalStock = mainStock + retailStock
+                        const mainStoreStock = inventoryArray.find(inv => inv.store?.storeType === 'main_store')?.quantity ?? 0
+                        const warehouseStock = inventoryArray.find(inv => inv.store?.storeType === 'warehouse')?.quantity ?? 0
+                        const totalStock = mainStoreStock + warehouseStock
 
                         let status: string = 'inStock'
                         let statusText = t.inStock
 
-                        if (retailStock === 0) {
+                        if (mainStoreStock === 0) {
                           if (totalStock === 0) {
                             status = 'outOfStock'
                             statusText = t.outOfStock
@@ -1191,7 +1191,7 @@ export default function ProductsPage() {
                             status = 'notAvailableForSale'
                             statusText = language === 'sw' ? 'Haipatikani Kwa Mauzo' : 'Not Available for Sale'
                           }
-                        } else if (retailStock < 10) {
+                        } else if (mainStoreStock < 10) {
                           status = 'lowStock'
                           statusText = t.lowStock
                         }
@@ -1265,16 +1265,16 @@ export default function ProductsPage() {
                   className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
                 />
                 {(() => {
-                  // Calculate retail store availability for sale status
+                  // Calculate main store availability for sale status
                   const inventoryArray = Array.isArray(product.inventory) ? product.inventory : (product.inventory ? [product.inventory] : [])
-                  const retailStock = inventoryArray.find(inv => inv.location === 'retail_store')?.quantity ?? 0
-                  const mainStock = inventoryArray.find(inv => inv.location === 'main_store')?.quantity ?? 0
-                  const totalStock = mainStock + retailStock
+                  const mainStoreStock = inventoryArray.find(inv => inv.store?.storeType === 'main_store')?.quantity ?? 0
+                  const warehouseStock = inventoryArray.find(inv => inv.store?.storeType === 'warehouse')?.quantity ?? 0
+                  const totalStock = mainStoreStock + warehouseStock
 
                   let status: string = 'inStock'
                   let statusText = t.inStock
 
-                  if (retailStock === 0) {
+                  if (mainStoreStock === 0) {
                     if (totalStock === 0) {
                       status = 'outOfStock'
                       statusText = t.outOfStock
@@ -1282,7 +1282,7 @@ export default function ProductsPage() {
                       status = 'notAvailableForSale'
                       statusText = language === 'sw' ? 'Haipatikani Kwa Mauzo' : 'Not Available for Sale'
                     }
-                  } else if (retailStock < 10) {
+                  } else if (mainStoreStock < 10) {
                     status = 'lowStock'
                     statusText = t.lowStock
                   }
@@ -1318,11 +1318,11 @@ export default function ProductsPage() {
                     <span>{t.unit}: {product.unit || '—'}</span>
                   </div>
                   {(() => {
-                    // Calculate stock breakdown by location
+                    // Calculate stock breakdown by store type
                     const inventoryArray = Array.isArray(product.inventory) ? product.inventory : (product.inventory ? [product.inventory] : [])
-                    const mainStock = inventoryArray.find(inv => inv.location === 'main_store')?.quantity ?? 0
-                    const retailStock = inventoryArray.find(inv => inv.location === 'retail_store')?.quantity ?? 0
-                    const totalStock = mainStock + retailStock
+                    const warehouseStock = inventoryArray.find(inv => inv.store?.storeType === 'warehouse')?.quantity ?? 0
+                    const mainStoreStock = inventoryArray.find(inv => inv.store?.storeType === 'main_store')?.quantity ?? 0
+                    const totalStock = warehouseStock + mainStoreStock
 
                     if (totalStock === 0) {
                       return <div className="text-gray-500">{t.stock}: —</div>
@@ -1332,7 +1332,7 @@ export default function ProductsPage() {
                       <div>
                         <div className="font-medium text-gray-800">Total: {totalStock}</div>
                         <div className="text-xs text-gray-500">
-                          Main: {mainStock} | Retail: {retailStock}
+                          {language === 'sw' ? 'Ghala' : 'Warehouse'}: {warehouseStock} | {language === 'sw' ? 'Duka Kuu' : 'Main Store'}: {mainStoreStock}
                         </div>
                       </div>
                     )
@@ -1544,7 +1544,7 @@ export default function ProductsPage() {
       <StockTransferModal
         isOpen={stockTransferModal.isOpen}
         onClose={() => setStockTransferModal({ isOpen: false })}
-        products={products}
+        products={products as never}
         selectedProductIds={selectedProducts}
         onTransferComplete={handleTransferComplete}
       />
