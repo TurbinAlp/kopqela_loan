@@ -17,13 +17,19 @@ import {
   XCircleIcon,
   ClockIcon,
   ExclamationTriangleIcon,
-  TagIcon
+  TagIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useNotifications } from '../../contexts/NotificationContext'
 import { useBusiness } from '../../contexts/BusinessContext'
 import PermissionGate from '../../components/auth/PermissionGate'
 import AddExpenseModal from '../../components/admin/expenses/AddExpenseModal'
+import EditExpenseModal from '../../components/admin/expenses/EditExpenseModal'
+import DeleteConfirmModal from '../../components/ui/DeleteConfirmModal'
+import { useSession } from 'next-auth/react'
+import { hasPermissionSync, useBusinessPermissions } from '../../hooks/usePermissions'
 
 interface Expense {
   id: number
@@ -71,14 +77,23 @@ function ExpensesPageContent() {
   const { language } = useLanguage()
   const { showError, showSuccess } = useNotifications()
   const { currentBusiness } = useBusiness()
+  const { data: session } = useSession()
+  const { permissions: businessPermissions } = useBusinessPermissions(currentBusiness?.id)
 
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalExpenses, setTotalExpenses] = useState(0)
+  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    expenseId: null as number | null,
+    expenseName: ''
+  })
   const itemsPerPage = 20
 
   const [filters, setFilters] = useState<ExpenseFilters>({
@@ -102,7 +117,7 @@ function ExpensesPageContent() {
       noExpensesDescription: 'No expense records match your current filters.',
       expenseNumber: 'Expense #',
       amount: 'Amount',
-      title: 'Title',
+      expenseTitle: 'Title',
       description: 'Description',
       expenseDate: 'Date',
       paymentMethod: 'Payment Method',
@@ -148,6 +163,8 @@ function ExpensesPageContent() {
       of: 'of',
       previous: 'Previous',
       next: 'Next',
+      showing: 'Showing',
+      results: 'results',
       
       // Messages
       expenseAdded: 'Expense added successfully',
@@ -157,6 +174,8 @@ function ExpensesPageContent() {
       errorAdding: 'Failed to add expense',
       errorUpdating: 'Failed to update expense',
       errorDeleting: 'Failed to delete expense',
+      deleteExpenseTitle: 'Delete Expense',
+      deleteConfirmMessage: 'Are you sure you want to delete this expense? This action cannot be undone.',
       
       // Summary
       totalAmount: 'Total Amount',
@@ -179,7 +198,7 @@ function ExpensesPageContent() {
       noExpensesDescription: 'Hakuna rekodi za gharama zinazolingana na vichungi vyako.',
       expenseNumber: 'Gharama #',
       amount: 'Kiasi',
-      title: 'Kichwa',
+      expenseTitle: 'Kichwa',
       description: 'Maelezo',
       expenseDate: 'Tarehe',
       paymentMethod: 'Njia ya Malipo',
@@ -225,6 +244,8 @@ function ExpensesPageContent() {
       of: 'wa',
       previous: 'Iliyotangulia',
       next: 'Ifuatayo',
+      showing: 'Inaonyesha',
+      results: 'matokeo',
       
       // Messages
       expenseAdded: 'Gharama imeongezwa kikamilifu',
@@ -234,6 +255,8 @@ function ExpensesPageContent() {
       errorAdding: 'Imeshindwa kuongeza gharama',
       errorUpdating: 'Imeshindwa kubadilisha gharama',
       errorDeleting: 'Imeshindwa kufuta gharama',
+      deleteExpenseTitle: 'Futa Gharama',
+      deleteConfirmMessage: 'Una uhakika unataka kufuta gharama hii? Hatua hii haiwezi kubatilishwa.',
       
       // Summary
       totalAmount: 'Jumla ya Kiasi',
@@ -303,6 +326,50 @@ function ExpensesPageContent() {
       isRecurring: 'all'
     })
     setCurrentPage(1)
+  }
+
+  const handleEditExpense = (expense: Expense) => {
+    setSelectedExpense(expense)
+    setShowEditModal(true)
+  }
+
+  const handleDeleteClick = (expenseId: number, expenseName: string) => {
+    setDeleteModal({
+      isOpen: true,
+      expenseId,
+      expenseName
+    })
+  }
+
+  const handleDeleteClose = () => {
+    setDeleteModal({
+      isOpen: false,
+      expenseId: null,
+      expenseName: ''
+    })
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteModal.expenseId) return
+
+    try {
+      const response = await fetch(`/api/admin/expenses/${deleteModal.expenseId}`, {
+        method: 'DELETE'
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        setExpenses(prev => prev.filter(expense => expense.id !== deleteModal.expenseId))
+        showSuccess(t.title, t.expenseDeleted)
+        handleDeleteClose()
+      } else {
+        throw new Error(result.message || t.errorDeleting)
+      }
+    } catch (error) {
+      console.error('Error deleting expense:', error)
+      showError(t.title, error instanceof Error ? error.message : t.errorDeleting)
+    }
   }
 
   const formatAmount = (amount: number) => {
@@ -609,39 +676,39 @@ function ExpensesPageContent() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="w-full">
+                <thead className="bg-teal-600 border-b border-teal-700">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-left py-3 px-4 font-bold text-white text-sm">
                       {t.expenseNumber}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {t.title}
+                    <th className="text-left py-3 px-4 font-bold text-white text-sm">
+                      {t.expenseTitle}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-left py-3 px-4 font-bold text-white text-sm">
                       {t.amount}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-left py-3 px-4 font-bold text-white text-sm">
                       {t.category}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-left py-3 px-4 font-bold text-white text-sm">
                       {t.paymentMethod}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-left py-3 px-4 font-bold text-white text-sm">
                       {t.status}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-left py-3 px-4 font-bold text-white text-sm">
                       {t.expenseDate}
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-center py-3 px-4 font-bold text-white text-sm">
                       {t.actions}
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody>
                   {expenses.map((expense) => (
-                    <tr key={expense.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                    <tr key={expense.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-3 px-4">
                         <div className="text-sm font-medium text-gray-900">
                           {expense.expenseNumber}
                         </div>
@@ -652,7 +719,7 @@ function ExpensesPageContent() {
                           </div>
                         )}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="py-3 px-4">
                         <div className="text-sm font-medium text-gray-900">
                           {expense.title}
                         </div>
@@ -662,12 +729,12 @@ function ExpensesPageContent() {
                           </div>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="py-3 px-4">
                         <div className="text-sm font-medium text-gray-900">
                           {t.currency} {formatAmount(expense.amount)}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="py-3 px-4">
                         {expense.category ? (
                           <span 
                             className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full"
@@ -684,7 +751,7 @@ function ExpensesPageContent() {
                           <span className="text-sm text-gray-500">-</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="py-3 px-4">
                         <div className="flex items-center">
                           {getPaymentMethodIcon(expense.paymentMethod)}
                           <span className="ml-2 text-sm text-gray-900">
@@ -692,38 +759,44 @@ function ExpensesPageContent() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="py-3 px-4">
                         <span className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(expense.status)}`}>
                           {getStatusIcon(expense.status)}
                           <span className="ml-1">{getStatusLabel(expense.status)}</span>
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="py-3 px-4">
                         <div className="flex items-center text-sm text-gray-900">
                           <CalendarIcon className="w-4 h-4 mr-1 text-gray-400" />
                           {formatDate(expense.expenseDate)}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center space-x-2">
+                      <td className="py-3 px-4 text-center">
+                        <div className="flex items-center justify-center space-x-2">
                           <button
-                            className="text-teal-600 hover:text-teal-900 p-1 rounded"
+                            className="p-2 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
                             title={t.viewExpense}
                           >
                             <EyeIcon className="w-4 h-4" />
                           </button>
-                          <button
-                            className="text-blue-600 hover:text-blue-900 p-1 rounded"
-                            title={t.editExpense}
-                          >
-                            <PencilIcon className="w-4 h-4" />
-                          </button>
-                          <button
-                            className="text-red-600 hover:text-red-900 p-1 rounded"
-                            title={t.deleteExpense}
-                          >
-                            <TrashIcon className="w-4 h-4" />
-                          </button>
+                          {hasPermissionSync(session, 'expenses.update', businessPermissions) && (
+                            <button
+                              onClick={() => handleEditExpense(expense)}
+                              className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title={t.editExpense}
+                            >
+                              <PencilIcon className="w-4 h-4" />
+                            </button>
+                          )}
+                          {hasPermissionSync(session, 'expenses.delete', businessPermissions) && (
+                            <button
+                              onClick={() => handleDeleteClick(expense.id, expense.title)}
+                              className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title={t.deleteExpenseTitle}
+                            >
+                              <TrashIcon className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -734,48 +807,45 @@ function ExpensesPageContent() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-                <div className="flex-1 flex justify-between sm:hidden">
+              <div className="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
+                <div className="text-sm text-gray-600">
+                  {t.showing} {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalExpenses)} {t.of} {totalExpenses} {t.results}
+                </div>
+                
+                <div className="flex items-center space-x-2">
                   <button
                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                     disabled={currentPage === 1}
-                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center space-x-1 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 hover:text-gray-900"
                   >
-                    {t.previous}
+                    <ChevronLeftIcon className="w-4 h-4" />
+                    <span>{t.previous}</span>
                   </button>
+
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`w-10 h-10 rounded-lg font-medium transition-colors ${
+                          currentPage === page
+                            ? 'bg-teal-500 text-white hover:bg-teal-600'
+                            : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                  </div>
+
                   <button
                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                     disabled={currentPage === totalPages}
-                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center space-x-1 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-gray-700 hover:text-gray-900"
                   >
-                    {t.next}
+                    <span>{t.next}</span>
+                    <ChevronRightIcon className="w-4 h-4" />
                   </button>
-                </div>
-                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm text-gray-700">
-                      {t.page} <span className="font-medium">{currentPage}</span> {t.of}{' '}
-                      <span className="font-medium">{totalPages}</span>
-                    </p>
-                  </div>
-                  <div>
-                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                      <button
-                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                        disabled={currentPage === 1}
-                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {t.previous}
-                      </button>
-                      <button
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                        disabled={currentPage === totalPages}
-                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {t.next}
-                      </button>
-                    </nav>
-                  </div>
                 </div>
               </div>
             )}
@@ -791,6 +861,30 @@ function ExpensesPageContent() {
           loadExpenses()
           showSuccess(t.title, t.expenseAdded)
         }}
+      />
+
+      {/* Edit Expense Modal */}
+      <EditExpenseModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false)
+          setSelectedExpense(null)
+        }}
+        expense={selectedExpense}
+        onExpenseUpdated={() => {
+          loadExpenses()
+          showSuccess(t.title, t.expenseUpdated)
+        }}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={handleDeleteClose}
+        onConfirm={handleDeleteConfirm}
+        title={t.deleteExpenseTitle}
+        message={t.deleteConfirmMessage}
+        itemName={deleteModal.expenseName}
       />
     </div>
   )
