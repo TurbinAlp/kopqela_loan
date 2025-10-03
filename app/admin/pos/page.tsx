@@ -54,7 +54,16 @@ interface ApiProduct {
   wholesalePrice?: number
   category?: { name: string }
   images?: { url: string }[]
-  inventory?: { quantity: number }
+  inventory?: Array<{
+    quantity: number
+    location?: string
+    storeId?: number
+    store?: {
+      id: number
+      name: string
+      storeType: string
+    }
+  }>
   barcode?: string
   unit?: string
 }
@@ -243,8 +252,8 @@ function POSSystemContent() {
       orderType: "Order Type",
       retail: "Retail Sale",
       wholesale: "Wholesale",
-      productNotInRetail: "Product not available in retail store. Transfer from main store first.",
-      insufficientStock: "Insufficient stock in retail store. Available: {available}, Requested: {requested}. Transfer more from main store."
+      productNotInRetail: "Product not available in main store. Transfer from warehouse first.",
+      insufficientStock: "Insufficient stock in main store. Available: {available}, Requested: {requested}. Transfer more from warehouse."
     },
     sw: {
       pageTitle: "Mfumo wa Mauzo",
@@ -332,7 +341,15 @@ function POSSystemContent() {
             wholesalePrice: product.wholesalePrice ? Number(product.wholesalePrice) : undefined,
             category: product.category?.name || 'General',
             image: product.images?.[0]?.url,
-            stock: product.inventory?.quantity || 0,
+            stock: (() => {
+              // POS now checks stock from main_store only (not retail_store)
+              // This ensures all sales are deducted from the main inventory
+              const inventoryArray = Array.isArray(product.inventory) ? product.inventory : []
+              const mainStoreInventory = inventoryArray.find(inv => 
+                inv.location === 'main_store' || inv.store?.storeType === 'main_store'
+              )
+              return mainStoreInventory?.quantity || 0
+            })(),
             barcode: product.barcode,
             unit: product.unit
           }))

@@ -330,21 +330,23 @@ export async function POST(request: NextRequest) {
         data: orderItemsData
       })
 
-      // Update inventory - deduct only from retail_store (only for products, not services)
+      // Update inventory - deduct only from main_store (changed from retail_store)
+      // This ensures POS sales are deducted from main inventory only
       const productItems = items.filter(item => item.productId)
       for (const item of productItems) {
-        // Check if product exists in retail_store
-        const retailInventory = await tx.inventory.findUnique({
+        if (!item.productId) continue // Skip if no productId
+        // Check if product exists in main_store
+        const mainInventory = await tx.inventory.findUnique({
           where: {
             businessId_productId_location: {
               businessId,
               productId: item.productId,
-              location: 'retail_store'
+              location: 'main_store'
             }
           }
         })
 
-        if (!retailInventory) {
+        if (!mainInventory) {
           const product = await tx.product.findUnique({
             where: { id: item.productId },
             select: { name: true, nameSwahili: true }
@@ -353,22 +355,22 @@ export async function POST(request: NextRequest) {
           throw new Error(`BIDHAA_HAIPO_DUKANI:${productName}`)
         }
 
-        if (retailInventory.quantity < item.quantity) {
+        if (mainInventory.quantity < item.quantity) {
           const product = await tx.product.findUnique({
             where: { id: item.productId },
             select: { name: true, nameSwahili: true }
           })
           const productName = product?.nameSwahili || product?.name || `Product ${item.productId}`
-          throw new Error(`HISA_HAITOSHI:${productName}:${retailInventory.quantity}:${item.quantity}`)
+          throw new Error(`HISA_HAITOSHI:${productName}:${mainInventory.quantity}:${item.quantity}`)
         }
 
-        // Deduct from retail_store only
+        // Deduct from main_store only
         await tx.inventory.update({
           where: {
             businessId_productId_location: {
               businessId,
               productId: item.productId,
-              location: 'retail_store'
+              location: 'main_store'
             }
           },
           data: {
@@ -383,7 +385,7 @@ export async function POST(request: NextRequest) {
           data: {
             businessId,
             productId: item.productId,
-            fromLocation: 'retail_store',
+            fromLocation: 'main_store',
             toLocation: 'sold', // Sale destination
             quantity: item.quantity,
             movementType: 'sale',

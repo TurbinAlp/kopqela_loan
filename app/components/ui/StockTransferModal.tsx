@@ -7,7 +7,9 @@ import {
   ArrowRightIcon,
   PlusIcon,
   MinusIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  BuildingStorefrontIcon,
+  GlobeAltIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useBusiness } from '../../contexts/BusinessContext'
@@ -15,12 +17,24 @@ import { useNotifications } from '../../contexts/NotificationContext'
 import Spinner from './Spinner'
 import Image from 'next/image'
 
+interface Store {
+  id: number
+  name: string
+  nameSwahili?: string
+  storeType: string
+  address?: string
+  city?: string
+  isActive: boolean
+}
+
 interface InventoryItem {
   quantity: number
   reservedQuantity?: number
   reorderPoint?: number
   maxStock?: number
   location?: string
+  storeId?: number
+  store?: Store
 }
 
 interface Product {
@@ -59,8 +73,12 @@ export default function StockTransferModal({
   const { currentBusiness } = useBusiness()
   const { showError, showSuccess } = useNotifications()
 
-  const [fromLocation, setFromLocation] = useState<'main_store' | 'retail_store'>('main_store')
-  const [toLocation, setToLocation] = useState<'main_store' | 'retail_store'>('retail_store')
+  const [stores, setStores] = useState<Store[]>([])
+  const [isLoadingStores, setIsLoadingStores] = useState(false)
+  const [sourceStoreId, setSourceStoreId] = useState<number | null>(null)
+  const [destinationType, setDestinationType] = useState<'store' | 'external'>('store')
+  const [destinationStoreId, setDestinationStoreId] = useState<number | null>(null)
+  const [externalDestination, setExternalDestination] = useState('')
   const [transferItems, setTransferItems] = useState<TransferItem[]>([])
   const [isTransferring, setIsTransferring] = useState(false)
   const [globalReason, setGlobalReason] = useState('')
@@ -68,11 +86,16 @@ export default function StockTransferModal({
   const translations = {
     en: {
       title: 'Stock Transfer',
-      subtitle: 'Transfer products between locations',
-      fromLocation: 'From Location',
-      toLocation: 'To Location',
-      mainStore: 'Main Store',
-      retailStore: 'Retail Store',
+      subtitle: 'Transfer products between stores',
+      sourceStore: 'Source Store',
+      destinationType: 'Destination Type',
+      destinationStore: 'Destination Store',
+      externalDestination: 'External Destination',
+      storeTransfer: 'Store Transfer',
+      externalTransfer: 'External Transfer',
+      selectSourceStore: 'Select source store',
+      selectDestinationStore: 'Select destination store',
+      enterExternalDestination: 'Enter external destination (e.g., Customer name, Another business)',
       addProducts: 'Add Products',
       product: 'Product',
       available: 'Available',
@@ -82,8 +105,12 @@ export default function StockTransferModal({
       transfer: 'Transfer',
       cancel: 'Cancel',
       transferring: 'Transferring...',
+      loadingStores: 'Loading stores...',
+      noStoresFound: 'No stores found',
       noProductsSelected: 'No products selected for transfer',
-      sameLocationError: 'Source and destination locations cannot be the same',
+      sameStoreError: 'Source and destination stores cannot be the same',
+      noSourceStoreError: 'Please select a source store',
+      noDestinationError: 'Please select a destination store or enter external destination',
       invalidQuantityError: 'Please enter valid quantities for all items',
       insufficientStockError: 'Insufficient stock for some items',
       transferSuccess: 'Stock transfer completed successfully',
@@ -92,15 +119,24 @@ export default function StockTransferModal({
       enterQuantities: 'Enter transfer quantities for each product',
       removeProduct: 'Remove product from transfer',
       totalItems: 'Total Items',
-      totalQuantity: 'Total Quantity'
+      totalQuantity: 'Total Quantity',
+      storeTypeLabels: {
+        main_store: 'Main Store',
+        warehouse: 'Warehouse'
+      }
     },
     sw: {
       title: 'Uhamishaji wa Hisa',
-      subtitle: 'Hamisha bidhaa kati ya mahali',
-      fromLocation: 'Kutoka Mahali',
-      toLocation: 'Kwenda Mahali',
-      mainStore: 'Hifadhi Kuu',
-      retailStore: 'Duka la Nje',
+      subtitle: 'Hamisha bidhaa kati ya maduka',
+      sourceStore: 'Duka la Kutoka',
+      destinationType: 'Aina ya Marudio',
+      destinationStore: 'Duka la Kwenda',
+      externalDestination: 'Mahali pa Nje',
+      storeTransfer: 'Uhamishaji wa Duka',
+      externalTransfer: 'Uhamishaji wa Nje',
+      selectSourceStore: 'Chagua duka la kutoka',
+      selectDestinationStore: 'Chagua duka la kwenda',
+      enterExternalDestination: 'Weka mahali pa nje (mfano: Jina la mteja, Biashara nyingine)',
       addProducts: 'Ongeza Bidhaa',
       product: 'Bidhaa',
       available: 'Inapatikana',
@@ -110,8 +146,12 @@ export default function StockTransferModal({
       transfer: 'Hamisha',
       cancel: 'Ghairi',
       transferring: 'Inahamisha...',
+      loadingStores: 'Inapakia maduka...',
+      noStoresFound: 'Hakuna maduka yaliyopatikana',
       noProductsSelected: 'Hakuna bidhaa zilizochaguliwa kwa uhamishaji',
-      sameLocationError: 'Mahali pa kutoka na pa kwenda hayawezi kuwa sawa',
+      sameStoreError: 'Duka la kutoka na la kwenda haliwezi kuwa sawa',
+      noSourceStoreError: 'Tafadhali chagua duka la kutoka',
+      noDestinationError: 'Tafadhali chagua duka la kwenda au weka mahali pa nje',
       invalidQuantityError: 'Tafadhali weka idadi sahihi kwa vitu vyote',
       insufficientStockError: 'Hisa haitoshi kwa baadhi ya vitu',
       transferSuccess: 'Uhamishaji wa hisa umekamilika kwa mafanikio',
@@ -120,23 +160,63 @@ export default function StockTransferModal({
       enterQuantities: 'Weka idadi ya kuhamisha kwa kila bidhaa',
       removeProduct: 'Ondoa bidhaa kutoka uhamishajini',
       totalItems: 'Vitu Vyote',
-      totalQuantity: 'Idadi Yote'
+      totalQuantity: 'Idadi Yote',
+      storeTypeLabels: {
+        main_store: 'Hifadhi Kuu',
+        warehouse: 'Ghala'
+      }
     }
   }
 
   const t = translations[language]
 
-  // Initialize transfer items when modal opens
+  const fetchStores = async () => {
+    if (!currentBusiness?.id) return
+
+    setIsLoadingStores(true)
+    try {
+      const response = await fetch(`/api/admin/stores?businessId=${currentBusiness.id}`)
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        const activeStores = result.data.stores.filter((store: Store) => store.isActive)
+        setStores(activeStores)
+        
+        // Auto-select first store as source if only one exists
+        if (activeStores.length === 1) {
+          setSourceStoreId(activeStores[0].id)
+        }
+      } else {
+        throw new Error(result.message || 'Failed to fetch stores')
+      }
+    } catch (error) {
+      console.error('Error fetching stores:', error)
+      showError(t.title, error instanceof Error ? error.message : t.transferError)
+    } finally {
+      setIsLoadingStores(false)
+    }
+  }
+
+  // Fetch stores when modal opens
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && currentBusiness?.id) {
+      fetchStores()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, currentBusiness?.id])
+
+  // Initialize transfer items when modal opens or source store changes
+  useEffect(() => {
+    if (isOpen && sourceStoreId) {
       const items = selectedProductIds
         .map(productId => {
           const product = products.find(p => p.id === productId)
           if (!product) return null
 
           const inventoryArray = Array.isArray(product.inventory) ? product.inventory : (product.inventory ? [product.inventory] : [])
-          const locationInventory = inventoryArray.find(inv => inv.location === fromLocation)
-          const availableStock = locationInventory?.quantity ?? 0
+          // Find inventory for the selected source store
+          const storeInventory = inventoryArray.find(inv => inv.storeId === sourceStoreId)
+          const availableStock = storeInventory?.quantity ?? 0
 
           if (availableStock <= 0) return null
 
@@ -151,22 +231,30 @@ export default function StockTransferModal({
         .filter((item): item is TransferItem => item !== null)
 
       setTransferItems(items)
-    } else {
+    } else if (!isOpen) {
       // Reset state when modal closes
+      resetModalState()
+    }
+  }, [isOpen, selectedProductIds, products, sourceStoreId])
+
+  const resetModalState = () => {
       setTransferItems([])
       setGlobalReason('')
-      setFromLocation('main_store')
-      setToLocation('retail_store')
-    }
-  }, [isOpen, selectedProductIds, products, fromLocation])
+    setSourceStoreId(null)
+    setDestinationType('store')
+    setDestinationStoreId(null)
+    setExternalDestination('')
+    setStores([])
+  }
 
-  // Update available stock when source location changes
+  // Update available stock when source store changes
   useEffect(() => {
+    if (sourceStoreId) {
     setTransferItems(prevItems => 
       prevItems.map(item => {
         const inventoryArray = Array.isArray(item.product.inventory) ? item.product.inventory : (item.product.inventory ? [item.product.inventory] : [])
-        const locationInventory = inventoryArray.find(inv => inv.location === fromLocation)
-        const availableStock = locationInventory?.quantity ?? 0
+          const storeInventory = inventoryArray.find(inv => inv.storeId === sourceStoreId)
+          const availableStock = storeInventory?.quantity ?? 0
         
         return {
           ...item,
@@ -175,15 +263,27 @@ export default function StockTransferModal({
         }
       }).filter(item => item.availableStock > 0)
     )
-  }, [fromLocation])
+    }
+  }, [sourceStoreId])
 
-  const handleLocationChange = (type: 'from' | 'to', location: 'main_store' | 'retail_store') => {
-    if (type === 'from') {
-      setFromLocation(location)
-      // Auto-switch destination to opposite location
-      setToLocation(location === 'main_store' ? 'retail_store' : 'main_store')
+  const handleStoreChange = (type: 'source' | 'destination', storeId: number | null) => {
+    if (type === 'source') {
+      setSourceStoreId(storeId)
+      // Clear destination if it's the same as source
+      if (storeId === destinationStoreId) {
+        setDestinationStoreId(null)
+      }
     } else {
-      setToLocation(location)
+      setDestinationStoreId(storeId)
+    }
+  }
+
+  const handleDestinationTypeChange = (type: 'store' | 'external') => {
+    setDestinationType(type)
+    if (type === 'external') {
+      setDestinationStoreId(null)
+    } else {
+      setExternalDestination('')
     }
   }
 
@@ -211,9 +311,25 @@ export default function StockTransferModal({
 
   const handleTransfer = async () => {
     // Validation
-    if (fromLocation === toLocation) {
-      showError(t.title, t.sameLocationError)
+    if (!sourceStoreId) {
+      showError(t.title, t.noSourceStoreError)
       return
+    }
+
+    if (destinationType === 'store') {
+      if (!destinationStoreId) {
+        showError(t.title, t.noDestinationError)
+        return
+      }
+      if (sourceStoreId === destinationStoreId) {
+        showError(t.title, t.sameStoreError)
+        return
+      }
+    } else {
+      if (!externalDestination.trim()) {
+        showError(t.title, t.noDestinationError)
+        return
+      }
     }
 
     if (transferItems.length === 0) {
@@ -235,16 +351,27 @@ export default function StockTransferModal({
     setIsTransferring(true)
 
     try {
-      const transferData = {
+      const transferData: Record<string, unknown> = {
         businessId: currentBusiness.id,
-        fromLocation,
-        toLocation,
+        fromStoreId: sourceStoreId,
+        isExternalMovement: destinationType === 'external',
         createdBy: 1, // TODO: Get from auth context
         transfers: transferItems.map(item => ({
           productId: item.productId,
           quantity: item.transferQuantity,
-          reason: item.reason || globalReason || `Transfer from ${fromLocation} to ${toLocation}`
+          reason: item.reason || globalReason || (
+            destinationType === 'store' 
+              ? `Transfer between stores`
+              : `External transfer to ${externalDestination}`
+          )
         }))
+      }
+
+      // Add destination based on type
+      if (destinationType === 'store') {
+        transferData.toStoreId = destinationStoreId
+      } else {
+        transferData.externalDestination = externalDestination.trim()
       }
 
       const response = await fetch('/api/admin/inventory/transfer', {
@@ -282,7 +409,7 @@ export default function StockTransferModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={onClose}
         >
           <motion.div
@@ -310,35 +437,103 @@ export default function StockTransferModal({
 
             {/* Content */}
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-              {/* Location Selection */}
+              {/* Store Selection */}
               <div className="mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                  {/* Source Store */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.fromLocation}</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <BuildingStorefrontIcon className="w-4 h-4 inline mr-1" />
+                      {t.sourceStore}
+                    </label>
+                    {isLoadingStores ? (
+                      <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 flex items-center">
+                        <Spinner size="sm" />
+                        <span className="ml-2 text-sm text-gray-600">{t.loadingStores}</span>
+                      </div>
+                    ) : (
                     <select
-                      value={fromLocation}
-                      onChange={(e) => handleLocationChange('from', e.target.value as 'main_store' | 'retail_store')}
+                        value={sourceStoreId || ''}
+                        onChange={(e) => handleStoreChange('source', e.target.value ? parseInt(e.target.value) : null)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
-                    >
-                      <option value="main_store">{t.mainStore}</option>
-                      <option value="retail_store">{t.retailStore}</option>
+                        disabled={stores.length === 0}
+                      >
+                        <option value="">{t.selectSourceStore}</option>
+                        {stores.map(store => (
+                          <option key={store.id} value={store.id}>
+                            {language === 'sw' && store.nameSwahili ? store.nameSwahili : store.name} 
+                            ({t.storeTypeLabels[store.storeType as keyof typeof t.storeTypeLabels] || store.storeType})
+                          </option>
+                        ))}
                     </select>
+                    )}
+                    {stores.length === 0 && !isLoadingStores && (
+                      <p className="text-sm text-gray-500 mt-1">{t.noStoresFound}</p>
+                    )}
                   </div>
 
                   <div className="flex items-center justify-center">
                     <ArrowRightIcon className="w-8 h-8 text-teal-600" />
                   </div>
 
+                  {/* Destination Type & Store */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.toLocation}</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.destinationType}</label>
+                    <div className="space-y-3">
+                      {/* Destination Type Selection */}
+                      <div className="flex space-x-4">
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            value="store"
+                            checked={destinationType === 'store'}
+                            onChange={(e) => handleDestinationTypeChange(e.target.value as 'store' | 'external')}
+                            className="mr-2 text-teal-600 focus:ring-teal-500"
+                          />
+                          <BuildingStorefrontIcon className="w-4 h-4 mr-1" />
+                          <span className="text-sm">{t.storeTransfer}</span>
+                        </label>
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            value="external"
+                            checked={destinationType === 'external'}
+                            onChange={(e) => handleDestinationTypeChange(e.target.value as 'store' | 'external')}
+                            className="mr-2 text-teal-600 focus:ring-teal-500"
+                          />
+                          <GlobeAltIcon className="w-4 h-4 mr-1" />
+                          <span className="text-sm">{t.externalTransfer}</span>
+                        </label>
+                      </div>
+
+                      {/* Destination Selection */}
+                      {destinationType === 'store' ? (
                     <select
-                      value={toLocation}
-                      onChange={(e) => handleLocationChange('to', e.target.value as 'main_store' | 'retail_store')}
+                          value={destinationStoreId || ''}
+                          onChange={(e) => handleStoreChange('destination', e.target.value ? parseInt(e.target.value) : null)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900 bg-white"
-                    >
-                      <option value="main_store">{t.mainStore}</option>
-                      <option value="retail_store">{t.retailStore}</option>
+                          disabled={stores.length === 0}
+                        >
+                          <option value="">{t.selectDestinationStore}</option>
+                          {stores
+                            .filter(store => store.id !== sourceStoreId)
+                            .map(store => (
+                              <option key={store.id} value={store.id}>
+                                {language === 'sw' && store.nameSwahili ? store.nameSwahili : store.name} 
+                                ({t.storeTypeLabels[store.storeType as keyof typeof t.storeTypeLabels] || store.storeType})
+                              </option>
+                            ))}
                     </select>
+                      ) : (
+                        <input
+                          type="text"
+                          value={externalDestination}
+                          onChange={(e) => setExternalDestination(e.target.value)}
+                          placeholder={t.enterExternalDestination}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900"
+                        />
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -350,7 +545,7 @@ export default function StockTransferModal({
                   type="text"
                   value={globalReason}
                   onChange={(e) => setGlobalReason(e.target.value)}
-                  placeholder={`Transfer from ${fromLocation} to ${toLocation}`}
+                  placeholder={destinationType === 'store' ? 'Transfer between stores' : `External transfer to ${externalDestination || 'destination'}`}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-900"
                 />
               </div>
@@ -491,7 +686,13 @@ export default function StockTransferModal({
                 </button>
                 <button
                   onClick={handleTransfer}
-                  disabled={isTransferring || transferItems.length === 0 || fromLocation === toLocation}
+                  disabled={
+                    isTransferring || 
+                    transferItems.length === 0 || 
+                    !sourceStoreId ||
+                    (destinationType === 'store' && (!destinationStoreId || sourceStoreId === destinationStoreId)) ||
+                    (destinationType === 'external' && !externalDestination.trim())
+                  }
                   className="flex items-center space-x-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isTransferring && <Spinner size="sm" color="white" />}
