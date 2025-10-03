@@ -37,6 +37,7 @@ model User {
   userPermissions       UserPermission[]
   userPreferences       UserPreference[]
   sessions              UserSession[]
+  createdExpenses       Expense[]
 
   @@map("users")
 }
@@ -148,6 +149,8 @@ model Business {
   services           Service[]
   stores             Store[]
   userPermissions    UserPermission[]
+  expenses           Expense[]
+  expenseCategories  ExpenseCategory[]
 
   @@map("businesses")
 }
@@ -462,6 +465,51 @@ model Payment {
   @@map("payments")
 }
 
+model Expense {
+  id            Int            @id @default(autoincrement())
+  expenseNumber String         @unique @map("expense_number") @db.VarChar(50)
+  businessId    Int            @map("business_id")
+  categoryId    Int?           @map("category_id")
+  amount        Decimal        @db.Decimal(10, 2)
+  title         String         @db.VarChar(255)
+  description   String?
+  expenseDate   DateTime       @map("expense_date")
+  paymentMethod ExpensePaymentMethod @map("payment_method")
+  status        ExpenseStatus  @default(PENDING)
+  receipt       String?        @db.VarChar(500)
+  reference     String?        @db.VarChar(255)
+  vendorName    String?        @map("vendor_name") @db.VarChar(255)
+  vendorContact String?        @map("vendor_contact") @db.VarChar(255)
+  isRecurring   Boolean        @default(false) @map("is_recurring")
+  recurringType String?        @map("recurring_type") @db.VarChar(50)
+  nextDueDate   DateTime?      @map("next_due_date")
+  createdById   Int            @map("created_by_id")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  business      Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  category      ExpenseCategory? @relation(fields: [categoryId], references: [id])
+  createdBy     User           @relation(fields: [createdById], references: [id])
+
+  @@map("expenses")
+}
+
+model ExpenseCategory {
+  id          Int       @id @default(autoincrement())
+  businessId  Int       @map("business_id")
+  name        String    @db.VarChar(100)
+  nameSwahili String?   @map("name_swahili") @db.VarChar(100)
+  description String?
+  color       String?   @db.VarChar(7)
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  business    Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  expenses    Expense[]
+
+  @@unique([businessId, name])
+  @@map("expense_categories")
+}
+
 model CreditApplication {
   id                Int          @id @default(autoincrement())
   businessId        Int          @map("business_id")
@@ -605,6 +653,26 @@ enum PaymentStatus {
   REFUNDED
 
   @@map("payment_status")
+}
+
+enum ExpensePaymentMethod {
+  CASH
+  CARD
+  MOBILE_MONEY
+  BANK_TRANSFER
+  CHEQUE
+  CREDIT
+
+  @@map("expense_payment_method")
+}
+
+enum ExpenseStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+
+  @@map("expense_status")
 }
 
 enum CreditStatus {

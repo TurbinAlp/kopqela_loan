@@ -190,6 +190,38 @@ const PERMISSION_DEFINITIONS = [
     description: 'Process payment refunds'
   },
 
+  // Expense Management
+  {
+    name: 'expenses.create',
+    resource: 'expenses',
+    action: 'create',
+    description: 'Create new business expenses'
+  },
+  {
+    name: 'expenses.read',
+    resource: 'expenses',
+    action: 'read',
+    description: 'View expense information'
+  },
+  {
+    name: 'expenses.update',
+    resource: 'expenses',
+    action: 'update',
+    description: 'Update expense information'
+  },
+  {
+    name: 'expenses.delete',
+    resource: 'expenses',
+    action: 'delete',
+    description: 'Delete expenses'
+  },
+  {
+    name: 'expense_categories.manage',
+    resource: 'expense_categories',
+    action: 'manage',
+    description: 'Manage expense categories'
+  },
+
   // Credit Management
   {
     name: 'credit_applications.read',
@@ -284,6 +316,7 @@ const ROLE_PERMISSIONS = {
     'sales.read', 'sales.export',
     'pos.create', 'pos.read',
     'payments.create', 'payments.read', 'payments.process_payment', 'payments.refund',
+    'expenses.create', 'expenses.read', 'expenses.update', 'expenses.delete', 'expense_categories.manage',
     'credit_applications.read', 'credit_applications.create', 'credit_applications.approve', 'credit_applications.reject',
     'credit_assessment.assess_credit',
     'reports.read', 'reports.export',
@@ -305,6 +338,7 @@ const ROLE_PERMISSIONS = {
     'sales.read', 'sales.export',
     'pos.create', 'pos.read',
     'payments.create', 'payments.read', 'payments.process_payment',
+    'expenses.create', 'expenses.read', 'expenses.update', 'expenses.delete', 'expense_categories.manage',
     'credit_applications.read', 'credit_applications.approve', 'credit_applications.reject',
     'credit_assessment.assess_credit',
     'reports.read', 'reports.export',
@@ -320,6 +354,7 @@ const ROLE_PERMISSIONS = {
     'sales.read',
     'pos.create', 'pos.read',
     'payments.create', 'payments.read', 'payments.process_payment',
+    'expenses.create', 'expenses.read', 'expenses.update',
     'credit_applications.create', 'credit_applications.read',
     'dashboard.read'
   ],

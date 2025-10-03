@@ -18,7 +18,8 @@ import {
   ComputerDesktopIcon,
   ChevronDownIcon,
   BuildingOfficeIcon,
-  WrenchScrewdriverIcon
+  WrenchScrewdriverIcon,
+  BanknotesIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../contexts/LanguageContext'
 import { BusinessProvider } from '../contexts/BusinessContext'
@@ -117,6 +118,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
       customers: "Customers",
       customerDetails: "Customer Details",
       credit: "Credit Sales",
+      expenses: "Expenses",
       reports: "Reports",
       settings: "Settings",
       generalSettings: "General Settings",
@@ -140,6 +142,7 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
       customers: "Wateja",
       customerDetails: "Maelezo ya Mteja",
       credit: "Mauzo ya Mikopo",
+      expenses: "Gharama",
       reports: "Ripoti",
       settings: "Mipangilio",
       generalSettings: "Mipangilio ya Jumla",
@@ -212,6 +215,12 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
       icon: CreditCardIcon, 
       href: "/admin/credit",
       permission: "credit_applications.read"
+    },
+    { 
+      name: t.expenses, 
+      icon: BanknotesIcon, 
+      href: "/admin/expenses",
+      permission: "expenses.read"
     },
     { 
       name: t.reports, 
