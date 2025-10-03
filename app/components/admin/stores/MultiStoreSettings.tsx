@@ -11,14 +11,12 @@ import {
   EyeIcon,
   CheckCircleIcon,
   XCircleIcon,
-  ArrowRightIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../../contexts/LanguageContext'
 import { useNotifications } from '../../../contexts/NotificationContext'
 import { useBusiness } from '../../../contexts/BusinessContext'
 import AddStoreModal from './AddStoreModal'
 import EditStoreModal from './EditStoreModal'
-import StoreTransferModal from './StoreTransferModal'
 
 interface Store {
   id: number
@@ -69,7 +67,6 @@ export default function MultiStoreSettings({
   const [isLoading, setIsLoading] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
-  const [showTransferModal, setShowTransferModal] = useState(false)
   const [selectedStore, setSelectedStore] = useState<Store | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
@@ -81,7 +78,6 @@ export default function MultiStoreSettings({
       disableMultiStore: 'Disable Multi-Store',
       multiStoreDescription: 'Enable this feature to manage multiple store locations, track inventory separately, and assign managers to different stores.',
       addStore: 'Add New Store',
-      transferProducts: 'Transfer Products',
       noStores: 'No stores configured',
       noStoresDescription: 'Add your first store location to start managing multiple stores.',
       storeName: 'Store Name',
@@ -115,7 +111,6 @@ export default function MultiStoreSettings({
       disableMultiStore: 'Zima Maduka Mengi',
       multiStoreDescription: 'Washa kipengele hiki ili kusimamia mahali mbalimbali pa maduka, kufuatilia hisa kwa kila duka, na kuweka meneja kwa maduka tofauti.',
       addStore: 'Ongeza Duka Jipya',
-      transferProducts: 'Hamisha Bidhaa',
       noStores: 'Hakuna maduka yaliyosanidiwa',
       noStoresDescription: 'Ongeza mahali pa kwanza pa duka ili kuanza kusimamia maduka mengi.',
       storeName: 'Jina la Duka',
@@ -289,14 +284,6 @@ export default function MultiStoreSettings({
                 <h3 className="text-lg font-semibold text-gray-900">{t.subtitle}</h3>
               </div>
               <div className="flex space-x-3">
-                <button
-                  onClick={() => setShowTransferModal(true)}
-                  disabled={stores.length < 2}
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ArrowRightIcon className="w-4 h-4 mr-2" />
-                  {t.transferProducts}
-                </button>
                 <button
                   onClick={() => setShowAddModal(true)}
                   className="inline-flex items-center px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
@@ -473,16 +460,6 @@ export default function MultiStoreSettings({
         businessUsers={businessUsers}
       />
 
-      {/* Store Transfer Modal */}
-      <StoreTransferModal
-        isOpen={showTransferModal}
-        onClose={() => setShowTransferModal(false)}
-        onTransferComplete={loadStores}
-        stores={stores.map(store => ({
-          ...store,
-          inventoryCount: store._count.inventory
-        }))}
-      />
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && selectedStore && (
