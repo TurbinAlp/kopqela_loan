@@ -222,6 +222,32 @@ const PERMISSION_DEFINITIONS = [
     description: 'Manage expense categories'
   },
 
+  // Stock Adjustments
+  {
+    name: 'stock_adjustments.create',
+    resource: 'stock_adjustments',
+    action: 'create',
+    description: 'Create stock adjustments for damaged/lost inventory'
+  },
+  {
+    name: 'stock_adjustments.read',
+    resource: 'stock_adjustments',
+    action: 'read',
+    description: 'View stock adjustment records'
+  },
+  {
+    name: 'stock_adjustments.update',
+    resource: 'stock_adjustments',
+    action: 'update',
+    description: 'Update stock adjustment records'
+  },
+  {
+    name: 'stock_adjustments.delete',
+    resource: 'stock_adjustments',
+    action: 'delete',
+    description: 'Delete stock adjustment records'
+  },
+
   // Credit Management
   {
     name: 'credit_applications.read',
@@ -312,6 +338,7 @@ const ROLE_PERMISSIONS = {
     'products.create', 'products.read', 'products.update', 'products.delete',
     'categories.manage',
     'inventory.read', 'inventory.update',
+    'stock_adjustments.create', 'stock_adjustments.read', 'stock_adjustments.update', 'stock_adjustments.delete',
     'orders.create', 'orders.read', 'orders.update', 'orders.delete',
     'sales.read', 'sales.export',
     'pos.create', 'pos.read',
@@ -334,6 +361,7 @@ const ROLE_PERMISSIONS = {
     'products.create', 'products.read', 'products.update',
     'categories.manage',
     'inventory.read', 'inventory.update',
+    'stock_adjustments.create', 'stock_adjustments.read', 'stock_adjustments.update',
     'orders.create', 'orders.read', 'orders.update',
     'sales.read', 'sales.export',
     'pos.create', 'pos.read',
@@ -350,6 +378,7 @@ const ROLE_PERMISSIONS = {
     'customers.read',
     'products.read',
     'inventory.read',
+    'stock_adjustments.create', 'stock_adjustments.read',
     'orders.create', 'orders.read', 'orders.update',
     'sales.read',
     'pos.create', 'pos.read',

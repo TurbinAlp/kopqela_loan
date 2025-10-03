@@ -16,7 +16,8 @@ import {
   FunnelIcon,
   ArrowRightIcon,
   ArchiveBoxArrowDownIcon,
-  TableCellsIcon
+  TableCellsIcon,
+  MinusCircleIcon
 } from '@heroicons/react/24/outline'
 import { useLanguage } from '../../contexts/LanguageContext'
 import { useBusiness } from '../../contexts/BusinessContext'
@@ -29,11 +30,57 @@ import Image from 'next/image'
 import DeleteConfirmModal from '../../components/ui/DeleteConfirmModal'
 import SuccessModal from '../../components/ui/SuccessModal'
 import StockTransferModal from '../../components/ui/StockTransferModal'
+import StockAdjustmentModal from '../../components/admin/inventory/StockAdjustmentModal'
 import Spinner from '../../components/ui/Spinner'
 import { useNotifications } from '../../contexts/NotificationContext'
 import { exportProductsToExcel, type ExcelProduct } from '../../utils/excelExport'
 
-// Use Product type from useProductsData hook
+// Product interface for type safety
+interface Product {
+  id: number
+  name: string
+  nameSwahili?: string
+  description?: string
+  category?: {
+    id: number
+    name: string
+    nameSwahili?: string
+  }
+  price: number
+  wholesalePrice?: number
+  costPrice?: number
+  sku?: string
+  barcode?: string
+  unit?: string
+  images?: Array<{
+    id: number
+    url: string
+    filename: string
+    originalName: string
+    size: number
+    mimeType: string
+    isPrimary: boolean
+    sortOrder: number
+  }>
+  isActive: boolean
+  isDraft: boolean
+  inventory?: Array<{
+    quantity: number
+    reservedQuantity?: number
+    reorderPoint?: number
+    maxStock?: number
+    location?: string
+    storeId?: number
+    store?: {
+      id: number
+      name: string
+      nameSwahili?: string
+      storeType: string
+    }
+  }>
+  createdAt: string
+  updatedAt: string
+}
 
 export default function ProductsPage() {
   const { language } = useLanguage()
@@ -47,51 +94,7 @@ export default function ProductsPage() {
   
   // Direct state management for products data
   const [productsData, setProductsData] = useState<{
-    products: Array<{
-      id: number
-      name: string
-      nameSwahili?: string
-      description?: string
-      category?: {
-        id: number
-        name: string
-        nameSwahili?: string
-      }
-      price: number
-      wholesalePrice?: number
-      costPrice?: number
-      sku?: string
-      barcode?: string
-      unit?: string
-      images?: Array<{
-        id: number
-        url: string
-        filename: string
-        originalName: string
-        size: number
-        mimeType: string
-        isPrimary: boolean
-        sortOrder: number
-      }>
-      isActive: boolean
-      isDraft: boolean
-      inventory?: Array<{
-        quantity: number
-        reservedQuantity?: number
-        reorderPoint?: number
-        maxStock?: number
-        location?: string
-        storeId?: number
-        store?: {
-          id: number
-          name: string
-          nameSwahili?: string
-          storeType: string
-        }
-      }>
-      createdAt: string
-      updatedAt: string
-    }>
+    products: Product[]
     categories: string[]
     totalCount: number
     lowStockCount: number
@@ -143,6 +146,15 @@ export default function ProductsPage() {
   // Stock transfer modal state
   const [stockTransferModal, setStockTransferModal] = useState({
     isOpen: false
+  })
+
+  // Stock adjustment modal state
+  const [stockAdjustmentModal, setStockAdjustmentModal] = useState<{
+    isOpen: boolean
+    product: Product | null
+  }>({
+    isOpen: false,
+    product: null
   })
 
 
@@ -250,6 +262,7 @@ export default function ProductsPage() {
       view: "View",
       edit: "Edit", 
       delete: "Delete",
+      adjustStock: "Adjust Stock",
       selectAll: "Select All",
       
       // Status
@@ -337,6 +350,7 @@ export default function ProductsPage() {
       view: "Angalia",
       edit: "Hariri",
       delete: "Futa",
+      adjustStock: "Rekebisha Hisa",
       selectAll: "Chagua Zote",
       
       // Status
@@ -640,7 +654,25 @@ export default function ProductsPage() {
     setDeleteModal({ isOpen: false, productId: null, productName: '' })
   }
 
+  // Stock adjustment handlers
+  const handleAdjustStockClick = (product: Product) => {
+    setStockAdjustmentModal({
+      isOpen: true,
+      product
+    })
+  }
 
+  const handleStockAdjustmentClose = () => {
+    setStockAdjustmentModal({
+      isOpen: false,
+      product: null
+    })
+  }
+
+  const handleStockAdjustmentCreated = () => {
+    // Refresh products data to show updated stock
+    fetchProductsData()
+  }
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -1145,15 +1177,38 @@ export default function ProductsPage() {
                             <div className="text-gray-800 font-medium">Total: {totalStock}</div>
                             <div className="text-gray-600 space-y-1">
                               {inventoryArray.map((inv, idx) => {
-                                const storeName = inv.store?.name || 
-                                  (inv.store?.storeType === 'warehouse' ? (language === 'en' ? 'Warehouse' : 'Ghala') :
-                                   inv.store?.storeType === 'main_store' ? (language === 'en' ? 'Main Store' : 'Duka Kuu') :
-                                   inv.location || 'Unknown')
+                                // Determine store name with better fallback handling
+                                let storeName = 'Unknown'
+                                
+                                if (inv.store?.name) {
+                                  storeName = language === 'sw' && inv.store.nameSwahili ? inv.store.nameSwahili : inv.store.name
+                                } else if (inv.store?.storeType) {
+                                  storeName = inv.store.storeType === 'warehouse' 
+                                    ? (language === 'en' ? 'Warehouse' : 'Ghala')
+                                    : inv.store.storeType === 'main_store' 
+                                    ? (language === 'en' ? 'Main Store' : 'Duka Kuu')
+                                    : inv.store.storeType
+                                } else if (inv.location) {
+                                  // Handle legacy location formats
+                                  if (inv.location === 'main_store') {
+                                    storeName = language === 'en' ? 'Main Store' : 'Duka Kuu'
+                                  } else if (inv.location.startsWith('store_')) {
+                                    // const storeId = inv.location.replace('store_', '')
+                                    storeName = `${language === 'en' ? 'Store' : 'Duka'}`
+                                  } else {
+                                    storeName = inv.location
+                                  }
+                                }
+                                
+                                const quantity = inv.quantity || 0
+                                const quantityColor = quantity < 0 ? 'text-red-600' : quantity === 0 ? 'text-gray-500' : 'text-gray-900'
                                 
                                 return (
                                   <div key={idx} className="flex justify-between">
                                     <span className="truncate">{storeName}:</span>
-                                    <span className="font-medium">{inv.quantity || 0}</span>
+                                    <span className={`font-medium ${quantityColor}`}>
+                                      {quantity < 0 ? `(${Math.abs(quantity)})` : quantity}
+                                    </span>
                                   </div>
                                 )
                               })}
@@ -1226,6 +1281,17 @@ export default function ProductsPage() {
                                <PencilIcon className="w-3.5 h-3.5" />
                              </motion.button>
                            </LoadingLink>
+                         )}
+                         {hasPermissionSync(session, 'stock_adjustments.create', businessPermissions) && (
+                           <motion.button
+                             whileHover={{ scale: 1.1 }}
+                             whileTap={{ scale: 0.9 }}
+                             onClick={() => handleAdjustStockClick(product)}
+                             className="p-1.5 text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                             title={t.adjustStock}
+                           >
+                             <MinusCircleIcon className="w-3.5 h-3.5" />
+                           </motion.button>
                          )}
                          {hasPermissionSync(session, 'products.delete', businessPermissions) && (
                            <motion.button
@@ -1547,6 +1613,14 @@ export default function ProductsPage() {
         products={products as never}
         selectedProductIds={selectedProducts}
         onTransferComplete={handleTransferComplete}
+      />
+
+      {/* Stock Adjustment Modal */}
+      <StockAdjustmentModal
+        isOpen={stockAdjustmentModal.isOpen}
+        onClose={handleStockAdjustmentClose}
+        product={stockAdjustmentModal.product}
+        onAdjustmentCreated={handleStockAdjustmentCreated}
       />
     </div>
   )

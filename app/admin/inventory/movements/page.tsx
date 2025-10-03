@@ -262,7 +262,9 @@ function StockMovementHistoryPageContent() {
     // Handle legacy store_X format - convert to readable format
     if (location.startsWith('store_')) {
       const storeId = location.replace('store_', '')
-      return `${t.store} ${storeId}`
+      // Try to find actual store name from context if available
+      // For now, show a more user-friendly format
+      return `${t.store} #${storeId}`
     }
     
     // Handle external_ format
