@@ -92,14 +92,41 @@ export default function ProfilePage() {
   const t = translations[language]
 
   useEffect(() => {
-    if (session?.user) {
-      setProfileData(prev => ({
-        ...prev,
-        name: session?.user?.name || '',
-        email: session?.user?.email || ''
-      }))
+    const loadProfile = async () => {
+      if (session?.user?.id) {
+        try {
+          const response = await fetch('/api/profile')
+          const data = await response.json()
+          
+          if (data.success) {
+            setProfileData(prev => ({
+              ...prev,
+              name: data.data.name || '',
+              email: data.data.email || '',
+              phone: data.data.phone || ''
+            }))
+          } else {
+            // Fallback to session data
+            setProfileData(prev => ({
+              ...prev,
+              name: session?.user?.name || '',
+              email: session?.user?.email || ''
+            }))
+          }
+        } catch (error) {
+          console.error('Error loading profile:', error)
+          // Fallback to session data
+          setProfileData(prev => ({
+            ...prev,
+            name: session?.user?.name || '',
+            email: session?.user?.email || ''
+          }))
+        }
+      }
     }
-  }, [session])
+
+    loadProfile()
+  }, [session?.user?.id, session?.user?.name, session?.user?.email])
 
   const getUserInitials = () => {
     if (session?.user?.name) {
@@ -115,12 +142,28 @@ export default function ProfilePage() {
   const handleSaveProfile = async () => {
     setLoading(true)
     try {
-      // API call to update profile
-      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate API call
-      setIsEditing(false)
-      // Show success message
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: profileData.name,
+          phone: profileData.phone
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setIsEditing(false)
+        alert(t.profileUpdated || 'Profile updated successfully')
+      } else {
+        alert(data.message || 'Error updating profile')
+      }
     } catch (error) {
       console.error('Error updating profile:', error)
+      alert('Error updating profile. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -137,19 +180,40 @@ export default function ProfilePage() {
       return
     }
 
+    if (!profileData.currentPassword) {
+      alert(t.enterCurrentPassword || 'Please enter your current password')
+      return
+    }
+
     setLoading(true)
     try {
-      // API call to change password
-      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate API call
-      setProfileData(prev => ({
-        ...prev,
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      }))
-      // Show success message
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          currentPassword: profileData.currentPassword,
+          newPassword: profileData.newPassword
+        })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setProfileData(prev => ({
+          ...prev,
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        }))
+        alert(t.passwordChanged || 'Password changed successfully')
+      } else {
+        alert(data.message || 'Error changing password')
+      }
     } catch (error) {
       console.error('Error changing password:', error)
+      alert('Error changing password. Please try again.')
     } finally {
       setLoading(false)
     }

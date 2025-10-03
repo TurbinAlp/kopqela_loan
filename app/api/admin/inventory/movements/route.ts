@@ -54,9 +54,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Build where clause for filtering
-    const where: any = {
+    const where = {
       businessId
-    }
+    } as Record<string, unknown>
 
     if (productId) {
       where.productId = productId
@@ -75,13 +75,14 @@ export async function GET(request: NextRequest) {
     }
 
     if (startDate || endDate) {
-      where.createdAt = {}
+      const dateFilter: Record<string, Date> = {}
       if (startDate) {
-        where.createdAt.gte = new Date(startDate)
+        dateFilter.gte = new Date(startDate)
       }
       if (endDate) {
-        where.createdAt.lte = new Date(endDate)
+        dateFilter.lte = new Date(endDate)
       }
+      where.createdAt = dateFilter
     }
 
     // Calculate pagination
@@ -142,10 +143,10 @@ export async function GET(request: NextRequest) {
           movementType: movement.movementType,
           reason: movement.reason,
           referenceId: movement.referenceId,
-          createdBy: {
+          createdBy: movement.user ? {
             id: movement.user.id,
-            name: `${movement.user.firstName} ${movement.user.lastName}`
-          },
+            name: `${movement.user.firstName || ''} ${movement.user.lastName || ''}`.trim() || 'Unknown User'
+          } : null,
           createdAt: movement.createdAt
         })),
         pagination: {

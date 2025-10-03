@@ -26,6 +26,7 @@ interface InventoryMovement {
     nameSwahili?: string
     sku?: string
     images?: { url: string }[]
+    imageUrl?: string | null
   }
   fromLocation?: string
   toLocation: string
@@ -33,10 +34,9 @@ interface InventoryMovement {
   movementType: string
   reason?: string
   referenceId?: string
-  user?: {
+  createdBy?: {
     id: number
-    firstName: string
-    lastName: string
+    name: string
   } | null
   createdAt: string
 }
@@ -98,6 +98,8 @@ function StockMovementHistoryPageContent() {
       mainStore: 'Main Store',
       retailStore: 'Retail Store',
       sold: 'Sold',
+      store: 'Store',
+      external: 'External',
       
       // Movement types
       transfer: 'Transfer',
@@ -141,6 +143,8 @@ function StockMovementHistoryPageContent() {
       mainStore: 'Hifadhi Kuu',
       retailStore: 'Duka la Nje',
       sold: 'Imeuzwa',
+      store: 'Duka',
+      external: 'Nje',
       
       // Movement types
       transfer: 'Uhamishaji',
@@ -242,12 +246,33 @@ function StockMovementHistoryPageContent() {
 
   const formatLocation = (location: string | null) => {
     if (!location) return '—'
+    
+    // Handle legacy hardcoded locations
     const locationMap: Record<string, string> = {
       main_store: t.mainStore,
       retail_store: t.retailStore,
       sold: t.sold
     }
-    return locationMap[location] || location
+    
+    // Check if it's a legacy hardcoded location
+    if (locationMap[location]) {
+      return locationMap[location]
+    }
+    
+    // Handle legacy store_X format - convert to readable format
+    if (location.startsWith('store_')) {
+      const storeId = location.replace('store_', '')
+      return `${t.store} ${storeId}`
+    }
+    
+    // Handle external_ format
+    if (location.startsWith('external_')) {
+      const destination = location.replace('external_', '').replace(/_/g, ' ')
+      return `${t.external}: ${destination}`
+    }
+    
+    // Return as-is for actual store names (new format)
+    return location
   }
 
   const formatDate = (dateString: string) => {
@@ -426,8 +451,8 @@ function StockMovementHistoryPageContent() {
                       <td className="py-4 px-6">
                         <div className="flex items-center space-x-3">
                           <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
-                            {movement.product.images?.[0]?.url ? (
-                              <Image src={movement.product.images[0].url} alt={movement.product.name} width={48} height={48} className="w-full h-full object-cover" />
+                            {movement.product.imageUrl ? (
+                              <Image src={movement.product.imageUrl} alt={movement.product.name} width={48} height={48} className="w-full h-full object-cover" />
                             ) : (
                               <ArchiveBoxIcon className="w-6 h-6 text-gray-500" />
                             )}
@@ -463,7 +488,7 @@ function StockMovementHistoryPageContent() {
                       </td>
                       <td className="py-4 px-6">
                         <span className="text-sm text-gray-700">
-                          {movement.user ? `${movement.user.firstName} ${movement.user.lastName}` : '—'}
+                          {movement.createdBy ? movement.createdBy.name : '—'}
                         </span>
                       </td>
                       <td className="py-4 px-6">

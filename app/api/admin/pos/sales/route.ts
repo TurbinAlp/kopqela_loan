@@ -330,19 +330,32 @@ export async function POST(request: NextRequest) {
         data: orderItemsData
       })
 
-      // Update inventory - deduct only from main_store (changed from retail_store)
+      // Update inventory - deduct only from main_store
       // This ensures POS sales are deducted from main inventory only
       const productItems = items.filter(item => item.productId)
+      
+      // Find the main store for this business
+      const mainStore = await tx.store.findFirst({
+        where: {
+          businessId,
+          storeType: 'main_store',
+          isActive: true
+        }
+      })
+
+      if (!mainStore) {
+        throw new Error('Main store not found for this business')
+      }
+
       for (const item of productItems) {
         if (!item.productId) continue // Skip if no productId
-        // Check if product exists in main_store
-        const mainInventory = await tx.inventory.findUnique({
+        
+        // Check if product exists in main_store using storeId
+        const mainInventory = await tx.inventory.findFirst({
           where: {
-            businessId_productId_location: {
-              businessId,
-              productId: item.productId,
-              location: 'main_store'
-            }
+            businessId,
+            productId: item.productId,
+            storeId: mainStore.id
           }
         })
 
@@ -364,15 +377,9 @@ export async function POST(request: NextRequest) {
           throw new Error(`HISA_HAITOSHI:${productName}:${mainInventory.quantity}:${item.quantity}`)
         }
 
-        // Deduct from main_store only
+        // Deduct from main_store using inventory ID
         await tx.inventory.update({
-          where: {
-            businessId_productId_location: {
-              businessId,
-              productId: item.productId,
-              location: 'main_store'
-            }
-          },
+          where: { id: mainInventory.id },
           data: {
             quantity: {
               decrement: item.quantity
@@ -380,12 +387,12 @@ export async function POST(request: NextRequest) {
           }
         })
 
-        // Create movement record for sale
+        // Create movement record for sale with store name
         await tx.inventoryMovement.create({
           data: {
             businessId,
             productId: item.productId,
-            fromLocation: 'main_store',
+            fromLocation: mainStore.name, // Use actual store name
             toLocation: 'sold', // Sale destination
             quantity: item.quantity,
             movementType: 'sale',

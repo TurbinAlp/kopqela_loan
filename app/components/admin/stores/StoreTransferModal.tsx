@@ -253,8 +253,7 @@ export default function StoreTransferModal({
         businessId: currentBusiness.id,
         fromStoreId: sourceStoreId,
         isExternalMovement: destinationType === 'external',
-        transfers: itemsToTransfer,
-        createdBy: 1 // TODO: Get from auth context
+        transfers: itemsToTransfer
       }
 
       if (destinationType === 'store') {

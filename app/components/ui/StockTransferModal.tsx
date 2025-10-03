@@ -355,7 +355,6 @@ export default function StockTransferModal({
         businessId: currentBusiness.id,
         fromStoreId: sourceStoreId,
         isExternalMovement: destinationType === 'external',
-        createdBy: 1, // TODO: Get from auth context
         transfers: transferItems.map(item => ({
           productId: item.productId,
           quantity: item.transferQuantity,

@@ -384,8 +384,7 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      // Create inventory record in selected store or main_store by default
-      let inventoryLocation = 'main_store' // Default fallback
+      // Create inventory record 
       let inventoryStoreId = null
 
       if (selectedStore) {
@@ -399,9 +398,40 @@ export async function POST(request: NextRequest) {
         })
 
         if (store) {
-          inventoryLocation = `store_${store.id}`
           inventoryStoreId = store.id
         }
+      } 
+      
+      // If no store selected or store not found, find default store
+      if (!inventoryStoreId) {
+        // Try to find main_store first
+        const defaultStore = await tx.store.findFirst({
+          where: {
+            businessId: businessIdNum,
+            isActive: true,
+            storeType: 'warehouse'
+          }
+        })
+
+        if (defaultStore) {
+          inventoryStoreId = defaultStore.id
+        } else {
+          // Fallback to any active store
+          const anyStore = await tx.store.findFirst({
+            where: {
+              businessId: businessIdNum,
+              isActive: true
+            }
+          })
+          if (anyStore) {
+            inventoryStoreId = anyStore.id
+          }
+        }
+      }
+
+      // Only create inventory if we have a valid store
+      if (!inventoryStoreId) {
+        throw new Error('No active store found for inventory creation')
       }
 
       await tx.inventory.create({
@@ -411,8 +441,8 @@ export async function POST(request: NextRequest) {
           quantity: currentStock,
           reorderPoint: reorderLevel,
           maxStock: maxStock || 1000,
-          location: inventoryLocation,
           storeId: inventoryStoreId
+          // Note: Removed location field - using storeId only
         }
       })
 
