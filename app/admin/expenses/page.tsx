@@ -248,19 +248,19 @@ function ExpensesPageContent() {
       results: 'matokeo',
       
       // Messages
-      expenseAdded: 'Gharama imeongezwa kikamilifu',
-      expenseUpdated: 'Gharama imebadilishwa kikamilifu',
-      expenseDeleted: 'Gharama imefutwa kikamilifu',
-      errorLoading: 'Imeshindwa kupakia gharama',
-      errorAdding: 'Imeshindwa kuongeza gharama',
-      errorUpdating: 'Imeshindwa kubadilisha gharama',
-      errorDeleting: 'Imeshindwa kufuta gharama',
-      deleteExpenseTitle: 'Futa Gharama',
+      expenseAdded: 'Matumizi yameongezwa kikamilifu',
+      expenseUpdated: 'Matumizi yamebadilishwa kikamilifu',
+      expenseDeleted: 'Matumizi yamefutwa kikamilifu',
+      errorLoading: 'Imeshindwa kupakia matumizi',
+      errorAdding: 'Imeshindwa kuongeza matumizi',
+      errorUpdating: 'Imeshindwa kubadilisha matumizi',
+      errorDeleting: 'Imeshindwa kufuta matumizi',
+      deleteExpenseTitle: 'Futa Matumizi',
       deleteConfirmMessage: 'Una uhakika unataka kufuta gharama hii? Hatua hii haiwezi kubatilishwa.',
       
       // Summary
       totalAmount: 'Jumla ya Kiasi',
-      totalExpenses: 'Jumla ya Gharama',
+      totalExpenses: 'Jumla ya Matumizi',
       monthlyTotal: 'Mwezi Huu',
       pendingAmount: 'Kiasi Kinachosubiri',
       currency: 'TSh',

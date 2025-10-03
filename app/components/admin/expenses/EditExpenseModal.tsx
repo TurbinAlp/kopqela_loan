@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Fragment } from 'react'
+import { useState, useEffect, Fragment, useCallback } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { motion } from 'framer-motion'
 import {
@@ -10,7 +10,6 @@ import {
   DevicePhoneMobileIcon,
   BuildingLibraryIcon,
   DocumentTextIcon,
-  CalendarDaysIcon,
   CheckIcon,
   ExclamationTriangleIcon,
   TagIcon,
@@ -20,10 +19,28 @@ import { useLanguage } from '../../../contexts/LanguageContext'
 import { useBusiness } from '../../../contexts/BusinessContext'
 import { useNotifications } from '../../../contexts/NotificationContext'
 
+interface Expense {
+  id: number
+  expenseNumber: string
+  title: string
+  description?: string
+  amount: number
+  expenseDate: string
+  paymentMethod: 'CASH' | 'CARD' | 'MOBILE_MONEY' | 'BANK_TRANSFER' | 'CHEQUE' | 'CREDIT'
+  status: 'PENDING' | 'PAID' | 'OVERDUE' | 'CANCELLED'
+  categoryId?: number
+  vendorName?: string
+  vendorContact?: string
+  reference?: string
+  isRecurring: boolean
+  recurringType?: string
+  nextDueDate?: string
+}
+
 interface EditExpenseModalProps {
   isOpen: boolean
   onClose: () => void
-  expense: any
+  expense: Expense | null
   onExpenseUpdated?: () => void
 }
 
@@ -90,17 +107,7 @@ export default function EditExpenseModal({ isOpen, onClose, expense, onExpenseUp
     }
   }, [isOpen])
 
-  // Load expense categories and populate form when modal opens
-  useEffect(() => {
-    if (isOpen && currentBusiness?.id) {
-      loadCategories()
-      if (expense) {
-        populateForm()
-      }
-    }
-  }, [isOpen, currentBusiness?.id, expense])
-
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     if (!currentBusiness?.id) return
 
     try {
@@ -113,9 +120,9 @@ export default function EditExpenseModal({ isOpen, onClose, expense, onExpenseUp
     } catch (error) {
       console.error('Error loading expense categories:', error)
     }
-  }
+  }, [currentBusiness?.id])
 
-  const populateForm = () => {
+  const populateForm = useCallback(() => {
     if (!expense) return
 
     setFormData({
@@ -141,7 +148,17 @@ export default function EditExpenseModal({ isOpen, onClose, expense, onExpenseUp
     if (expense.expenseDate) completed.add('expenseDate')
     if (expense.paymentMethod) completed.add('paymentMethod')
     setCompletedFields(completed)
-  }
+  }, [expense])
+
+  // Load expense categories and populate form when modal opens
+  useEffect(() => {
+    if (isOpen && currentBusiness?.id) {
+      loadCategories()
+      if (expense) {
+        populateForm()
+      }
+    }
+  }, [isOpen, currentBusiness?.id, expense, loadCategories, populateForm])
 
   // Calculate progress
   const totalFields = 4 // title, amount, expenseDate, paymentMethod
@@ -218,15 +235,15 @@ export default function EditExpenseModal({ isOpen, onClose, expense, onExpenseUp
       noCategories: 'No categories available'
     },
     sw: {
-      title: 'Hariri Gharama',
-      subtitle: 'Badilisha maelezo ya gharama',
-      expenseTitle: 'Kichwa cha Gharama',
-      titlePlaceholder: 'Ingiza kichwa cha gharama',
+      title: 'Hariri matumizi',
+      subtitle: 'Badilisha maelezo ya matumizi',
+      expenseTitle: 'Kichwa cha matumizi',
+      titlePlaceholder: 'Ingiza kichwa cha matumizi',
       description: 'Maelezo',
-      descriptionPlaceholder: 'Maelezo ya gharama (si lazima)',
+      descriptionPlaceholder: 'Maelezo ya matumizi (si lazima)',
       amount: 'Kiasi',
-      amountPlaceholder: 'Ingiza kiasi cha gharama',
-      expenseDate: 'Tarehe ya Gharama',
+      amountPlaceholder: 'Ingiza kiasi cha matumizi',
+      expenseDate: 'Tarehe ya matumizi',
       paymentMethod: 'Njia ya Malipo',
       status: 'Hali',
       category: 'Kundi',
@@ -238,8 +255,8 @@ export default function EditExpenseModal({ isOpen, onClose, expense, onExpenseUp
       vendorContactPlaceholder: 'Simu au barua pepe (si lazima)',
       reference: 'Nambari ya Rejea',
       referencePlaceholder: 'Nambari ya ankara/risiti (si lazima)',
-      recurring: 'Gharama Inayorudia',
-      recurringDescription: 'Gharama hii inarudia mara kwa mara',
+      recurring: 'Matumizi yanajirudia',
+      recurringDescription: 'Matumizi haya yanajirudia mara kwa mara',
       recurringType: 'Aina ya Kurudia',
       nextDueDate: 'Tarehe Ijayo ya Kulipa',
       
@@ -266,18 +283,18 @@ export default function EditExpenseModal({ isOpen, onClose, expense, onExpenseUp
       
       // Actions
       cancel: 'Ghairi',
-      updateExpense: 'Badilisha Gharama',
+      updateExpense: 'Badilisha matumizi',
       
       // Validation
-      titleRequired: 'Kichwa cha gharama kinahitajika',
+      titleRequired: 'Kichwa cha matumizi kinahitajika',
       amountRequired: 'Kiasi kinahitajika',
       amountInvalid: 'Tafadhali ingiza kiasi sahihi',
-      expenseDateRequired: 'Tarehe ya gharama inahitajika',
-      nextDueDateRequired: 'Tarehe ijayo ya kulipa inahitajika kwa gharama zinazorudi',
+      expenseDateRequired: 'Tarehe ya matumizi inahitajika',
+      nextDueDateRequired: 'Tarehe ijayo ya kulipa inahitajika kwa matumizi zinazorudi',
       
       // Messages
-      expenseUpdated: 'Gharama imebadilishwa kikamilifu',
-      errorUpdating: 'Imeshindwa kubadilisha gharama',
+      expenseUpdated: 'matumizi imebadilishwa kikamilifu',
+      errorUpdating: 'Imeshindwa kubadilisha matumizi',
       
       // Progress
       progress: 'Maendeleo',
