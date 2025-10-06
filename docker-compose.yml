@@ -53,6 +53,7 @@ services:
     image: ghcr.io/${GITHUB_REPOSITORY}:latest
     container_name: kopqela
     restart: unless-stopped
+    user: "1001:1001"  # Run as nextjs user
     environment:
       - NODE_ENV=production
       - DATABASE_URL=${DATABASE_URL}
@@ -71,7 +72,7 @@ services:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
     volumes:
-      - ./public/uploads:/app/public/uploads
+      - app-uploads:/app/public/uploads  # Use named volume
     networks:
       - traefik
     labels:
@@ -92,6 +93,7 @@ services:
 
 volumes:
   traefik-letsencrypt:
+  app-uploads:  # Named volume for uploads
 
 networks:
   traefik:
