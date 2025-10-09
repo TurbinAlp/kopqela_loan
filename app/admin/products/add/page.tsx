@@ -513,11 +513,6 @@ function AddEditProductPageContent() {
       } else if (isNaN(parseInt(formData.reorderLevel))) {
         errors.push({ field: 'reorderLevel', message: t.invalidStock, tab: 'inventory' })
       }
-
-      // Image validation - at least one image required
-      if (uploadedImages.length === 0) {
-        errors.push({ field: 'images', message: t.uploadImages, tab: 'images' })
-      }
     }
 
     // Basic validation for drafts (minimal requirements)
@@ -1062,7 +1057,7 @@ function AddEditProductPageContent() {
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-gray-800">
-                    {t.images} <span className="text-red-500">*</span>
+                    {t.images}
                   </h3>
                   <div className="text-sm text-gray-600">
                     {formData.images.length}/5 {language === 'en' ? 'images' : 'picha'}
@@ -1074,9 +1069,7 @@ function AddEditProductPageContent() {
                   className={`border-2 border-dashed rounded-lg p-6 lg:p-8 text-center transition-all duration-200 ${
                     isDragOver 
                       ? 'border-teal-500 bg-teal-50' 
-                      : uploadedImages.length === 0 
-                        ? 'border-red-300 bg-red-50' 
-                        : 'border-gray-300 hover:border-teal-500'
+                      : 'border-gray-300 hover:border-teal-500'
                   } ${formData.images.length >= 5 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
@@ -1116,10 +1109,6 @@ function AddEditProductPageContent() {
                     </div>
                   )}
                 </div>
-                
-                {uploadedImages.length === 0 && !imageUpload.uploading && (
-                  <p className="text-red-500 text-xs">{t.uploadImages} - {t.required}</p>
-                )}
 
                 {/* Image Preview */}
                 {uploadedImages.length > 0 && (
