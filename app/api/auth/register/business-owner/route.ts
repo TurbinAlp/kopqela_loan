@@ -23,6 +23,9 @@ interface BusinessOwnerRegistrationData {
   password: string
   confirmPassword: string
   
+  // Subscription
+  planId?: number  // Selected subscription plan
+  
   // Business information
   businessName: string
   businessDescription?: string
@@ -176,16 +179,35 @@ export async function POST(request: NextRequest) {
           enableTaxCalculation: true
         }
       })
-      
-      // Create BusinessUser entry for the business owner
-      await tx.businessUser.create({
-        data: {
-          businessId: business.id,
-          userId: user.id,
-          role: 'ADMIN', // Business owner is admin
-          isActive: true
+
+      // Create trial subscription with selected plan
+      if (body.planId) {
+        const plan = await tx.subscriptionPlan.findUnique({
+          where: { id: body.planId }
+        })
+        
+        if (plan) {
+          const now = new Date()
+          const trialEnd = new Date(now)
+          trialEnd.setDate(trialEnd.getDate() + 30) // 30 days trial
+
+          await tx.businessSubscription.create({
+            data: {
+              businessId: business.id,
+              planId: plan.id,
+              status: 'TRIAL',
+              billingCycle: 'MONTHLY',
+              currentPeriodStart: now,
+              currentPeriodEnd: trialEnd,
+              trialEndsAt: trialEnd,
+            }
+          })
+
+          console.log('Trial subscription created with plan:', plan.name)
+        } else {
+          console.error('Selected plan not found:', body.planId)
         }
-      })
+      }
       
       return { business, user }
     })

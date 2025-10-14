@@ -141,7 +141,7 @@ export default function SubscriptionPage() {
         }
 
         // Fetch available plans
-        const plansResponse = await fetch('/api/admin/subscription/plans')
+        const plansResponse = await fetch('/api/subscription/plans')
         const plansData = await plansResponse.json()
 
         if (plansData.success) {

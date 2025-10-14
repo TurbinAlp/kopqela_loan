@@ -19,7 +19,7 @@ import { signIn } from 'next-auth/react'
 import { useAuthRedirect } from '../hooks/useAuthRedirect'
 import Spinner from '../components/ui/Spinner'
 
-type RegistrationStep = 'method' | 'details' | 'business' | 'verification'
+type RegistrationStep = 'method' | 'details' | 'plan' | 'business' | 'verification'
 
 function RegisterPageContent() {
   const { language } = useLanguage()
@@ -34,6 +34,10 @@ function RegisterPageContent() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [verificationTimer, setVerificationTimer] = useState(60)
+  
+  // Plan selection state
+  const [plans, setPlans] = useState<any[]>([])
+  const [loadingPlans, setLoadingPlans] = useState(false)
 
   
   const [formData, setFormData] = useState({
@@ -44,6 +48,7 @@ function RegisterPageContent() {
     confirmPassword: '',
     phone: '',
     acceptTerms: false,
+    planId: null as number | null, // Selected subscription plan
     businessName: '',
     businessType: '',
     businessCategory: '',
@@ -76,6 +81,28 @@ function RegisterPageContent() {
     }
     return () => clearInterval(interval)
   }, [currentStep, verificationTimer])
+
+  // Fetch subscription plans when entering plan step
+  useEffect(() => {
+    if (currentStep === 'plan') {
+      const fetchPlans = async () => {
+        setLoadingPlans(true)
+        try {
+          const response = await fetch('/api/subscription/plans')
+          const data = await response.json()
+          if (data.success) {
+            setPlans(data.data)
+          }
+        } catch (error) {
+          console.error('Error fetching plans:', error)
+          showError('Error', 'Failed to load subscription plans')
+        } finally {
+          setLoadingPlans(false)
+        }
+      }
+      fetchPlans()
+    }
+  }, [currentStep, showError])
 
   const translations = {
     en: {
@@ -140,7 +167,11 @@ function RegisterPageContent() {
       businessDescRequired: "Business description is required",
       businessAddressRequired: "Business address is required",
       codeRequired: "Verification code is required",
-      codeInvalid: "Please enter a valid 6-digit code"
+      codeInvalid: "Please enter a valid 6-digit code",
+      // Plan selection
+      choosePlan: 'Choose Your Plan',
+      choosePlanSubtitle: 'Select a plan to start your 30-day free trial',
+      planRequired: 'Please select a plan to continue'
     },
     sw: {
       getStarted: "Anza Safari ya Biashara!",
@@ -204,7 +235,11 @@ function RegisterPageContent() {
       businessDescRequired: "Maelezo ya biashara yanahitajika",
       businessAddressRequired: "Anwani ya biashara inahitajika",
       codeRequired: "Nambari ya uthibitisho inahitajika",
-      codeInvalid: "Tafadhali ingiza nambari sahihi ya takwimu 6"
+      codeInvalid: "Tafadhali ingiza nambari sahihi ya takwimu 6",
+      // Plan selection
+      choosePlan: 'Chagua Mpango Wako',
+      choosePlanSubtitle: 'Chagua mpango kuanza majaribio ya siku 30 bure',
+      planRequired: 'Tafadhali chagua mpango ili kuendelea'
     }
   }
 
@@ -262,6 +297,7 @@ function RegisterPageContent() {
           password: formData.password,
           confirmPassword: formData.confirmPassword,
           phone: formData.phone || undefined,
+          planId: formData.planId, // NEW: Selected plan
           businessName: formData.businessName,
           businessType: String(formData.businessType || '').toUpperCase(),
           businessCategory: formData.businessCategory || undefined,
@@ -432,6 +468,16 @@ function RegisterPageContent() {
             setErrors({ email: 'This email is already registered' })
             return
           }
+          setCurrentStep('plan') // Changed to plan selection
+          break
+        case 'plan':
+          // Validate plan selection
+          if (!formData.planId) {
+            setErrors({ plan: t.planRequired })
+            showWarning('Warning', t.planRequired)
+            return
+          }
+          setErrors({})
           setCurrentStep('business')
           break
                 case 'business':
@@ -491,8 +537,11 @@ function RegisterPageContent() {
       case 'details':
         setCurrentStep('method')
         break
-      case 'business':
+      case 'plan':
         setCurrentStep('details')
+        break
+      case 'business':
+        setCurrentStep('plan')
         break
       case 'verification':
         setCurrentStep('business')
@@ -714,6 +763,101 @@ function RegisterPageContent() {
                     </motion.label>
                     {errors.acceptTerms && <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center text-red-500 text-sm mt-2"><XCircleIcon className="w-4 h-4 mr-1" />{errors.acceptTerms}</motion.div>}
                   </div>
+                </div>
+              )}
+
+              {/* Plan Selection */}
+              {currentStep === 'plan' && (
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                      {t.choosePlan}
+                    </h2>
+                    <p className="text-gray-600">
+                      {t.choosePlanSubtitle}
+                    </p>
+                  </div>
+
+                  {loadingPlans ? (
+                    <div className="flex justify-center py-8">
+                      <Spinner />
+                    </div>
+                  ) : (
+                    <div className="grid gap-4 max-h-96 overflow-y-auto">
+                      {plans.map((plan) => (
+                        <button
+                          key={plan.id}
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, planId: plan.id }))}
+                          className={`relative p-4 border-2 rounded-lg text-left transition-all ${
+                            formData.planId === plan.id
+                              ? 'border-teal-600 bg-teal-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          {formData.planId === plan.id && (
+                            <div className="absolute top-4 right-4">
+                              <CheckCircleIcon className="w-6 h-6 text-teal-600" />
+                            </div>
+                          )}
+                          <div className="pr-10">
+                            <h4 className="text-lg font-semibold text-gray-900">
+                              {language === 'en' ? plan.displayName : (plan.displayNameSwahili || plan.displayName)}
+                            </h4>
+                            <p className="text-2xl font-bold text-teal-600 mt-1">
+                              {plan.priceMonthly.toLocaleString('en-TZ')} TZS
+                              <span className="text-sm font-normal text-gray-600">
+                                {language === 'en' ? '/month' : '/mwezi'}
+                              </span>
+                            </p>
+                            <p className="text-sm text-gray-600 mt-2">
+                              {language === 'en' ? plan.description : (plan.descriptionSwahili || plan.description)}
+                            </p>
+                            
+                            {/* Key Features */}
+                            <div className="mt-3 space-y-1">
+                              {plan.features?.max_businesses && (
+                                <div className="text-xs text-gray-700">
+                                  • {plan.features.max_businesses} {language === 'en' ? 'business(es)' : 'biashara'}
+                                </div>
+                              )}
+                              {plan.features?.max_stores_per_business && (
+                                <div className="text-xs text-gray-700">
+                                  • {plan.features.max_stores_per_business} {language === 'en' ? 'store(s) per business' : 'duka kwa biashara'}
+                                </div>
+                              )}
+                              {plan.features?.max_users_per_business && (
+                                <div className="text-xs text-gray-700">
+                                  • {plan.features.max_users_per_business === 999 ? (language === 'en' ? 'Unlimited users' : 'Watumiaji wasiojulikana') : `${plan.features.max_users_per_business} ${language === 'en' ? 'users' : 'watumiaji'}`}
+                                </div>
+                              )}
+                              {plan.features?.enable_credit_sales && (
+                                <div className="text-xs text-gray-700">
+                                  • {language === 'en' ? 'Credit sales' : 'Mauzo ya mkopo'}
+                                </div>
+                              )}
+                              {plan.features?.advanced_reports && (
+                                <div className="text-xs text-gray-700">
+                                  • {language === 'en' ? 'Advanced reports' : 'Ripoti za kina'}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {errors.plan && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -10 }} 
+                      animate={{ opacity: 1, y: 0 }} 
+                      className="flex items-center justify-center text-red-500 text-sm"
+                    >
+                      <XCircleIcon className="w-4 h-4 mr-1" />
+                      {errors.plan}
+                    </motion.div>
+                  )}
                 </div>
               )}
 

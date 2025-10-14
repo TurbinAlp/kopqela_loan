@@ -143,7 +143,7 @@ export default function CreateBusinessModal({ isOpen, onClose, onCreated }: Crea
       const fetchPlans = async () => {
         setLoadingPlans(true)
         try {
-          const response = await fetch('/api/admin/subscription/plans')
+          const response = await fetch('/api/subscription/plans')
           const data = await response.json()
           if (data.success) {
             setPlans(data.data)
