@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import prisma from '../../../lib/prisma'
 import { getAuthContext } from '../../../lib/rbac/middleware'
+import { canCreateStore } from '../../../lib/subscription/middleware'
 
 const storeSchema = z.object({
   businessId: z.number(),
@@ -188,6 +189,21 @@ export async function POST(request: NextRequest) {
         success: false,
         message: 'Business not found or insufficient permissions'
       }, { status: 404 })
+    }
+
+    // Check subscription limits
+    const storeCheck = await canCreateStore(businessId)
+    if (!storeCheck.allowed) {
+      return NextResponse.json({
+        success: false,
+        message: storeCheck.reason || 'Store limit reached',
+        data: {
+          currentCount: storeCheck.currentCount,
+          limit: storeCheck.limit,
+          planName: storeCheck.planName,
+          upgradeRequired: true
+        }
+      }, { status: 403 })
     }
 
     // Check if store name already exists for this business

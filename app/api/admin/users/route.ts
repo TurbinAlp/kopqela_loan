@@ -4,6 +4,7 @@ import { getAuthContext, hasPermission } from '../../../lib/rbac/middleware'
 import { Resource, Action } from '../../../lib/rbac/permissions'
 import { sendEmployeeInvitationEmail, sendBusinessInvitationEmail } from '../../../lib/email'
 import bcrypt from 'bcryptjs'
+import { canAddUser } from '../../../lib/subscription/middleware'
 
 /**
  * GET /api/admin/users
@@ -159,6 +160,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: false,
         message: 'You do not have permission to create users'
+      }, { status: 403 })
+    }
+
+    // Check subscription limits
+    const userCheck = await canAddUser(businessIdNum)
+    if (!userCheck.allowed) {
+      return NextResponse.json({
+        success: false,
+        message: userCheck.reason || 'User limit reached',
+        data: {
+          currentCount: userCheck.currentCount,
+          limit: userCheck.limit,
+          planName: userCheck.planName,
+          upgradeRequired: true
+        }
       }, { status: 403 })
     }
 

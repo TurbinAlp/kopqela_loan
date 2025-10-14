@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma, handlePrismaError } from '../../../../lib/prisma'
 import { getAuthContext } from '../../../../lib/rbac/middleware'
+import { canCreateBusiness } from '../../../../lib/subscription/middleware'
+import { createTrialSubscription } from '../../../../lib/subscription/manager'
 
 /**
  * POST /api/admin/business/create
@@ -63,6 +65,21 @@ export async function POST(request: NextRequest) {
         success: false,
         message: 'Name, business type, and slug are required'
       }, { status: 400 })
+    }
+
+    // Check subscription limits
+    const businessCheck = await canCreateBusiness(authContext.userId)
+    if (!businessCheck.allowed) {
+      return NextResponse.json({
+        success: false,
+        message: businessCheck.reason || 'Business limit reached',
+        data: {
+          currentCount: businessCheck.currentCount,
+          limit: businessCheck.limit,
+          planName: businessCheck.planName,
+          upgradeRequired: true
+        }
+      }, { status: 403 })
     }
 
     // Restrict businessType to RETAIL, WHOLESALE or BOTH
@@ -141,6 +158,12 @@ export async function POST(request: NextRequest) {
 
       console.log('Business settings created:', businessSettings.id)
 
+      // Create trial subscription for first business
+      if (businessCheck.currentCount === 0) {
+        const trialResult = await createTrialSubscription(business.id)
+        console.log('Trial subscription created:', trialResult.success)
+      }
+
       return { business, businessSettings }
     })
 
@@ -149,7 +172,9 @@ export async function POST(request: NextRequest) {
       message: 'Business created successfully',
       data: {
         business: result.business,
-        settings: result.businessSettings
+        settings: result.businessSettings,
+        isFirstBusiness: businessCheck.currentCount === 0,
+        trialDays: 30
       }
     })
 

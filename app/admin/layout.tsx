@@ -32,6 +32,8 @@ import NotificationCenter from '../components/notifications/NotificationCenter'
 import GlobalSearch from '../components/search/GlobalSearch'
 import UserDropdown from '../components/ui/UserDropdown'
 import CreateBusinessModal from '../components/admin/business/CreateBusinessModal'
+import TrialBanner from '../components/subscription/TrialBanner'
+import SubscriptionExpiredModal from '../components/subscription/SubscriptionExpiredModal'
 
 
 
@@ -48,6 +50,21 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
   const { data: session, status: authStatus } = useSession()
   const { currentBusiness, businesses, loadBusinesses, setCurrentBusiness, isLoading } = useBusiness()
   const [showCreateBusiness, setShowCreateBusiness] = useState(false)
+  
+  // Subscription state
+  const [subscriptionData, setSubscriptionData] = useState<{
+    hasSubscription: boolean
+    subscription: {
+      status: string
+      planName: string
+    } | null
+    status: {
+      isActive: boolean
+      isTrial: boolean
+      isExpired: boolean
+      daysRemaining: number
+    } | null
+  } | null>(null)
   
   // Get business-specific permissions
   const { permissions: businessPermissions, loading: permissionsLoading } = useBusinessPermissions(currentBusiness?.id)
@@ -84,6 +101,29 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
     }
     setShowCreateBusiness(false)
   }
+
+  // Fetch subscription data when business changes
+  useEffect(() => {
+    if (!currentBusiness?.id) {
+      setSubscriptionData(null)
+      return
+    }
+
+    const fetchSubscription = async () => {
+      try {
+        const response = await fetch(`/api/admin/subscription/current?businessId=${currentBusiness.id}`)
+        const data = await response.json()
+        
+        if (data.success) {
+          setSubscriptionData(data.data)
+        }
+      } catch (error) {
+        console.error('Error fetching subscription:', error)
+      }
+    }
+
+    fetchSubscription()
+  }, [currentBusiness?.id])
 
   const [expandedItems, setExpandedItems] = useState<string[]>(() => {
     // Auto-expand items based on current route
@@ -126,7 +166,8 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
       adminName: "John Admin",
       business: 'Business',
       userManagement: 'User Management',
-      movementHistory: 'Movement History'
+      movementHistory: 'Movement History',
+      subscription: 'Subscription'
     },
     sw: {
       dashboard: "Dashibodi",
@@ -150,7 +191,8 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
       adminName: "John Msimamizi",
       business: 'Biashara',
       userManagement: 'Usimamizi wa Watumiaji',
-      movementHistory: 'Historia ya Mabadiliko'
+      movementHistory: 'Historia ya Mabadiliko',
+      subscription: 'Usajili'
     }
   }
 
@@ -248,6 +290,12 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
       icon: BuildingOfficeIcon, 
       href: "/admin/business",
       permission: "business.read"
+    },
+    { 
+      name: t.subscription, 
+      icon: CreditCardIcon, 
+      href: "/admin/subscription",
+      permission: "dashboard.read" // Allow all users to see subscription
     }
   ]
 
@@ -554,6 +602,17 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
 
         </header>
 
+        {/* Trial Banner */}
+        {subscriptionData?.status?.isTrial && subscriptionData?.status?.daysRemaining > 0 && (
+          <div className="px-4 lg:px-6 pt-4">
+            <TrialBanner
+              daysRemaining={subscriptionData.status.daysRemaining}
+              onActivateClick={() => router.push('/admin/subscription')}
+              onDismiss={() => {}}
+            />
+          </div>
+        )}
+
         {/* Page Content */}
         <main className="p-4 lg:p-6">
           {children}
@@ -565,6 +624,15 @@ function AdminLayoutContent({ children }: AdminLayoutProps) {
         isOpen={showCreateBusiness}
         onClose={() => { /* Block manual close to force business creation */ }}
         onCreated={handleBusinessCreated}
+      />
+
+      {/* Subscription Expired Modal - Only show on non-subscription pages */}
+      <SubscriptionExpiredModal
+        isOpen={
+          subscriptionData?.status?.isExpired === true && 
+          !pathname?.startsWith('/admin/subscription')
+        }
+        daysExpired={0}
       />
 
       {/* Sidebar Overlay */}

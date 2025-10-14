@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma, handlePrismaError } from '../../../../lib/prisma'
 import { getAuthContext } from '../../../../lib/rbac/middleware'
+import { checkFeatureAccess } from '../../../../lib/subscription/middleware'
 
 /**
  * GET /api/admin/credit/sales
@@ -30,6 +31,21 @@ export async function GET(request: NextRequest) {
         success: false,
         message: 'Business ID is required'
       }, { status: 400 })
+    }
+
+    // Check subscription feature access
+    const featureCheck = await checkFeatureAccess(parseInt(businessId), 'enable_credit_sales')
+    if (!featureCheck.allowed) {
+      return NextResponse.json({
+        success: false,
+        message: featureCheck.reason || 'Credit sales feature not available in your plan',
+        data: {
+          featureRequired: 'Credit Sales',
+          requiredPlan: featureCheck.requiredPlan,
+          currentPlan: featureCheck.planName,
+          upgradeRequired: true
+        }
+      }, { status: 403 })
     }
 
     // Build where clause for credit sales
