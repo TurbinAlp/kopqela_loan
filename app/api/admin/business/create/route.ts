@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma, handlePrismaError } from '../../../../lib/prisma'
 import { getAuthContext } from '../../../../lib/rbac/middleware'
 import { canCreateBusiness } from '../../../../lib/subscription/middleware'
-import { createTrialSubscription } from '../../../../lib/subscription/manager'
 
 /**
  * POST /api/admin/business/create
@@ -53,7 +52,10 @@ export async function POST(request: NextRequest) {
       enableTaxCalculation = true,
       enableInventoryTracking = true,
       enableCreditSales = false,
-      enableLoyaltyProgram = false
+      enableLoyaltyProgram = false,
+      
+      // Subscription
+      planId
     } = body
 
     console.log('Parsed data:', { name, businessType, slug, wholesaleMargin, retailMargin, taxRate })
@@ -158,10 +160,36 @@ export async function POST(request: NextRequest) {
 
       console.log('Business settings created:', businessSettings.id)
 
-      // Create trial subscription for first business
+      // Create trial subscription with selected plan for first business
       if (businessCheck.currentCount === 0) {
-        const trialResult = await createTrialSubscription(business.id)
-        console.log('Trial subscription created:', trialResult.success)
+        if (!planId) {
+          throw new Error('Plan selection is required for new business')
+        }
+        
+        // Get the selected plan
+        const plan = await tx.subscriptionPlan.findUnique({
+          where: { id: planId }
+        })
+
+        if (!plan) {
+          throw new Error(`Selected plan (ID: ${planId}) not found`)
+        }
+
+        const now = new Date()
+        const trialEnd = new Date(now)
+        trialEnd.setDate(trialEnd.getDate() + 30) // 30 days trial
+
+        await tx.businessSubscription.create({
+          data: {
+            businessId: business.id,
+            planId: plan.id,
+            status: 'TRIAL',
+            billingCycle: 'MONTHLY',
+            currentPeriodStart: now,
+            currentPeriodEnd: trialEnd,
+            trialEndsAt: trialEnd,
+          }
+        })
       }
 
       return { business, businessSettings }

@@ -13,6 +13,23 @@ interface CreateBusinessModalProps {
   onCreated: (businessId: number) => void
 }
 
+interface SubscriptionPlan {
+  id: number
+  name: string
+  displayName: string
+  displayNameSwahili?: string
+  description?: string
+  descriptionSwahili?: string
+  priceMonthly: number
+  features: {
+    max_businesses?: number
+    max_stores_per_business?: number
+    max_users_per_business?: number
+    enable_credit_sales?: boolean
+    advanced_reports?: boolean
+  }
+}
+
 type BusinessTypeOption = {
   label: string
   value: string
@@ -103,6 +120,12 @@ export default function CreateBusinessModal({ isOpen, onClose, onCreated }: Crea
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
+  // Multi-step wizard state
+  const [currentStep, setCurrentStep] = useState(1) // 1 = plan selection, 2 = business details
+  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null)
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([])
+  const [loadingPlans, setLoadingPlans] = useState(false)
+
   const [name, setName] = useState('')
   const [businessType, setBusinessType] = useState<string>('RETAIL')
   const [businessCategory, setBusinessCategory] = useState<string>('')
@@ -115,6 +138,32 @@ export default function CreateBusinessModal({ isOpen, onClose, onCreated }: Crea
   const [website, setWebsite] = useState('')
 
   useEffect(() => {
+    if (isOpen) {
+      // Fetch available plans
+      const fetchPlans = async () => {
+        setLoadingPlans(true)
+        try {
+          const response = await fetch('/api/admin/subscription/plans')
+          const data = await response.json()
+          if (data.success) {
+            setPlans(data.data)
+            // DO NOT pre-select - user MUST choose
+            setSelectedPlanId(null)
+          }
+        } catch (error) {
+          console.error('Error fetching plans:', error)
+        } finally {
+          setLoadingPlans(false)
+        }
+      }
+      fetchPlans()
+    } else {
+      // Reset all state including step
+      setCurrentStep(1)
+      setSelectedPlanId(null)
+      setPlans([])
+    }
+    
     if (!isOpen) {
       // Reset form when closed
       setIsSubmitting(false)
@@ -123,6 +172,7 @@ export default function CreateBusinessModal({ isOpen, onClose, onCreated }: Crea
       setBusinessType('RETAIL')
       setBusinessCategory('')
       setSlug('')
+      setSlugManuallyEdited(false)
       setEmail('')
       setPhone('')
       setAddress('')
@@ -173,7 +223,8 @@ export default function CreateBusinessModal({ isOpen, onClose, onCreated }: Crea
           phone: phone.trim() || undefined,
           address: address.trim() || undefined,
           city: city.trim() || undefined,
-          website: website.trim() || undefined
+          website: website.trim() || undefined,
+          planId: selectedPlanId // NEW: Send selected plan
         })
       })
 
@@ -253,7 +304,134 @@ export default function CreateBusinessModal({ isOpen, onClose, onCreated }: Crea
                   </div>
                 </div>
 
-                {/* Form */}
+                {/* Step Indicator */}
+                <div className="flex items-center justify-center space-x-4 px-6 pt-6 pb-2">
+                  <div className={`flex items-center ${currentStep >= 1 ? 'text-teal-600' : 'text-gray-400'}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 1 ? 'bg-teal-600 text-white' : 'bg-gray-200'}`}>
+                      1
+                    </div>
+                    <span className="ml-2 text-sm font-medium">
+                      {language === 'en' ? 'Choose Plan' : 'Chagua Mpango'}
+                    </span>
+                  </div>
+                  <div className={`h-0.5 w-12 ${currentStep >= 2 ? 'bg-teal-600' : 'bg-gray-300'}`} />
+                  <div className={`flex items-center ${currentStep >= 2 ? 'text-teal-600' : 'text-gray-400'}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 2 ? 'bg-teal-600 text-white' : 'bg-gray-200'}`}>
+                      2
+                    </div>
+                    <span className="ml-2 text-sm font-medium">
+                      {language === 'en' ? 'Business Details' : 'Taarifa za Biashara'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Step 1: Plan Selection */}
+                {currentStep === 1 && (
+                  <div className="px-6 py-6 space-y-6">
+                    <div className="text-center">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        {language === 'en' ? 'Choose Your Plan' : 'Chagua Mpango Wako'}
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        {language === 'en' 
+                          ? 'Select a plan to start your 30-day free trial. You can upgrade or downgrade anytime.'
+                          : 'Chagua mpango kuanza majaribio ya siku 30 bure. Unaweza kubadilisha wakati wowote.'}
+                      </p>
+                    </div>
+
+                    {loadingPlans ? (
+                      <div className="flex justify-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600" />
+                      </div>
+                    ) : (
+                      <div className="grid gap-4 max-h-96 overflow-y-auto">
+                        {plans.map((plan) => (
+                          <button
+                            key={plan.id}
+                            type="button"
+                            onClick={() => setSelectedPlanId(plan.id)}
+                            className={`relative p-4 border-2 rounded-lg text-left transition-all ${
+                              selectedPlanId === plan.id
+                                ? 'border-teal-600 bg-teal-50'
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            {selectedPlanId === plan.id && (
+                              <div className="absolute top-4 right-4">
+                                <CheckIcon className="w-6 h-6 text-teal-600" />
+                              </div>
+                            )}
+                            <div className="pr-10">
+                              <h4 className="text-lg font-semibold text-gray-900">
+                                {language === 'en' ? plan.displayName : (plan.displayNameSwahili || plan.displayName)}
+                              </h4>
+                              <p className="text-2xl font-bold text-teal-600 mt-1">
+                                {plan.priceMonthly.toLocaleString('en-TZ')} TZS
+                                <span className="text-sm font-normal text-gray-600">
+                                  {language === 'en' ? '/month' : '/mwezi'}
+                                </span>
+                              </p>
+                              <p className="text-sm text-gray-600 mt-2">
+                                {language === 'en' ? plan.description : (plan.descriptionSwahili || plan.description)}
+                              </p>
+                              
+                              {/* Key Features */}
+                              <div className="mt-3 space-y-1">
+                                {plan.features?.max_businesses && (
+                                  <div className="text-xs text-gray-700">
+                                    • {plan.features.max_businesses} {language === 'en' ? 'business(es)' : 'biashara'}
+                                  </div>
+                                )}
+                                {plan.features?.max_stores_per_business && (
+                                  <div className="text-xs text-gray-700">
+                                    • {plan.features.max_stores_per_business} {language === 'en' ? 'store(s) per business' : 'duka kwa biashara'}
+                                  </div>
+                                )}
+                                {plan.features?.max_users_per_business && (
+                                  <div className="text-xs text-gray-700">
+                                    • {plan.features.max_users_per_business === 999 ? (language === 'en' ? 'Unlimited users' : 'Watumiaji wasiojulikana') : `${plan.features.max_users_per_business} ${language === 'en' ? 'users' : 'watumiaji'}`}
+                                  </div>
+                                )}
+                                {plan.features?.enable_credit_sales && (
+                                  <div className="text-xs text-gray-700">
+                                    • {language === 'en' ? 'Credit sales' : 'Mauzo ya mkopo'}
+                                  </div>
+                                )}
+                                {plan.features?.advanced_reports && (
+                                  <div className="text-xs text-gray-700">
+                                    • {language === 'en' ? 'Advanced reports' : 'Ripoti za kina'}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Navigation */}
+                    <div className="flex justify-end space-x-3 pt-4">
+                      <button
+                        type="button"
+                        onClick={onClose}
+                        className="px-4 py-2 text-gray-700 hover:text-gray-900"
+                      >
+                        {t.cancel}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentStep(2)}
+                        disabled={!selectedPlanId}
+                        className="px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {language === 'en' ? 'Next' : 'Endelea'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 2: Business Details */}
+                {currentStep === 2 && (
                 <form onSubmit={handleCreate} className="px-6 py-6 max-h-96 overflow-y-auto space-y-6">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Left column */}
@@ -410,16 +588,36 @@ export default function CreateBusinessModal({ isOpen, onClose, onCreated }: Crea
                   </div>
 
                   {/* Actions */}
-                  <div className="flex flex-row space-x-3 pt-2">
+                  <div className="flex justify-between items-center pt-2">
                     <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+                      type="button"
+                      onClick={() => setCurrentStep(1)}
+                      className="px-4 py-2 text-gray-700 hover:text-gray-900 flex items-center"
                     >
-                      {isSubmitting ? t.creating : t.create}
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                      {language === 'en' ? 'Back' : 'Rudi'}
                     </button>
+                    <div className="flex space-x-3">
+                      <button 
+                        type="button" 
+                        onClick={onClose}
+                        className="px-4 py-2 text-gray-700 hover:text-gray-900"
+                      >
+                        {t.cancel}
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50"
+                      >
+                        {isSubmitting ? t.creating : t.create}
+                      </button>
+                    </div>
                   </div>
                 </form>
+                )}
               </Dialog.Panel>
             </Transition.Child>
           </div>

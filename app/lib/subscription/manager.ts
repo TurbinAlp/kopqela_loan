@@ -238,16 +238,21 @@ export async function activateSubscription(
 /**
  * Create trial subscription for new business
  */
-export async function createTrialSubscription(businessId: number) {
+export async function createTrialSubscription(businessId: number, planId?: number) {
   try {
-    // Get BASIC plan
-    const basicPlan = await prisma.subscriptionPlan.findUnique({
-      where: { name: 'BASIC' },
-    })
+    // Get the plan (default to BASIC if not specified)
+    const plan = planId 
+      ? await prisma.subscriptionPlan.findUnique({ where: { id: planId } })
+      : await prisma.subscriptionPlan.findUnique({ where: { name: 'BASIC' } })
 
-    if (!basicPlan) {
-      throw new Error('BASIC plan not found')
+    if (!plan) {
+      return {
+        success: false,
+        error: planId ? 'Selected plan not found' : 'BASIC plan not found'
+      }
     }
+
+    console.log(`Creating trial subscription for business ${businessId} with plan:`, plan.name)
 
     const now = new Date()
     const trialEnd = new Date(now)
@@ -256,7 +261,7 @@ export async function createTrialSubscription(businessId: number) {
     const subscription = await prisma.businessSubscription.create({
       data: {
         businessId,
-        planId: basicPlan.id,
+        planId: plan.id,
         status: 'TRIAL',
         billingCycle: 'MONTHLY',
         currentPeriodStart: now,
