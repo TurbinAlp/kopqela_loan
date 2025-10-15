@@ -119,9 +119,12 @@ __tests__/
 test/
 tests/
 
-# Prisma
-prisma/migrations/
+# Prisma - Keep migrations for production deployment
+prisma/seed.ts
+prisma/seed-subscriptions.ts
+prisma/simple-seed.ts
 !prisma/schema.prisma
+!prisma/migrations/
 
 # Uploads (will be mounted as volume)
 public/uploads/

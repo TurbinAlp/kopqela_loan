@@ -53,6 +53,16 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/app/generated ./app/generated
 
+# Copy Prisma schema and migrations for production
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+
+# Install Prisma CLI for running migrations
+RUN npm install -g prisma@6.9.0
+
+# Copy and set up entrypoint script
+COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
+
 # Switch to non-root user
 USER nextjs
 
@@ -61,5 +71,5 @@ EXPOSE 3000
 
 ENV PORT=3000
 
-# Start the app
-CMD ["node", "server.js"]
+# Use entrypoint script for migrations and startup
+CMD ["./docker-entrypoint.sh"]
