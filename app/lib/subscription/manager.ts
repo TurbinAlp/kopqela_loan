@@ -1,5 +1,4 @@
 import prisma from '../prisma'
-import { PlanName } from './limits'
 
 /**
  * Assign a plan to a business (manual activation)

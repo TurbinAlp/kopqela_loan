@@ -1,5 +1,5 @@
 import prisma from '../prisma'
-import { PlanName, getLimit, isWithinLimit, hasFeature, isLimitReached } from './limits'
+import { PlanName, getLimit, hasFeature } from './limits'
 
 /**
  * Get business subscription with plan details
