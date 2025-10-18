@@ -40,7 +40,7 @@ export default function PlanCard({
   const translations = {
     en: {
       currentPlan: 'Current Plan',
-      selectPlan: 'Select Plan',
+      selectPlan: 'Pay Now',
       upgrade: 'Upgrade',
       downgrade: 'Downgrade',
       popular: 'Most Popular',
@@ -61,7 +61,7 @@ export default function PlanCard({
     },
     sw: {
       currentPlan: 'Mpango wa Sasa',
-      selectPlan: 'Chagua Mpango',
+      selectPlan: 'Lipa Sasa',
       upgrade: 'Panda',
       downgrade: 'Shuka',
       popular: 'Maarufu Zaidi',

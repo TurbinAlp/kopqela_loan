@@ -783,6 +783,7 @@ model SubscriptionPlan {
   createdAt              DateTime               @default(now()) @map("created_at")
   updatedAt              DateTime               @updatedAt @map("updated_at")
   businessSubscriptions  BusinessSubscription[]
+  paymentTransactions    PaymentTransaction[]
 
   @@map("subscription_plans")
 }
@@ -819,4 +820,53 @@ enum BillingCycle {
   YEARLY
 
   @@map("billing_cycle")
+}
+
+// ============================================
+// PAYMENT TRANSACTIONS
+// ============================================
+
+model PaymentTransaction {
+  id                   Int                      @id @default(autoincrement())
+  businessId           Int                      @map("business_id")
+  businessSubscriptionId Int?                   @map("business_subscription_id")
+  planId               Int                      @map("plan_id")
+  amount               Decimal                  @db.Decimal(10, 2)
+  currency             String                   @default("TZS") @db.VarChar(3)
+  provider             MobileMoneyProvider
+  status               PaymentTransactionStatus @default(PENDING)
+  azampayTransactionId String?                  @unique @map("azampay_transaction_id") @db.VarChar(255)
+  reference            String                   @unique @db.VarChar(100)
+  phoneNumber          String                   @map("phone_number") @db.VarChar(20)
+  metadata             Json?
+  initiatedAt          DateTime                 @default(now()) @map("initiated_at")
+  completedAt          DateTime?                @map("completed_at")
+  failureReason        String?                  @map("failure_reason")
+  createdAt            DateTime                 @default(now()) @map("created_at")
+  updatedAt            DateTime                 @updatedAt @map("updated_at")
+  plan                 SubscriptionPlan         @relation(fields: [planId], references: [id])
+
+  @@index([businessId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("payment_transactions")
+}
+
+enum MobileMoneyProvider {
+  AZAMPESA
+  TIGOPESA
+  AIRTEL
+  HALOPESA
+
+  @@map("mobile_money_provider")
+}
+
+enum PaymentTransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+  EXPIRED
+
+  @@map("payment_transaction_status")
 }

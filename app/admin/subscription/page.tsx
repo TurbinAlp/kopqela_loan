@@ -6,6 +6,9 @@ import { useBusiness } from '@/app/contexts/BusinessContext'
 import SubscriptionBadge from '@/app/components/subscription/SubscriptionBadge'
 import PlanCard from '@/app/components/subscription/PlanCard'
 import UsageIndicator from '@/app/components/subscription/UsageIndicator'
+import PaymentModal from '@/app/components/subscription/PaymentModal'
+import PaymentStatusModal from '@/app/components/subscription/PaymentStatusModal'
+import PaymentHistory from '@/app/components/subscription/PaymentHistory'
 import { useNotifications } from '@/app/contexts/NotificationContext'
 
 interface Plan {
@@ -65,7 +68,10 @@ export default function SubscriptionPage() {
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null)
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
-  const [activating, setActivating] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [showPaymentStatusModal, setShowPaymentStatusModal] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
+  const [currentTransactionId, setCurrentTransactionId] = useState<number | null>(null)
 
   const translations = {
     en: {
@@ -158,48 +164,29 @@ export default function SubscriptionPage() {
     fetchData()
   }, [currentBusiness, showError])
 
-  const handleActivatePlan = async (planId: number, planName: string) => {
-    if (!currentBusiness) return
+  const handleSelectPlan = (plan: Plan) => {
+    setSelectedPlan(plan)
+    setShowPaymentModal(true)
+  }
 
-    const confirmed = window.confirm(
-      `${t.confirmActivation} ${planName}?\n\n${t.thisWillCharge}`
-    )
+  const handlePaymentInitiated = (transactionId: number) => {
+    setCurrentTransactionId(transactionId)
+    setShowPaymentModal(false)
+    setShowPaymentStatusModal(true)
+  }
 
-    if (!confirmed) return
+  const handlePaymentSuccess = () => {
+    showSuccess('Success', t.activationSuccess)
+    
+    // Reload page to refresh subscription data
+    setTimeout(() => {
+      window.location.reload()
+    }, 2000)
+  }
 
-    try {
-      setActivating(true)
-
-      const response = await fetch('/api/admin/subscription/activate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          businessId: currentBusiness.id,
-          planId,
-          billingCycle: 'MONTHLY',
-        }),
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        showSuccess('Success', t.activationSuccess)
-        
-        // Reload page to refresh subscription data in layout
-        setTimeout(() => {
-          window.location.reload()
-        }, 1000)
-      } else {
-        showError('Error', data.error || t.activationError)
-      }
-    } catch (error) {
-      console.error('Error activating plan:', error)
-      showError('Error', t.activationError)
-    } finally {
-      setActivating(false)
-    }
+  const handleClosePaymentStatus = () => {
+    setShowPaymentStatusModal(false)
+    setCurrentTransactionId(null)
   }
 
   if (loading) {
@@ -336,12 +323,41 @@ export default function SubscriptionPage() {
                 subscriptionData?.status?.isActive === true
               }
               isPopular={index === 1} // Make middle plan popular
-              onSelect={() => handleActivatePlan(plan.id, plan.displayName)}
-              disabled={activating}
+              onSelect={() => handleSelectPlan(plan)}
+              disabled={false}
             />
           ))}
         </div>
       </div>
+
+      {/* Payment History */}
+      {currentBusiness && (
+        <PaymentHistory businessId={currentBusiness.id} />
+      )}
+
+      {/* Payment Modal */}
+      {selectedPlan && currentBusiness && (
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          planId={selectedPlan.id}
+          planName={selectedPlan.displayName}
+          planNameSwahili={selectedPlan.displayNameSwahili}
+          amount={Number(selectedPlan.priceMonthly)}
+          businessId={currentBusiness.id}
+          onPaymentInitiated={handlePaymentInitiated}
+        />
+      )}
+
+      {/* Payment Status Modal */}
+      {currentTransactionId && (
+        <PaymentStatusModal
+          isOpen={showPaymentStatusModal}
+          onClose={handleClosePaymentStatus}
+          transactionId={currentTransactionId}
+          onSuccess={handlePaymentSuccess}
+        />
+      )}
     </div>
   )
 }

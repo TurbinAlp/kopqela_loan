@@ -124,6 +124,15 @@ jobs:
             # Google OAuth (Optional)
             GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+
+            # Azampay Payment Gateway
+            AZAMPAY_APP_NAME=${{ secrets.AZAMPAY_APP_NAME }}
+            AZAMPAY_CLIENT_ID=${{ secrets.AZAMPAY_CLIENT_ID }}
+            AZAMPAY_CLIENT_SECRET=${{ secrets.AZAMPAY_CLIENT_SECRET }}
+            AZAMPAY_API_KEY=${{ secrets.AZAMPAY_API_KEY }}
+            AZAMPAY_BASE_URL=${{ secrets.AZAMPAY_BASE_URL }}
+            AZAMPAY_CALLBACK_URL=${{ secrets.AZAMPAY_CALLBACK_URL }}
+            AZAMPAY_ENV=${{ secrets.AZAMPAY_ENV }}
             EOF
 
       - name: Deploy to VPS
