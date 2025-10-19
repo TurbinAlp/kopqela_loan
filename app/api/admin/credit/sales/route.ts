@@ -125,6 +125,7 @@ export async function GET(request: NextRequest) {
 
       return {
         id: sale.id,
+        customerId: sale.customer.id,
         saleNumber: sale.orderNumber,
         customerName: sale.customer.fullName,
         customerEmail: sale.customer.email || '',

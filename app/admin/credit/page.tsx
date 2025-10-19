@@ -23,9 +23,13 @@ import { useBusiness } from '../../contexts/BusinessContext'
 import { useNotifications } from '../../contexts/NotificationContext'
 import PermissionGate from '../../components/auth/PermissionGate'
 import { exportCreditSalesToExcel, type ExcelCreditSale } from '../../utils/excelExport'
+import SaleDetailsModal from '../../components/admin/credit/SaleDetailsModal'
+import RecordPaymentModal from '../../components/admin/credit/RecordPaymentModal'
+import SendReminderModal from '../../components/admin/credit/SendReminderModal'
 
 interface CreditSale {
   id: number
+  customerId?: number
   saleNumber: string
   customerName: string
   customerEmail: string
@@ -68,7 +72,7 @@ interface PaymentHistory {
 function CreditSalesManagementPageContent() {
   const { language } = useLanguage()
   const { currentBusiness } = useBusiness()
-  const { showError } = useNotifications()
+  const { showError, showSuccess } = useNotifications()
   
   const [isVisible, setIsVisible] = useState(false)
   const [activeTab, setActiveTab] = useState('activeSales')
@@ -76,6 +80,14 @@ function CreditSalesManagementPageContent() {
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [showFilters, setShowFilters] = useState(false)
   const [selectedSales, setSelectedSales] = useState<number[]>([])
+  
+  // Modal states
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [showReminderModal, setShowReminderModal] = useState(false)
+  const [selectedSale, setSelectedSale] = useState<CreditSale | null>(null)
+  const [reminderSales, setReminderSales] = useState<CreditSale[]>([])
+  const [isMarkingPaid, setIsMarkingPaid] = useState(false)
   
   // API Data states
   const [creditSales, setCreditSales] = useState<CreditSale[]>([])
@@ -218,6 +230,85 @@ function CreditSalesManagementPageContent() {
     })
 
     exportCreditSalesToExcel(filteredData as unknown as ExcelCreditSale[], t, 'Credit_Sales_Export')
+  }
+
+  // Modal handlers
+  const handleViewDetails = (sale: CreditSale) => {
+    setSelectedSale(sale)
+    setShowDetailsModal(true)
+  }
+
+  const handleRecordPayment = (sale: CreditSale) => {
+    setSelectedSale(sale)
+    setShowPaymentModal(true)
+  }
+
+  const handleSendReminder = (sale: CreditSale) => {
+    setReminderSales([sale])
+    setShowReminderModal(true)
+  }
+
+  const handleBulkSendReminder = () => {
+    const salesToRemind = creditSales.filter(sale => selectedSales.includes(sale.id))
+    setReminderSales(salesToRemind)
+    setShowReminderModal(true)
+  }
+
+  const handleMarkAsPaid = async () => {
+    if (selectedSales.length === 0) return
+
+    const confirmMessage = language === 'sw'
+      ? `Je, una uhakika unataka kuandika mauzo ${selectedSales.length} kama yamelipwa?`
+      : `Are you sure you want to mark ${selectedSales.length} sale(s) as paid?`
+
+    if (!confirm(confirmMessage)) return
+
+    setIsMarkingPaid(true)
+
+    try {
+      const response = await fetch('/api/admin/credit/sales/bulk-update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          saleIds: selectedSales,
+          businessId: currentBusiness?.id,
+          status: 'PAID'
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Failed to update sales')
+      }
+
+      showSuccess(
+        language === 'sw' ? 'Imefaulu' : 'Success',
+        language === 'sw' 
+          ? `Mauzo ${selectedSales.length} yamewekwa kama yamelipwa`
+          : `${selectedSales.length} sale(s) marked as paid`
+      )
+
+      // Refresh data
+      fetchCreditSales()
+      setSelectedSales([])
+    } catch (error) {
+      console.error('Error marking sales as paid:', error)
+      showError(
+        language === 'sw' ? 'Hitilafu' : 'Error',
+        error instanceof Error ? error.message : (language === 'sw' ? 'Kushindwa kusasisha mauzo' : 'Failed to update sales')
+      )
+    } finally {
+      setIsMarkingPaid(false)
+    }
+  }
+
+  const handlePaymentRecorded = () => {
+    fetchCreditSales()
+    fetchPaymentHistory()
+    fetchAnalytics()
   }
 
   const translations = {
@@ -604,18 +695,25 @@ function CreditSalesManagementPageContent() {
             >
               {/* Bulk Actions */}
               {selectedSales.length > 0 && (
-                <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
-                  <span className="text-sm text-blue-700">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-blue-50 rounded-lg gap-3">
+                  <span className="text-sm text-blue-700 font-medium">
                     {selectedSales.length} {t.selected}
                   </span>
-                  <div className="flex items-center space-x-2">
-                    <button className="flex items-center space-x-2 px-4 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium text-sm">
-                      <CheckIcon className="w-4 h-4" />
-                      <span>{t.markPaid}</span>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <button 
+                      onClick={handleMarkAsPaid}
+                      disabled={isMarkingPaid}
+                      className="flex items-center justify-center space-x-1.5 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <CheckIcon className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate">{isMarkingPaid ? (language === 'sw' ? 'Inasasisha...' : 'Updating...') : t.markPaid}</span>
                     </button>
-                    <button className="flex items-center space-x-2 px-4 py-2.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors font-medium text-sm">
-                      <BellIcon className="w-4 h-4" />
-                      <span>{t.sendReminder}</span>
+                    <button 
+                      onClick={handleBulkSendReminder}
+                      className="flex items-center justify-center space-x-1.5 px-3 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors font-medium text-xs sm:text-sm"
+                    >
+                      <BellIcon className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate">{t.sendReminder}</span>
                     </button>
                   </div>
                 </div>
@@ -639,7 +737,6 @@ function CreditSalesManagementPageContent() {
                           className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
                         />
                       </th>
-                      <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.saleNumber}</th>
                       <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.customer}</th>
                       <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.totalAmount}</th>
                       <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.outstandingBalance}</th>
@@ -692,7 +789,7 @@ function CreditSalesManagementPageContent() {
                       ))
                     ) : filteredCreditSales.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="py-12 text-center text-gray-500">
+                        <td colSpan={7} className="py-12 text-center text-gray-500">
                           <div className="flex flex-col items-center">
                             <BanknotesIcon className="w-12 h-12 text-gray-300 mb-4" />
                             <p className="text-lg font-medium text-gray-600">No credit sales found</p>
@@ -721,9 +818,6 @@ function CreditSalesManagementPageContent() {
                             }}
                             className="rounded border-gray-300 text-teal-600 focus:ring-teal-500"
                           />
-                        </td>
-                        <td className="py-4 px-4 lg:px-6">
-                          <span className="font-mono text-sm font-medium text-gray-800">{sale.saleNumber}</span>
                         </td>
                         <td className="py-4 px-4 lg:px-6">
                           <div className="flex items-center space-x-3">
@@ -771,6 +865,7 @@ function CreditSalesManagementPageContent() {
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
+                              onClick={() => handleViewDetails(sale)}
                               className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                               title={t.viewSaleDetails}
                             >
@@ -779,6 +874,7 @@ function CreditSalesManagementPageContent() {
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
+                              onClick={() => handleRecordPayment(sale)}
                               className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                               title={t.recordPayment}
                             >
@@ -787,6 +883,7 @@ function CreditSalesManagementPageContent() {
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
+                              onClick={() => handleSendReminder(sale)}
                               className="p-2 text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
                               title={t.sendReminder}
                             >
@@ -814,7 +911,6 @@ function CreditSalesManagementPageContent() {
                 <table className="w-full">
                   <thead className="bg-teal-600 border-b border-teal-700">
                     <tr>
-                      <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.saleNumber}</th>
                       <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.customer}</th>
                       <th className="text-left py-3 px-4 font-bold text-white text-sm">Payment Date</th>
                       <th className="text-left py-3 px-4 font-bold text-white text-sm">Amount</th>
@@ -862,7 +958,7 @@ function CreditSalesManagementPageContent() {
                       ))
                     ) : filteredPaymentHistory.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="py-12 text-center text-gray-500">
+                        <td colSpan={6} className="py-12 text-center text-gray-500">
                           <div className="flex flex-col items-center">
                             <ClockIcon className="w-12 h-12 text-gray-300 mb-4" />
                             <p className="text-lg font-medium text-gray-600">No payment history found</p>
@@ -878,9 +974,6 @@ function CreditSalesManagementPageContent() {
                         transition={{ delay: index * 0.05 }}
                         className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                       >
-                        <td className="py-4 px-4 lg:px-6">
-                          <span className="font-mono text-sm font-medium text-gray-800">{payment.saleNumber}</span>
-                        </td>
                         <td className="py-4 px-4 lg:px-6">
                           <div className="flex items-center space-x-3">
                             <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center">
@@ -944,7 +1037,6 @@ function CreditSalesManagementPageContent() {
                 <table className="w-full">
                   <thead className="bg-teal-600 border-b border-teal-700">
                     <tr>
-                      <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.saleNumber}</th>
                       <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.customer}</th>
                       <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.totalAmount}</th>
                       <th className="text-left py-3 px-4 font-bold text-white text-sm">{t.outstandingBalance}</th>
@@ -988,7 +1080,7 @@ function CreditSalesManagementPageContent() {
                       ))
                     ) : overdueSales.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="py-12 text-center text-gray-500">
+                        <td colSpan={6} className="py-12 text-center text-gray-500">
                           <div className="flex flex-col items-center">
                             <ShieldExclamationIcon className="w-12 h-12 text-gray-300 mb-4" />
                             <p className="text-lg font-medium text-gray-600">No overdue sales found</p>
@@ -1004,9 +1096,6 @@ function CreditSalesManagementPageContent() {
                           transition={{ delay: index * 0.05 }}
                           className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                         >
-                          <td className="py-4 px-4 lg:px-6">
-                            <span className="font-mono text-sm font-medium text-gray-800">{sale.saleNumber}</span>
-                          </td>
                           <td className="py-4 px-4 lg:px-6">
                             <div className="flex items-center space-x-3">
                               <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center">
@@ -1043,6 +1132,7 @@ function CreditSalesManagementPageContent() {
                               <motion.button
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.9 }}
+                                onClick={() => handleViewDetails(sale)}
                                 className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                 title={t.viewSaleDetails}
                               >
@@ -1051,6 +1141,7 @@ function CreditSalesManagementPageContent() {
                               <motion.button
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.9 }}
+                                onClick={() => handleSendReminder(sale)}
                                 className="p-2 text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
                                 title={t.sendReminder}
                               >
@@ -1059,6 +1150,7 @@ function CreditSalesManagementPageContent() {
                               <motion.button
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.9 }}
+                                onClick={() => handleRecordPayment(sale)}
                                 className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                                 title={t.recordPayment}
                               >
@@ -1197,6 +1289,44 @@ function CreditSalesManagementPageContent() {
         </div>
       </motion.div>
       </div>
+
+      {/* Modals */}
+      <SaleDetailsModal
+        isOpen={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+        sale={selectedSale}
+      />
+
+      <RecordPaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        sale={selectedSale ? {
+          id: selectedSale.id,
+          saleNumber: selectedSale.saleNumber,
+          customerName: selectedSale.customerName,
+          customerId: selectedSale.customerId || selectedSale.id,
+          totalAmount: selectedSale.totalAmount,
+          amountPaid: selectedSale.amountPaid,
+          outstandingBalance: selectedSale.outstandingBalance
+        } : null}
+        businessId={currentBusiness?.id || 0}
+        onPaymentRecorded={handlePaymentRecorded}
+      />
+
+      <SendReminderModal
+        isOpen={showReminderModal}
+        onClose={() => setShowReminderModal(false)}
+        sales={reminderSales.map(sale => ({
+          id: sale.id,
+          saleNumber: sale.saleNumber,
+          customerName: sale.customerName,
+          customerPhone: sale.customerPhone,
+          customerEmail: sale.customerEmail,
+          outstandingBalance: sale.outstandingBalance,
+          dueDate: sale.dueDate
+        }))}
+        businessId={currentBusiness?.id || 0}
+      />
     </motion.div>
   )
 }
