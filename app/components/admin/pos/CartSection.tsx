@@ -110,7 +110,25 @@ export default function CartSection({
               >
                 <MinusIcon className="w-3 h-3 text-gray-900" />
               </button>
-              <span className="text-sm font-medium w-8 text-center text-gray-900">{item.quantity}</span>
+              <input
+                type="number"
+                min="1"
+                value={item.quantity}
+                onChange={(e) => {
+                  const newQty = parseInt(e.target.value) || 1
+                  if (newQty >= 1) {
+                    onUpdateQuantity(item.id, newQty)
+                  }
+                }}
+                onBlur={(e) => {
+                  // Ensure minimum value of 1
+                  const newQty = parseInt(e.target.value) || 1
+                  if (newQty < 1) {
+                    onUpdateQuantity(item.id, 1)
+                  }
+                }}
+                className="text-sm font-medium w-12 text-center text-gray-900 border border-gray-300 rounded px-1 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
               <button
                 onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
                 className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300 text-gray-900"

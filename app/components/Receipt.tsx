@@ -234,12 +234,16 @@ export default function Receipt({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div 
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
       <motion.div
         initial={{ scale: 0.98, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.98, opacity: 0 }}
-        className="bg-white rounded-xl max-w-lg w-full shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white rounded-xl max-w-lg w-full shadow-lg max-h-[90vh] flex flex-col"
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-200 p-4 rounded-t-xl">
@@ -253,7 +257,7 @@ export default function Receipt({
         </div>
 
         {/* Receipt Content */}
-        <div className="p-4 space-y-5">
+        <div className="p-4 space-y-5 overflow-y-auto flex-1">
           {/* Business Information */}
           <div className="text-center border-b border-gray-200 pb-3">
             <h3 className="text-base font-semibold text-gray-900">{receiptData.businessName}</h3>

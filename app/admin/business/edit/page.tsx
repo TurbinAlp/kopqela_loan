@@ -91,9 +91,11 @@ interface BusinessSettings {
   feature4DescriptionSwahili: string
   feature4Icon: string
   
-  // Credit Terms Settings
-  creditTerms: Array<{
-    months: number
+  // Credit Sales Terms Settings (buy now, pay later - NOT loan system)
+  creditSalesTerms: Array<{
+    duration: string     // '24h', '3d', '1w', '1m' format
+    label: string        // '24 Hours', '3 Days', etc.
+    labelSw: string      // 'Masaa 24', 'Siku 3', etc.
     interestRate: number
     isPopular: boolean
     enabled: boolean
@@ -203,11 +205,12 @@ export default function EditBusinessPage() {
       // Display Settings
       showAboutSection: false,
       
-      // Credit Terms Settings
-      creditTerms: [
-        { months: 3, interestRate: 5, isPopular: false, enabled: true },
-        { months: 6, interestRate: 8, isPopular: true, enabled: true },
-        { months: 12, interestRate: 12, isPopular: false, enabled: true }
+      // Credit Sales Terms Settings (buy now, pay later)
+      creditSalesTerms: [
+        { duration: '24h', label: '24 Hours', labelSw: 'Masaa 24', interestRate: 2, isPopular: true, enabled: true },
+        { duration: '3d', label: '3 Days', labelSw: 'Siku 3', interestRate: 4, isPopular: false, enabled: true },
+        { duration: '7d', label: '7 Days', labelSw: 'Siku 7', interestRate: 5, isPopular: false, enabled: true },
+        { duration: '1m', label: '1 Month', labelSw: 'Mwezi 1', interestRate: 8, isPopular: false, enabled: true }
       ]
   })
 
@@ -525,11 +528,12 @@ export default function EditBusinessPage() {
            estimatedDeliveryTime: business.estimatedDeliveryTime,
            // Display Settings
            showAboutSection: business.showAboutSection ?? false,
-           // Credit Terms Settings
-           creditTerms: business.creditTerms ?? [
-             { months: 3, interestRate: 5, isPopular: false, enabled: true },
-             { months: 6, interestRate: 8, isPopular: true, enabled: true },
-             { months: 12, interestRate: 12, isPopular: false, enabled: true }
+           // Credit Sales Terms Settings (buy now, pay later)
+           creditSalesTerms: business.creditSalesTerms ?? [
+             { duration: '24h', label: '24 Hours', labelSw: 'Masaa 24', interestRate: 2, isPopular: true, enabled: true },
+             { duration: '3d', label: '3 Days', labelSw: 'Siku 3', interestRate: 4, isPopular: false, enabled: true },
+             { duration: '7d', label: '7 Days', labelSw: 'Siku 7', interestRate: 5, isPopular: false, enabled: true },
+             { duration: '1m', label: '1 Month', labelSw: 'Mwezi 1', interestRate: 8, isPopular: false, enabled: true }
            ]
         })
       }
@@ -1773,43 +1777,88 @@ export default function EditBusinessPage() {
               ))}
             </div>
 
-            {/* Credit Terms Settings */}
+            {/* Credit Sales Terms Settings (buy now, pay later) */}
             {settings.enableCreditSales && (
               <div className="border-t border-gray-200 pt-8">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  {language === 'sw' ? 'Mipangilio ya Masharti ya Mkopo' : 'Credit Terms Settings'}
+                  {language === 'sw' ? 'Mipangilio ya Mauzo kwa Mkopo' : 'Credit Sales Payment Terms'}
                 </h3>
                 <p className="text-sm text-gray-600 mb-6">
                   {language === 'sw' 
-                    ? 'Weka muda wa kulipa na viwango vya riba kwa wateja wanaotaka ununuzi kwa mkopo.'
-                    : 'Configure repayment periods and interest rates for customers who want to purchase on credit.'}
+                    ? 'Weka muda wa kulipa kwa wateja wanaonunua kwa mkopo (lipa baadaye). Riba ni hiari - mtumiaji anaweza kuchagua kuitumia POS.'
+                    : 'Configure payment durations for customers who buy on credit (pay later). Interest is optional - users can choose to apply it in POS.'}
                 </p>
 
                 <div className="space-y-4">
-                  {settings.creditTerms.map((term, index) => (
+                  {settings.creditSalesTerms.map((term, index) => {
+                    // Duration map for label updates
+                    const durationMap: { [key: string]: { label: string, labelSw: string } } = {
+                      '24h': { label: '24 Hours', labelSw: 'Masaa 24' },
+                      '48h': { label: '48 Hours', labelSw: 'Masaa 48' },
+                      '72h': { label: '72 Hours', labelSw: 'Masaa 72' },
+                      '1d': { label: '1 Day', labelSw: 'Siku 1' },
+                      '2d': { label: '2 Days', labelSw: 'Siku 2' },
+                      '3d': { label: '3 Days', labelSw: 'Siku 3' },
+                      '7d': { label: '7 Days', labelSw: 'Siku 7' },
+                      '14d': { label: '14 Days', labelSw: 'Siku 14' },
+                      '3w': { label: '3 Weeks', labelSw: 'Wiki 3' },
+                      '4w': { label: '4 Weeks', labelSw: 'Wiki 4' },
+                      '1m': { label: '1 Month', labelSw: 'Mwezi 1' },
+                      '2m': { label: '2 Months', labelSw: 'Miezi 2' },
+                      '3m': { label: '3 Months', labelSw: 'Miezi 3' },
+                      '6m': { label: '6 Months', labelSw: 'Miezi 6' },
+                      '12m': { label: '12 Months', labelSw: 'Miezi 12' }
+                    }
+
+                    return (
                     <div key={index} className="p-4 border border-gray-200 rounded-lg">
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                          {/* Duration Selector */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {language === 'sw' ? 'Miezi' : 'Months'}
+                              {language === 'sw' ? 'Muda wa Kulipa' : 'Payment Duration'}
                           </label>
-                          <input
-                            type="number"
-                            min="1"
-                            max="60"
-                            value={term.months}
+                            <select
+                              value={term.duration}
                             onChange={(e) => {
-                              const newTerms = [...settings.creditTerms]
-                              newTerms[index].months = parseInt(e.target.value)
-                              setSettings(prev => ({ ...prev, creditTerms: newTerms }))
+                                const newTerms = [...settings.creditSalesTerms]
+                                newTerms[index].duration = e.target.value
+                                newTerms[index].label = durationMap[e.target.value].label
+                                newTerms[index].labelSw = durationMap[e.target.value].labelSw
+                                setSettings(prev => ({ ...prev, creditSalesTerms: newTerms }))
                             }}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
-                          />
+                            >
+                              <optgroup label={language === 'sw' ? 'Masaa' : 'Hours'}>
+                                <option value="24h">24 {language === 'sw' ? 'Masaa' : 'Hours'}</option>
+                                <option value="48h">48 {language === 'sw' ? 'Masaa' : 'Hours'}</option>
+                                <option value="72h">72 {language === 'sw' ? 'Masaa' : 'Hours'}</option>
+                              </optgroup>
+                              <optgroup label={language === 'sw' ? 'Siku' : 'Days'}>
+                                <option value="1d">1 {language === 'sw' ? 'Siku' : 'Day'}</option>
+                                <option value="2d">2 {language === 'sw' ? 'Siku' : 'Days'}</option>
+                                <option value="3d">3 {language === 'sw' ? 'Siku' : 'Days'}</option>
+                                <option value="7d">7 {language === 'sw' ? 'Siku' : 'Days'}</option>
+                                <option value="14d">14 {language === 'sw' ? 'Siku' : 'Days'}</option>
+                              </optgroup>
+                              <optgroup label={language === 'sw' ? 'Wiki' : 'Weeks'}>
+                                <option value="3w">3 {language === 'sw' ? 'Wiki' : 'Weeks'}</option>
+                                <option value="4w">4 {language === 'sw' ? 'Wiki' : 'Weeks'}</option>
+                              </optgroup>
+                              <optgroup label={language === 'sw' ? 'Miezi' : 'Months'}>
+                                <option value="1m">1 {language === 'sw' ? 'Mwezi' : 'Month'}</option>
+                                <option value="2m">2 {language === 'sw' ? 'Miezi' : 'Months'}</option>
+                                <option value="3m">3 {language === 'sw' ? 'Miezi' : 'Months'}</option>
+                                <option value="6m">6 {language === 'sw' ? 'Miezi' : 'Months'}</option>
+                                <option value="12m">12 {language === 'sw' ? 'Miezi' : 'Months'}</option>
+                              </optgroup>
+                            </select>
                         </div>
                         
+                          {/* Interest Rate */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {language === 'sw' ? 'Riba (%)' : 'Interest Rate (%)'}
+                              {language === 'sw' ? 'Riba (%) - Hiari' : 'Interest Rate (%) - Optional'}
                           </label>
                           <input
                             type="number"
@@ -1818,23 +1867,29 @@ export default function EditBusinessPage() {
                             step="0.1"
                             value={term.interestRate}
                             onChange={(e) => {
-                              const newTerms = [...settings.creditTerms]
+                                const newTerms = [...settings.creditSalesTerms]
                               newTerms[index].interestRate = parseFloat(e.target.value)
-                              setSettings(prev => ({ ...prev, creditTerms: newTerms }))
+                                setSettings(prev => ({ ...prev, creditSalesTerms: newTerms }))
                             }}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-gray-900"
                           />
+                            <p className="text-xs text-gray-500 mt-1">
+                              {language === 'sw' 
+                                ? 'Weka 0 kama hutaki riba'
+                                : 'Set to 0 for no interest'}
+                            </p>
                         </div>
 
+                          {/* Popular Checkbox */}
                         <div className="flex items-center space-x-4">
                           <label className="flex items-center">
                             <input
                               type="checkbox"
                               checked={term.isPopular}
                               onChange={(e) => {
-                                const newTerms = [...settings.creditTerms]
+                                  const newTerms = [...settings.creditSalesTerms]
                                 newTerms[index].isPopular = e.target.checked
-                                setSettings(prev => ({ ...prev, creditTerms: newTerms }))
+                                  setSettings(prev => ({ ...prev, creditSalesTerms: newTerms }))
                               }}
                               className="w-4 h-4 text-teal-600 bg-gray-100 border-gray-300 rounded focus:ring-teal-500"
                             />
@@ -1844,15 +1899,16 @@ export default function EditBusinessPage() {
                           </label>
                         </div>
 
+                          {/* Enabled & Remove */}
                         <div className="flex items-center justify-between">
                           <label className="flex items-center">
                             <input
                               type="checkbox"
                               checked={term.enabled}
                               onChange={(e) => {
-                                const newTerms = [...settings.creditTerms]
+                                  const newTerms = [...settings.creditSalesTerms]
                                 newTerms[index].enabled = e.target.checked
-                                setSettings(prev => ({ ...prev, creditTerms: newTerms }))
+                                  setSettings(prev => ({ ...prev, creditSalesTerms: newTerms }))
                               }}
                               className="w-4 h-4 text-teal-600 bg-gray-100 border-gray-300 rounded focus:ring-teal-500"
                             />
@@ -1861,11 +1917,11 @@ export default function EditBusinessPage() {
                             </span>
                           </label>
                           
-                          {settings.creditTerms.length > 1 && (
+                            {settings.creditSalesTerms.length > 1 && (
                             <button
                               onClick={() => {
-                                const newTerms = settings.creditTerms.filter((_, i) => i !== index)
-                                setSettings(prev => ({ ...prev, creditTerms: newTerms }))
+                                  const newTerms = settings.creditSalesTerms.filter((_, i) => i !== index)
+                                  setSettings(prev => ({ ...prev, creditSalesTerms: newTerms }))
                               }}
                               className="text-red-600 hover:text-red-700 text-sm"
                             >
@@ -1875,21 +1931,25 @@ export default function EditBusinessPage() {
                         </div>
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
 
+                  {/* Add New Term Button */}
                   <button
                     onClick={() => {
-                      const newTerms = [...settings.creditTerms, {
-                        months: 6,
-                        interestRate: 10,
+                      const newTerms = [...settings.creditSalesTerms, {
+                        duration: '1m',
+                        label: '1 Month',
+                        labelSw: 'Mwezi 1',
+                        interestRate: 8,
                         isPopular: false,
                         enabled: true
                       }]
-                      setSettings(prev => ({ ...prev, creditTerms: newTerms }))
+                      setSettings(prev => ({ ...prev, creditSalesTerms: newTerms }))
                     }}
                     className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                   >
-                    + {language === 'sw' ? 'Ongeza Muda wa Malipo' : 'Add Payment Period'}
+                    + {language === 'sw' ? 'Ongeza Muda wa Kulipa' : 'Add Payment Duration'}
                   </button>
                 </div>
               </div>

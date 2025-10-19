@@ -8,7 +8,7 @@ interface Customer {
   id: number
   name: string
   phone: string
-  email?: string
+  email?: string | null
   creditLimit?: number
   outstandingBalance?: number
 }

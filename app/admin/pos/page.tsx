@@ -8,11 +8,11 @@ import { useBusiness } from '../../contexts/BusinessContext'
 import { useNotifications } from '../../contexts/NotificationContext'
 import PermissionGate from '../../components/auth/PermissionGate'
 import PaymentSection from '../../components/admin/pos/PaymentSection'
-import ProductsSection from '../../components/admin/pos/ProductsSection'
+import ProductSelectionModal from '../../components/admin/pos/ProductSelectionModal'
 import ServicesSection from '../../components/admin/pos/ServicesSection'
 import CustomerSection from '../../components/admin/pos/CustomerSection'
 import CartSection from '../../components/admin/pos/CartSection'
-import AddCustomerModal from '../../components/AddCustomerModal'
+import CustomerSearchModal from '../../components/admin/pos/CustomerSearchModal'
 import Receipt from '../../components/Receipt'
 
 interface Product {
@@ -41,7 +41,7 @@ interface Customer {
   id: number
   name: string
   phone: string
-  email?: string
+  email?: string | null
   creditLimit?: number
   outstandingBalance?: number
 }
@@ -75,22 +75,6 @@ interface ApiCustomer {
   email?: string
   creditLimit?: number
   outstandingBalance?: number
-}
-
-interface ApiCategory {
-  id: number
-  name: string
-  nameSwahili?: string
-  description?: string
-  productCount?: number
-}
-
-interface Category {
-  id: number
-  name: string
-  nameSwahili?: string
-  description?: string
-  productCount?: number
 }
 
 interface ServiceItem {
@@ -157,10 +141,8 @@ function POSSystemContent() {
   // State management
   const [saleMode, setSaleMode] = useState<'PRODUCT' | 'SERVICE'>('PRODUCT')
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedServiceType, setSelectedServiceType] = useState('all')
   const [products, setProducts] = useState<Product[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
   const [services, setServices] = useState<Service[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
@@ -174,7 +156,20 @@ function POSSystemContent() {
   const [partialAmount, setPartialAmount] = useState('')
   const [partialPercentage, setPartialPercentage] = useState(50)
   const [dueDate, setDueDate] = useState('')
-  const [creditPlan, setCreditPlan] = useState('6') // months
+  const [creditPlan, setCreditPlan] = useState('24h') // Default: 24 hours
+  const [applyInterest, setApplyInterest] = useState(false) // Optional interest - default OFF
+  const [creditSalesTerms, setCreditSalesTerms] = useState<Array<{
+    duration: string
+    label: string
+    labelSw: string
+    interestRate: number
+    isPopular: boolean
+    enabled: boolean
+  }>>([
+    { duration: '24h', label: '24 Hours', labelSw: 'Masaa 24', interestRate: 2, isPopular: true, enabled: true },
+    { duration: '3d', label: '3 Days', labelSw: 'Siku 3', interestRate: 4, isPopular: false, enabled: true },
+    { duration: '1m', label: '1 Month', labelSw: 'Mwezi 1', interestRate: 8, isPopular: false, enabled: true }
+  ])
   const [isProcessing, setIsProcessing] = useState(false)
   const [showReceipt, setShowReceipt] = useState(false)
   const [lastTransaction, setLastTransaction] = useState<Transaction | null>(null)
@@ -182,6 +177,7 @@ function POSSystemContent() {
   const [includeTax, setIncludeTax] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(true)
   const [orderType, setOrderType] = useState<'RETAIL' | 'WHOLESALE'>('RETAIL')
+  const [showProductModal, setShowProductModal] = useState(false)
   const businessType = String(currentBusiness?.businessType || 'RETAIL').toUpperCase()
   const allowOrderTypeSwitch = businessType === 'BOTH'
 
@@ -320,6 +316,30 @@ function POSSystemContent() {
 
   const t = translations[language]
 
+  // Handler to switch from WALKIN to SAVED when partial/credit selected
+  const handlePaymentMethodChange = (method: 'full' | 'partial' | 'credit') => {
+    // If trying to use partial/credit in WALKIN mode
+    if (customerMode === 'WALKIN' && (method === 'partial' || method === 'credit')) {
+      // Auto-switch to SAVED mode
+      setCustomerMode('SAVED')
+      // Open customer selection modal
+      setShowCustomerModal(true)
+      // Set the payment method (will be applied after customer selected)
+      setPaymentMethod(method)
+      
+      // Show helpful notification
+      showSuccess(
+        language === 'sw' ? 'Chagua Mteja' : 'Select Customer',
+        language === 'sw' 
+          ? 'Tafadhali chagua mteja aliyehifadhiwa kwa malipo haya.'
+          : 'Please select a saved customer for this payment type.'
+      )
+    } else {
+      // Normal flow for full payment or already in SAVED mode
+      setPaymentMethod(method)
+    }
+  }
+
   useEffect(() => {
     const fetchData = async () => {
       if (!currentBusiness?.id) return
@@ -373,22 +393,6 @@ function POSSystemContent() {
           setCustomers(transformedCustomers)
         }
 
-        // ==============Fetch categories from API=====================
-        const categoriesResponse = await fetch(`/api/admin/categories?businessId=${currentBusiness.id}`)
-        const categoriesResult = await categoriesResponse.json()
-        
-        if (categoriesResult.success) {
-          // Transform API data to match POS interface
-          const transformedCategories: Category[] = categoriesResult.data.categories.map((category: ApiCategory) => ({
-            id: category.id,
-            name: category.name,
-            nameSwahili: category.nameSwahili,
-            description: category.description,
-            productCount: category.productCount || 0
-          }))
-          setCategories(transformedCategories)
-        }
-
         // ==============Fetch services from API=====================
         const servicesResponse = await fetch(`/api/admin/services?businessId=${currentBusiness.id}&includeItems=true`)
         const servicesResult = await servicesResponse.json()
@@ -410,6 +414,14 @@ function POSSystemContent() {
             }))
           }))
           setServices(transformedServices)
+        }
+
+        // ==============Fetch credit sales terms from business settings=====================
+        const businessSettingsResponse = await fetch(`/api/admin/business/settings?businessId=${currentBusiness.id}`)
+        const businessSettingsResult = await businessSettingsResponse.json()
+        
+        if (businessSettingsResult.success && businessSettingsResult.data.creditSalesTerms) {
+          setCreditSalesTerms(businessSettingsResult.data.creditSalesTerms)
         }
       } catch (error) {
         console.error('Error fetching POS data:', error)
@@ -486,7 +498,7 @@ function POSSystemContent() {
   }
 
   // Cart functions
-  const addToCart = (product: Product) => {
+  const addToCart = (product: Product, quantity: number = 1) => {
     const existingItem = cart.find(item => item.id === product.id && item.itemType !== 'SERVICE')
 
     // Get the correct price based on order type
@@ -495,16 +507,23 @@ function POSSystemContent() {
       : product.price
 
     if (existingItem) {
-      updateQuantity(product.id, existingItem.quantity + 1)
+      updateQuantity(product.id, existingItem.quantity + quantity)
     } else {
       const cartItem: CartItem = {
         ...product,
-        quantity: 1,
-        subtotal: Number(itemPrice), // Ensure subtotal is a number
+        quantity,
+        subtotal: Number(itemPrice) * quantity, // Ensure subtotal is a number
         itemType: 'PRODUCT'
       }
       setCart([...cart, cartItem])
     }
+  }
+
+  // Batch add products to cart from modal
+  const handleBatchAddToCart = (items: Array<{ product: Product, quantity: number }>) => {
+    items.forEach(item => {
+      addToCart(item.product, item.quantity)
+    })
   }
 
   const addServiceToCart = (serviceItem: ServiceItem, customDuration?: number, customUnit?: string) => {
@@ -611,6 +630,43 @@ function POSSystemContent() {
   const partialCalculatedAmount = baseTotal * (partialPercentage / 100)
   const finalTotal = paymentMethod === 'partial' ? partialCalculatedAmount : baseTotal
 
+  // Helper: Calculate interest rate from credit plan
+  const getInterestRateFromPlan = (plan: string): number => {
+    if (!applyInterest) return 0 // No interest if not enabled
+    
+    const creditDurationOptions = [
+      { value: '24h', interest: 2 }, { value: '48h', interest: 2.5 }, { value: '72h', interest: 3 },
+      { value: '1d', interest: 3 }, { value: '2d', interest: 3.5 }, { value: '3d', interest: 4 },
+      { value: '7d', interest: 5 }, { value: '14d', interest: 6 },
+      { value: '3w', interest: 7 }, { value: '4w', interest: 8 },
+      { value: '1m', interest: 8 }, { value: '2m', interest: 9 }, { value: '3m', interest: 10 },
+      { value: '6m', interest: 12 }, { value: '12m', interest: 15 }
+    ]
+    
+    const option = creditDurationOptions.find(opt => opt.value === plan)
+    return option ? option.interest : 0
+  }
+
+  // Helper: Calculate due date from credit plan
+  const calculateDueDateFromPlan = (plan: string): string => {
+    const now = new Date()
+    const match = plan.match(/^(\d+)([hdwm])$/)
+    
+    if (!match) return now.toISOString()
+    
+    const value = parseInt(match[1])
+    const unit = match[2]
+    
+    switch (unit) {
+      case 'h': now.setHours(now.getHours() + value); break
+      case 'd': now.setDate(now.getDate() + value); break
+      case 'w': now.setDate(now.getDate() + (value * 7)); break
+      case 'm': now.setMonth(now.getMonth() + value); break
+    }
+    
+    return now.toISOString()
+  }
+
   // Payment processing
   const processPayment = async () => {
     if (cart.length === 0) {
@@ -624,11 +680,18 @@ function POSSystemContent() {
       return
     }
 
-    if (paymentMethod === 'partial' && partialPercentage < 30) {
-      showError(t.paymentFailed, language === 'sw' ? 'Malipo ya sehemu lazima yawe angalau 30% ya jumla' : 'Partial payment must be at least 30% of total')
+    // Validate customer requirement for partial/credit (safety net)
+    if ((paymentMethod === 'partial' || paymentMethod === 'credit') && !selectedCustomer) {
+      showError(
+        language === 'sw' ? 'Mteja Anahitajika' : 'Customer Required',
+        language === 'sw' 
+          ? 'Tafadhali chagua mteja kwa malipo ya nusu au mkopo.'
+          : 'Please select a customer for partial or credit payments.'
+      )
       return
     }
 
+    // Partial payment validation (removed minimum percentage restriction)
     if (paymentMethod === 'partial' && !dueDate) {
       showError(t.paymentFailed, language === 'sw' ? 'Tafadhali chagua tarehe ya kumaliza malipo' : 'Please select a due date for the remaining balance')
       return
@@ -695,9 +758,10 @@ function POSSystemContent() {
         }),
         ...(paymentMethod === 'credit' && {
           creditSale: {
-            creditPlan: currentCreditPlan,
-            interestRate: currentCreditPlan === '3' ? 5 : currentCreditPlan === '6' ? 8 : currentCreditPlan === '12' ? 12 : 15,
-            termMonths: parseInt(currentCreditPlan)
+            creditPlan: currentCreditPlan,  // e.g., '24h', '3d', '1w', '1m'
+            interestRate: getInterestRateFromPlan(currentCreditPlan),  // 0 if applyInterest is false
+            dueDate: calculateDueDateFromPlan(currentCreditPlan),
+            applyInterest: applyInterest  // Flag to indicate if interest should be applied
           }
         }),
         transactionId: `TXN-${Date.now()}`,
@@ -818,7 +882,6 @@ function POSSystemContent() {
                     onClick={() => {
                       setSaleMode(mode.value)
                       setSearchQuery('')
-                      setSelectedCategory('all')
                     }}
                     className={`flex-1 px-4 py-3 rounded-lg border text-center transition-all ${
                       saleMode === mode.value
@@ -836,26 +899,51 @@ function POSSystemContent() {
             </div>
 
             {saleMode === 'PRODUCT' ? (
-              <ProductsSection
-                products={products}
-                categories={categories}
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                selectedCategory={selectedCategory}
-                setSelectedCategory={setSelectedCategory}
-                onAddToCart={addToCart}
-                businessType={allowOrderTypeSwitch ? 'BOTH' : (orderType as 'RETAIL' | 'WHOLESALE')}
-                orderType={orderType}
-              />
+              <>
+                <div className="bg-white rounded-xl p-6 shadow-sm">
+                  <button
+                    onClick={() => setShowProductModal(true)}
+                    className="w-full py-8 border-2 border-dashed border-gray-300 rounded-lg hover:border-teal-500 hover:bg-teal-50 transition-colors flex flex-col items-center justify-center gap-2"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-gray-400">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                    <span className="text-lg font-medium text-gray-700">
+                      {language === 'sw' ? 'Ongeza Bidhaa' : 'Add Products'}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      {language === 'sw' ? 'Bofya ili kuchagua bidhaa' : 'Click to select products'}
+                    </span>
+                  </button>
+                </div>
+                
+                {/* Cart Section - Moved here */}
+                <CartSection
+                  cart={cart}
+                  orderType={orderType}
+                  onUpdateQuantity={updateQuantity}
+                  onRemoveFromCart={removeFromCart}
+                />
+              </>
             ) : (
-              <ServicesSection
-                services={services}
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                selectedServiceType={selectedServiceType}
-                setSelectedServiceType={setSelectedServiceType}
-                onAddToCart={addServiceToCart}
-              />
+              <>
+                {/* Cart Section for Services too */}
+                <CartSection
+                  cart={cart}
+                  orderType={orderType}
+                  onUpdateQuantity={updateQuantity}
+                  onRemoveFromCart={removeFromCart}
+                />
+                
+                <ServicesSection
+                  services={services}
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                  selectedServiceType={selectedServiceType}
+                  setSelectedServiceType={setSelectedServiceType}
+                  onAddToCart={addServiceToCart}
+                />
+              </>
             )}
           </div>
 
@@ -905,18 +993,12 @@ function POSSystemContent() {
               </div>
             )}
 
-            <CartSection
-              cart={cart}
-              orderType={orderType}
-              onUpdateQuantity={updateQuantity}
-              onRemoveFromCart={removeFromCart}
-            />
-
             {/* Payment Summary */}
             <PaymentSection
               cart={cart}
               paymentMethod={paymentMethod}
               setPaymentMethod={setPaymentMethod}
+              onPaymentMethodChange={handlePaymentMethodChange}
               actualPaymentMethod={actualPaymentMethod}
               setActualPaymentMethod={setActualPaymentMethod}
               partialPaymentMethod={partialPaymentMethod}
@@ -940,28 +1022,47 @@ function POSSystemContent() {
                 { value: 'mobile', label: 'Mobile Money', labelSwahili: 'Fedha za Simu', icon: 'DevicePhoneMobileIcon' },
                 { value: 'bank', label: 'Bank Transfer', labelSwahili: 'Uhamisho wa Benki', icon: 'BuildingLibraryIcon' }
               ]}
+              applyInterest={applyInterest}
+              setApplyInterest={setApplyInterest}
+              creditSalesTerms={creditSalesTerms}
             />
           </div>
         </div>
 
-        {/* Add Customer Modal */}
+        {/* Customer Search/Select Modal */}
         {showCustomerModal && (
-          <AddCustomerModal
+          <CustomerSearchModal
             isOpen={showCustomerModal}
             onClose={() => setShowCustomerModal(false)}
+            customers={customers}
+            onSelectCustomer={(customer) => {
+              setSelectedCustomer(customer)
+              setShowCustomerModal(false)
+            }}
             onCustomerAdded={(newCustomer) => {
               // Convert customer to match POS interface
               const posCustomer = {
                 ...newCustomer,
                 email: newCustomer.email || undefined,
                 creditLimit: 0,
-                outstandingBalance: 0,
-                creditScore: 'fair' as const
+                outstandingBalance: 0
               }
-              setCustomers([...customers, posCustomer])
+              // Add to customers list
+              setCustomers(prev => [...prev, posCustomer])
+              // Auto-select the new customer
               setSelectedCustomer(posCustomer)
-              setShowCustomerModal(false)
             }}
+          />
+        )}
+
+        {/* Product Selection Modal */}
+        {showProductModal && (
+          <ProductSelectionModal
+            isOpen={showProductModal}
+            onClose={() => setShowProductModal(false)}
+            products={products}
+            onAddToCart={handleBatchAddToCart}
+            orderType={orderType}
           />
         )}
 
@@ -979,7 +1080,7 @@ function POSSystemContent() {
                 businessAddress: currentBusiness?.businessSetting?.address,
                 customerName: lastTransaction.customer,
                 customerPhone: selectedCustomer?.phone,
-                customerEmail: selectedCustomer?.email,
+                customerEmail: selectedCustomer?.email || undefined,
                 items: lastTransaction.items.map(item => ({
                   id: item.id,
                   name: item.name,

@@ -239,6 +239,7 @@ model BusinessSetting {
   freeDeliveryMinimum        Decimal? @map("free_delivery_minimum") @db.Decimal(10, 2)
   paymentMethods             Json?    @map("payment_methods")
   creditTerms                Json?    @map("credit_terms")
+  creditSalesTerms           Json?    @map("credit_sales_terms")  // Flexible credit sales payment terms (buy now, pay later)
   showAboutSection           Boolean? @default(false) @map("show_about_section")
   business                   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 

@@ -108,6 +108,11 @@ export async function GET(request: NextRequest) {
         { value: 'mobile', label: 'Mobile Money', labelSwahili: 'Fedha za Simu', icon: 'DevicePhoneMobileIcon' },
         { value: 'bank', label: 'Bank Transfer', labelSwahili: 'Uhamisho wa Benki', icon: 'BuildingLibraryIcon' }
       ],
+      creditSalesTerms: business.businessSetting?.creditSalesTerms || [
+        { duration: '24h', label: '24 Hours', labelSw: 'Masaa 24', interestRate: 2, isPopular: true, enabled: true },
+        { duration: '3d', label: '3 Days', labelSw: 'Siku 3', interestRate: 4, isPopular: false, enabled: true },
+        { duration: '1m', label: '1 Month', labelSw: 'Mwezi 1', interestRate: 8, isPopular: false, enabled: true }
+      ],
       invoicePrefix: business.businessSetting?.invoicePrefix || 'INV',
       orderPrefix: business.businessSetting?.orderPrefix || 'ORD',
       receiptFooterMessage: business.businessSetting?.receiptFooterMessage || ''

@@ -46,9 +46,10 @@ const posSalesSchema = z.object({
   
   // Credit sale details (optional) 
   creditSale: z.object({
-    creditPlan: z.string().min(1, 'Credit plan is required'),
-    interestRate: z.number().nonnegative('Interest rate must be non-negative').default(0),
-    termMonths: z.number().positive('Term months must be positive')
+    creditPlan: z.string().min(1, 'Credit plan is required'), // e.g., '24h', '3d', '1w', '1m'
+    interestRate: z.number().nonnegative('Interest rate must be non-negative').default(0), // 0 if no interest
+    dueDate: z.string().optional(), // ISO date string for when payment is due
+    applyInterest: z.boolean().default(false) // Flag indicating if interest should be applied
   }).optional(),
   
   // Transaction metadata
