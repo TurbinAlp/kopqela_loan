@@ -109,16 +109,11 @@ jobs:
             # GitHub Container Registry
             GITHUB_REPOSITORY=${{ steps.repo-name.outputs.lowercase }}
 
-            # Traefik Configuration
-            TRAEFIK_ACME_EMAIL=${{ secrets.TRAEFIK_ACME_EMAIL }}
-            CF_DNS_API_TOKEN=${{ secrets.CF_DNS_API_TOKEN }}
-            TRAEFIK_DASHBOARD_AUTH=${{ secrets.TRAEFIK_DASHBOARD_AUTH }}
-
             # Email/SMTP Configuration
             SMTP_USER=${{ secrets.SMTP_USER }}
             SMTP_PASS=${{ secrets.SMTP_PASS }}
             SMTP_HOST=${{ secrets.SMTP_HOST }}
-            SMTP_PORT=${{ secrets.SMTP_PORT }}
+            SMTP_PORT=${{ secrets.SMTP_PORT }}  
             EMAIL_FROM=${{ secrets.EMAIL_FROM }}
 
             # Google OAuth (Optional)
