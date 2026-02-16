@@ -1,51 +1,5 @@
 name: kopqela
 services:
-<<<<<<< HEAD
-=======
-  # Traefik reverse proxy for SSL/HTTPS
-  traefik:
-    image: traefik:v3.1
-    container_name: traefik
-    restart: unless-stopped
-    user: root
-    command:
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
-      - --certificatesresolvers.cloudflare.acme.email=${TRAEFIK_ACME_EMAIL}
-      - --certificatesresolvers.cloudflare.acme.storage=/letsencrypt/acme.json
-      - --certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare
-      - --certificatesresolvers.cloudflare.acme.dnschallenge.delaybeforecheck=0
-      - --api.dashboard=true
-      - --api.insecure=true
-    environment:
-      - CF_DNS_API_TOKEN=${CF_DNS_API_TOKEN}
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - traefik-letsencrypt:/letsencrypt
-    networks:
-      - traefik
-    labels:
-      - "traefik.enable=true"
-      # Global redirect middleware
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
-      # Dashboard HTTP Router (redirects to HTTPS)
-      - "traefik.http.routers.dashboard-web.rule=Host(`traefik.${APP_DOMAIN}`)"
-      - "traefik.http.routers.dashboard-web.entrypoints=web"
-      - "traefik.http.routers.dashboard-web.middlewares=redirect-to-https"
-      # Dashboard HTTPS Router
-      - "traefik.http.routers.dashboard.rule=Host(`traefik.${APP_DOMAIN}`)"
-      - "traefik.http.routers.dashboard.entrypoints=websecure"
-      - "traefik.http.routers.dashboard.tls=true"
-      - "traefik.http.routers.dashboard.tls.certresolver=cloudflare"
-      - "traefik.http.routers.dashboard.service=api@internal"
-      - "traefik.http.routers.dashboard.middlewares=dashboard-auth"
-      # Dashboard auth
-      - "traefik.http.middlewares.dashboard-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"
-
->>>>>>> 639915f49882948bd558ffa51ca380e02fc16a16
   # Kopqela Application
   app:
     image: ghcr.io/${GITHUB_REPOSITORY}:latest
@@ -93,8 +47,4 @@ volumes:
 
 networks:
   traefik:
-<<<<<<< HEAD
     external: true
-=======
-    driver: bridge
->>>>>>> 639915f49882948bd558ffa51ca380e02fc16a16
